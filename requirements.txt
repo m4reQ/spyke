@@ -1,0 +1,5 @@
+pygame==2.0.0.dev6
+PyGLM
+PyOgg
+PyOpenAL
+PyOpenGL

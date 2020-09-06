@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# visual studio files
+.vs/
+.vscode/
+
+# test files
+fonts/
+textures/
+launch.bat
+test.py
