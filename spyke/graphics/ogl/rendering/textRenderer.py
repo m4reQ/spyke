@@ -79,7 +79,7 @@ class TextRenderer(object):
 
 		self.drawsCount += 1
 
-	def DrawText(self, pos: tuple, color: tuple, font: Font, size: int, text: str):
+	def DrawText(self, pos: glm.vec3, color: tuple, font: Font, size: int, text: str):
 		advanceSum = 0
 
 		glyphSize = size / font.baseSize
@@ -95,12 +95,12 @@ class TextRenderer(object):
 			width = glyph.Width / self.winSize[0] * glyphSize
 			height = glyph.Height / self.winSize[1] * glyphSize
 
-			xPos = pos[0] + advance
+			xPos = pos.x + advance
 			charData = [
-				xPos, pos[1],                  pos[2], color[0], color[1], color[2], color[3], glyph.X, glyph.Y + glyph.TexHeight,					font.TextureIndex,
-				xPos, pos[1] + height,         pos[2], color[0], color[1], color[2], color[3], glyph.X, glyph.Y,									font.TextureIndex,
-				xPos + width, pos[1] + height, pos[2], color[0], color[1], color[2], color[3], glyph.X + glyph.TexWidth, glyph.Y,					font.TextureIndex,
-				xPos + width, pos[1],          pos[2], color[0], color[1], color[2], color[3], glyph.X + glyph.TexWidth, glyph.Y + glyph.TexHeight, font.TextureIndex]
+				xPos, pos.y,                  pos[2], color[0], color[1], color[2], color[3], glyph.X, glyph.Y + glyph.TexHeight,					font.TextureIndex,
+				xPos, pos.y + height,         pos[2], color[0], color[1], color[2], color[3], glyph.X, glyph.Y,										font.TextureIndex,
+				xPos + width, pos.y + height, pos[2], color[0], color[1], color[2], color[3], glyph.X + glyph.TexWidth, glyph.Y,					font.TextureIndex,
+				xPos + width, pos.y,          pos[2], color[0], color[1], color[2], color[3], glyph.X + glyph.TexWidth, glyph.Y + glyph.TexHeight, 	font.TextureIndex]
 			
 			advanceSum += glyph.Advance
 

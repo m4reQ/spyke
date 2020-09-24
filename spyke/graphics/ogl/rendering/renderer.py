@@ -44,9 +44,9 @@ class Renderer(object):
 		except AttributeError:
 			pass
 	
-	def RenderQuad(self, item):
+	def RenderQuad(self, transform, color, texHandle, tilingFactor):
 		try:
-			self.__basicRenderer.Render(item)
+			self.__basicRenderer.RenderQuad(transform, color, texHandle, tilingFactor)
 		except AttributeError:
 			pass
 	

@@ -1,8 +1,9 @@
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
+from ...textureHandle import TextureHandle
 from ....enums import VertexAttribType, GLType
-from ....transform import QuadVertices
+from ....transform import TransformQuadVertices
 from ....debug import Log, LogLevel
 from ....utils import GetQuadIndexData, GetGLTypeSize, GL_FLOAT_SIZE
 
@@ -71,22 +72,18 @@ class BasicRenderer:
 
 		self.drawsCount += 1
 	
-	def Render(self, item):
+	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
 		if self.__vertexCount + 4 > BasicRenderer.MaxVertexCount:
 			self.__Flush()
 		
-		translatedVerts = [
-			item.Transform * QuadVertices[0],
-			item.Transform * QuadVertices[1],
-			item.Transform * QuadVertices[2],
-			item.Transform * QuadVertices[3]]
+		translatedVerts = TransformQuadVertices(transform.to_tuple())
 		
 		data = [
-			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, item.Color[0], item.Color[1], item.Color[2], item.Color[3], 0, item.TexCoord[1], 					item.TexId, item.TilingFactor[0], item.TilingFactor[1],
-			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, item.Color[0], item.Color[1], item.Color[2], item.Color[3], 0, 0, 								item.TexId, item.TilingFactor[0], item.TilingFactor[1],
-			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, item.Color[0], item.Color[1], item.Color[2], item.Color[3], item.TexCoord[0], 0, 					item.TexId, item.TilingFactor[0], item.TilingFactor[1],
-			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, item.Color[0], item.Color[1], item.Color[2], item.Color[3], item.TexCoord[0], item.TexCoord[1], 	item.TexId, item.TilingFactor[0], item.TilingFactor[1]]
-		
+			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, color[0], color[1], color[2], color[3], 0, texHandle.V, 			texHandle.Index, tilingFactor[0], tilingFactor[1],
+			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, color[0], color[1], color[2], color[3], 0, 0, 					texHandle.Index, tilingFactor[0], tilingFactor[1],
+			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, color[0], color[1], color[2], color[3], texHandle.U, 0, 			texHandle.Index, tilingFactor[0], tilingFactor[1],
+			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V, texHandle.Index, tilingFactor[0], tilingFactor[1]]
+	
 		self.__vertexData.extend(data)
 		
 		self.__vertexCount += 4

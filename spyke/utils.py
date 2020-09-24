@@ -4,6 +4,7 @@ from .debug import Log, LogLevel
 import ctypes
 from OpenGL import GL
 import gc
+import glm
 
 FLOAT_SIZE = ctypes.sizeof(ctypes.c_float)
 INT_SIZE = ctypes.sizeof(ctypes.c_int)
@@ -53,10 +54,32 @@ def GetQuadIndexData(count):
 
 def CollectGarbage():
 	objCount = gc.get_count()[0]
-
 	gc.collect()
-
 	Log(f"Garbage collection freed {objCount - gc.get_count()[0]} objects.", LogLevel.Info)
+
+def Mat4ToList(matrix: glm.mat4):
+	matList = matrix.to_list()
+	arr = []
+
+	arr.extend(matList[0])
+	arr.extend(matList[1])
+	arr.extend(matList[2])
+	arr.extend(matList[3])
+
+	return arr
+
+def noexcept(func):
+	def wrapper(*args, **kwargs):
+		r = None
+
+		try:
+			r = func(*args, **kwargs)
+		except Exception as e:
+			pass
+
+		return r
+
+	return wrapper
 
 class ObjectManager:
 	Objects = []

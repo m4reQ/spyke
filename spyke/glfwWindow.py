@@ -64,6 +64,7 @@ class GlfwWindow(object):
 		glfw.set_mouse_button_callback(self.__handle, self.__MouseCb)
 		glfw.set_scroll_callback(self.__handle, self.__MouseScrollCb)
 		glfw.set_key_callback(self.__handle, self.__KeyCb)
+		glfw.set_window_pos_callback(self.__handle, self.__WindowPosCallback)
 
 		if specification.Vsync:
 			glfw.swap_interval(1)
@@ -76,6 +77,8 @@ class GlfwWindow(object):
 		self.updateTime = 1.0
 		self.renderTime = 1.0
 		self.frameTime = 1.0
+
+		self.position = (0, 0)
 
 		Log(f"GLFW window initialized in {perf_counter() - start} seconds.", LogLevel.Info)
 	
@@ -102,6 +105,9 @@ class GlfwWindow(object):
 			InputHandler.PutEvent(WindowEvent.MouseMoveEvent)
 		
 		InputHandler.MousePos = (x, y)
+	
+	def __WindowPosCallback(self, _, x, y):
+		self.position = (x, y)
 	
 	def __IconifyCb(self, _, value):
 		if value == 1:

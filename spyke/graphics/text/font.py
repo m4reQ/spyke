@@ -30,18 +30,18 @@ class Font(object):
 			lineData = [e for e in lineData if e != '' and e != ' ']
 			data = [0] * 10
 
-			data[0] = int(lineData[0][3:])
-			data[1] = int(lineData[1][2:]) / texSize[0]
-			data[2] = int(lineData[2][2:]) / texSize[1]
-			data[3] = int(lineData[3][6:])
-			data[4] = int(lineData[4][7:])
-			data[5] = int(lineData[3][6:]) / texSize[0]
-			data[6] = int(lineData[4][7:]) / texSize[1]
-			data[7] = int(lineData[5][8:])
-			data[8] = int(lineData[6][8:])
-			data[9] = int(lineData[7][9:])
+			data[0] = int(lineData[1][2:]) / texSize[0]
+			data[1] = int(lineData[2][2:]) / texSize[1]
+			data[2] = int(lineData[3][6:])
+			data[3] = int(lineData[4][7:])
+			data[4] = int(lineData[3][6:]) / texSize[0]
+			data[5] = int(lineData[4][7:]) / texSize[1]
+			data[6] = int(lineData[5][8:])
+			data[7] = int(lineData[6][8:])
+			data[8] = int(lineData[7][9:])
+			data[9] = int(lineData[0][3:])
 
-			characters[data[0]] = Glyph(*data[1:])
+			characters[data[9]] = Glyph(*data)
 		
 		if None in characters:
 			raise RuntimeError("Cannot generate font.")
