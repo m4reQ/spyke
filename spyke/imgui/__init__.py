@@ -1,6 +1,7 @@
 from .inspectorWindow import InspectorWindow
 from .entitiesWindow import EntitiesWindow
 from ..debug import Log, LogLevel
+from ..ecs import Scene
 
 class ImGui(object):
 	BaseWidth = 300
@@ -10,6 +11,8 @@ class ImGui(object):
 		self.entities = EntitiesWindow(width, height, posX + ImGui.BaseWidth, posY)
 
 		self.isRunning = True
+		
+		self.__scene = None
 
 	def OnUpdate(self):
 		self.inspector.OnUpdate()
@@ -22,6 +25,10 @@ class ImGui(object):
 		self.entities.OnClose()
 
 		Log("Imgui closed succesfully", LogLevel.Info)
+	
+	def SetScene(self, scene: Scene):
+		self.entities.SetScene(scene)
+		self.entities.Reorganize()
 	
 if __name__ == '__main__':
 	g = ImGui(200, 200)

@@ -21,7 +21,7 @@ def CreateRotationZ(angle: float):
 
 def CreateTransform(pos: glm.vec3, size: glm.vec3, angle: float):
 	transform = glm.translate(glm.mat4(1.0), pos)
-	transform = glm.scale(transform, size)
+	transform = glm.scale(transform, glm.vec3(size, 0.0))
 	return glm.rotate(transform, angle, glm.vec3(0.0, 0.0, 1.0))
 
 @lru_cache

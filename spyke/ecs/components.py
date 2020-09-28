@@ -1,4 +1,6 @@
-from ...graphics.text.font import Font
+from ..transform import CreateTransform
+from ..graphics import Font, TextureHandle
+from ..debug import Log, LogLevel
 
 import glm
 
@@ -21,6 +23,10 @@ class TransformComponent(object):
 		self.__scaleMatrix = glm.mat4(1.0)
 	
 	def Recalculate(self):
+		if all([self.__posChanged, self.__rotChanged, self.__sizeChanged]):
+			self.Matrix = CreateTransform(self.__pos, self.__size, self.__rot)
+			return
+			
 		if self.__posChanged:
 			self.__transMatrix = glm.translate(glm.mat4(1.0), self.__pos)
 		
@@ -31,6 +37,8 @@ class TransformComponent(object):
 			self.__scaleMatrix = glm.scale(glm.mat4(1.0), glm.vec3(self.__size.x, self.__size.y, 0.0))
 		
 		self.Matrix = self.__transMatrix * self.__rotMatrix * self.__scaleMatrix
+
+		Log("Recalculate", LogLevel.Info)
 	
 	@property
 	def ShouldRecalculate(self):
@@ -64,8 +72,14 @@ class TransformComponent(object):
 		self.__rotChanged = True
 
 class TextComponent(object):
-	def __init__(self, pos: glm.vec3, text: str, color: tuple, size: int, font: Font):
+	def __init__(self, text: str, color: tuple, size: int, font: Font):
 		self.Text = text
 		self.Color = color
 		self.Size = size
 		self.Font = font
+
+class SpriteComponent(object):
+	def __init__(self, textureHandle: TextureHandle, color: tuple, tilingFactor: tuple):
+		self.TextureHandle = textureHandle
+		self.Color = color
+		self.TilingFactor = tilingFactor
