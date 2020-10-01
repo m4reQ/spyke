@@ -1,5 +1,5 @@
 from .esper import Processor
-from .components import TransformComponent, TextComponent, SpriteComponent
+from .components import *
 from ..graphics import Renderer, GLCommand, OrthographicCamera
 from ..enums import ClearMask
 
@@ -13,11 +13,11 @@ class RenderingProcessor(Processor):
         
         self.__renderer.BeginScene(self.__camera.viewProjectionMatrix)
 
-        for _, (sprite, transform) in self.world.get_components(SpriteComponent, TransformComponent):
-            self.__renderer.RenderQuad(transform.Matrix, sprite.Color, sprite.TextureHandle, sprite.TilingFactor)
+        for _, (sprite, transform, color) in self.world.get_components(SpriteComponent, TransformComponent, ColorComponent):
+            self.__renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
         
-        for _, (text, transform) in self.world.get_components(TextComponent, TransformComponent):
-            self.__renderer.RenderText(transform.Position, text.Color, text.Font, text.Size, text.Text)
+        for _, (text, transform, color) in self.world.get_components(TextComponent, TransformComponent, ColorComponent):
+            self.__renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
         
         self.__renderer.EndScene()
 

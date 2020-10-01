@@ -4,6 +4,28 @@ from ..debug import Log, LogLevel
 
 import glm
 
+class ColorComponent(object):
+	def __init__(self, *args):
+		if isinstance(args[0], tuple):
+			tup = args[0]
+			self.R = tup[0]
+			self.G = tup[1]
+			self.B = tup[2]
+			self.A = tup[3]
+		elif len(args) == 4:
+			self.R = args[0]
+			self.G = args[1]
+			self.B = args[2]
+			self.A = args[3]
+		else:
+			raise TypeError("Invalid color arguments.")
+	
+	def __iter__(self):
+		yield self.R
+		yield self.G
+		yield self.B
+		yield self.A
+
 class TransformComponent(object):
 	def __init__(self, pos: glm.vec3, size: glm.vec2, rotation: float):
 		self.__pos = pos
@@ -72,14 +94,12 @@ class TransformComponent(object):
 		self.__rotChanged = True
 
 class TextComponent(object):
-	def __init__(self, text: str, color: tuple, size: int, font: Font):
+	def __init__(self, text: str, size: int, font: Font):
 		self.Text = text
-		self.Color = color
 		self.Size = size
 		self.Font = font
 
 class SpriteComponent(object):
-	def __init__(self, textureHandle: TextureHandle, color: tuple, tilingFactor: tuple):
+	def __init__(self, textureHandle: TextureHandle, tilingFactor: tuple):
 		self.TextureHandle = textureHandle
-		self.Color = color
 		self.TilingFactor = tilingFactor

@@ -35,6 +35,8 @@ class BasicRenderer:
 		self.__vertexCount = 0
 		self.__indexCount = 0
 
+		self.vertexCount = 0
+
 		self.__viewProjection = glm.mat4(1.0)
 
 		self.drawsCount = 0
@@ -50,6 +52,8 @@ class BasicRenderer:
 	def EndScene(self):
 		if len(self.__vertexData) != 0:
 			self.__Flush()
+		
+		return (self.drawsCount, self.vertexCount)
 
 	def __Flush(self):
 		self.shader.Use()
@@ -63,10 +67,13 @@ class BasicRenderer:
 
 		self.ibo.Bind()
 
+		self.vertexCount = 0
+
 		GL.glDrawElements(GL.GL_TRIANGLES, self.__indexCount, GLType.UnsignedInt, None)
 
 		self.__vertexData.clear()
 
+		self.vertexCount = self.__vertexCount
 		self.__vertexCount = 0
 		self.__indexCount = 0
 

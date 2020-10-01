@@ -16,6 +16,9 @@ class Renderer(object):
 
 		self.__viewProjectionMatrix = glm.mat4(1.0)
 
+		self.drawsCount = 0
+		self.vertexCount = 0
+
 	def AddComponent(self, componentType: RendererTarget, shader: Shader):
 		if componentType == RendererTarget.BasicRenderer2D:
 			self.__basicRenderer = BasicRenderer(shader)
@@ -34,13 +37,20 @@ class Renderer(object):
 		except AttributeError:
 			pass
 	
-		self.drawsCount = 0
-	
 	def EndScene(self):
+		self.drawsCount = 0
+		self.vertexCount = 0
+
 		try:
-			self.__basicRenderer.EndScene()
-			self.__textRenderer.EndScene()
-			self.__lineRenderer.EndScene()
+			stats = self.__basicRenderer.EndScene()
+			self.drawsCount += stats[0]
+			self.vertexCount += stats[1]
+			stats = self.__textRenderer.EndScene()
+			self.drawsCount += stats[0]
+			self.vertexCount += stats[1]
+			stats = self.__lineRenderer.EndScene()
+			self.drawsCount += stats[0]
+			self.vertexCount += stats[1]
 		except AttributeError:
 			pass
 	

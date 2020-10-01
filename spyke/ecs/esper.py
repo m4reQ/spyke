@@ -348,9 +348,10 @@ class World:
     def _timed_process(self, *args, **kwargs):
         """Track Processor execution time for benchmarking."""
         for processor in self._processors:
-            start_time = _time.process_time()
+            #changed from time.process_time to time.perf_counter
+            start_time = _time.perf_counter()
             processor.process(*args, **kwargs)
-            process_time = int(round((_time.process_time() - start_time) * 1000, 2))
+            process_time = _time.perf_counter() - start_time
             self.process_times[processor.__class__.__name__] = process_time
 
     def process(self, *args, **kwargs):
