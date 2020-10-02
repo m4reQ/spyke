@@ -1,7 +1,8 @@
-from .windowUtils import WindowAPI, WindowSpecs
+from . import WindowSpecs
 from .debug import Log, LogLevel
 from .inputHandler import InputHandler
 from .events import WindowEvent
+from ..enums import WindowAPI
 
 import glfw
 from time import perf_counter

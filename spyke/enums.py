@@ -1,5 +1,11 @@
 from OpenGL import GL
 
+##### WINDOW #####
+class WindowAPI:
+	GLFW = "API::GLFW"
+	Pygame = "API::Pygame"
+	NoAPI = "API::None"
+
 ##### ECS #####
 class ComponentType:
 	Sprite, Audio = range(2)

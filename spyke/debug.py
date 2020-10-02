@@ -32,3 +32,14 @@ def GetGLError():
     err = glGetError()
     if err != GL_NO_ERROR:
         Log(err, LogLevel.Error)
+
+class Timer:
+    __Start = 0.0
+    
+    @staticmethod
+    def Start():
+        Timer.__Start = time.perf_counter()
+    
+    @staticmethod
+    def Stop():
+        return time.perf_counter() - Timer.__Start
