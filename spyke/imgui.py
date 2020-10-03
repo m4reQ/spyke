@@ -16,6 +16,13 @@ class ImGui(Static):
 
 	BackgroundColor = "#090a29"
 	TextColor = "#edeef2"
+	LabelFont = ("Helvetica", 12, "bold")
+	RowHeight = 20
+
+	SelectedEntity = None
+	BaseTreeHeight = 0
+	TreeHeightChange = 0
+	TreeHeight = 0
 
 	#main window
 	__Handle = tkinter.Tk()
@@ -30,27 +37,14 @@ class ImGui(Static):
 
 		Log("Imgui window closed.", LogLevel.Info)
 
-	#containers
-	__RendererDiv = tkinter.PanedWindow(__Handle)
-	__SceneDiv = tkinter.PanedWindow(__Handle)
-	__LogDiv = tkinter.PanedWindow(__Handle)
-
 	#widgets
 	__TitleBar = tkinter.Frame(__Handle, bg = BackgroundColor, relief = "raised", bd = 2, highlightbackground = "#dadbe0")
 	__Title = tkinter.Label(__TitleBar, text = Title, bg = BackgroundColor, fg = TextColor)
 	__CloseButton = tkinter.Button(__TitleBar, text = 'x', fg = TextColor, bg = BackgroundColor, bd = 0, command = Close)
-	
-	__SceneLabel = tkinter.Label(__SceneDiv)
-	__SceneTree = ttk.Treeview(__SceneDiv)
-
-	#positioning
-	__RendererDiv.grid(row = 1, column = 0)
-	__SceneDiv.grid(row = 1, column = 1)
-	__LogDiv.grid(row = 1, column = 2)
-
-	__TitleBar.grid(row = 0, column = 0)
-	__Title.pack(side = "left")
-	__CloseButton.pack(side = "right")
+	__RenderLabel = tkinter.Label(__Handle, bg = BackgroundColor, fg = TextColor, text = "Renderer stats:", bd = 0, anchor = "w", font = LabelFont)
+	__RenderStats = tkinter.Text(__Handle, bg = BackgroundColor, fg = TextColor, bd = 0)
+	__EntitiesLabel = tkinter.Label(__Handle, bg = BackgroundColor, fg = TextColor, text = "Entities:", bd = 0, anchor = "w", font = LabelFont)
+	__EntitiesTree = ttk.Treeview(__Handle, show = "tree")
 
 	SceneUpdate = False
 	Closed = False
@@ -83,27 +77,50 @@ class ImGui(Static):
 		if ImGui.Closed:
 			return
 
-		# if ImGui.Scene and ImGui.SceneUpdate:
-		# 	height = 0
-		# 	for ent in self.scene._entities:
-		# 		entView = self.tree.insert("", ent, text = EntityManager.GetEntityName(ent))
-		# 		for comp in self.scene.components_for_entity(ent):
-		# 			self.tree.insert(entView, "end", text = type(comp).__name__.replace("Component", ''))
-		# 			height += ImGui.RowHeight
-			
-		# 	height = max(height, self.height)
+		ImGui.TreeHeightChange = 0
+		
+		if ImGui.Renderer:
+			ImGui.__RenderStats.delete(1.0, "end")
+			text = f"Draws count: {ImGui.Renderer.drawsCount}\nVertices count: {ImGui.Renderer.vertexCount}\n"
+			ImGui.__RenderStats.insert("end", text)
 
-		# 	self.tree.configure(height = height)
-		# 	self.tree.update()
-
-		# 	self.sceneUpdate = False
+		if ImGui.SceneUpdate:
+			for child in ImGui.__EntitiesTree.get_children():
+				ImGui.__EntitiesTree.delete(child)
 			
+			height = ImGui.BaseTreeHeight
+			for ent in ImGui.Scene._entities:
+				entView = ImGui.__EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
+				for comp in ImGui.Scene.components_for_entity(ent):
+					ImGui.__EntitiesTree.insert(entView, "end", text = type(comp).__name__.replace("Component", ''))
+				ImGui.BaseTreeHeight += 1
+
+			ImGui.__EntitiesTree.configure(height = ImGui.BaseTreeHeight + ImGui.TreeHeightChange)
+			ImGui.__EntitiesTree.update()
+
+			ImGui.SceneUpdate = False
+						
 		try:
 			ImGui.__Handle.update()
 		except tkinter.TclError:
 			pass
+	
+	def __OpenTreeItem(event):
+		item = ImGui.__EntitiesTree.focus()
+		ent = ImGui.__EntitiesTree.item(item)["values"][0]
+		entHeight = len(ImGui.Scene.components_for_entity(ent))
+		ImGui.__EntitiesTree.configure(height = ImGui.BaseTreeHeight + entHeight)
+		ImGui.__EntitiesTree.update()
+	
+	def __SelectTreeItem(event):
+		ImGui.SelectedEntity = ImGui.__EntitiesTree.item(ImGui.__EntitiesTree.focus())
+	
+	def __CloseTreeItem(event):
+		ImGui.__EntitiesTree.configure(height = ImGui.BaseTreeHeight)
+		ImGui.__EntitiesTree.update()
 
 	def Setup():
+		ImGui.__Handle.update()
 		ImGui.__Handle.protocol("WM_DELETE_WINDOW", ImGui.Close)
 		ImGui.__Handle.geometry(f"{ImGui.Size[0]}x{ImGui.Size[1]}+{ImGui.Pos[0]}+{ImGui.Pos[1]}")
 		ImGui.__Handle.bind("<Button-1>", ImGui.__GetMousePos)
@@ -111,9 +128,31 @@ class ImGui(Static):
 		ImGui.__Handle.overrideredirect(True)
 		ImGui.__Handle.configure(bg = ImGui.BackgroundColor)
 
+		ImGui.__TitleBar.configure(width = ImGui.Size[0])
 		ImGui.__TitleBar.bind("<B1-Motion>", ImGui.MoveByMouse)
 		ImGui.__Title.bind("<B1-Motion>", ImGui.MoveByMouse)
-		ImGui.__TitleBar.configure(width = ImGui.Size[0])
+		ImGui.__Title.pack(side = "left")
+		ImGui.__CloseButton.pack(side = "right")
+		ImGui.__TitleBar.pack(side = "top", fill = "x")
+
+		ImGui.__RenderLabel.pack(fill = "x")
+		ImGui.__RenderStats.configure(height = 3)
+		ImGui.__RenderStats.pack(fill = "x")
+
+		ImGui.__EntitiesLabel.pack(fill = "x")
+
+		ImGui.__EntitiesTree.bind("<ButtonRelease-1>", ImGui.__SelectTreeItem)
+		ImGui.__EntitiesTree.bind("<<TreeviewOpen>>", ImGui.__OpenTreeItem)
+		ImGui.__EntitiesTree.bind("<<TreeviewClose>>", ImGui.__CloseTreeItem)
+		ImGui.__EntitiesTree.pack(fill = "x", expand = False)
+
+		#ImGui.__TitleBar.bind("<B1-Motion>", ImGui.MoveByMouse)
+		#ImGui.__Title.bind("<B1-Motion>", ImGui.MoveByMouse)
+
+		#ImGui.__TitleBar.configure(width = ImGui.Size[0])
+		#ImGui.__Title.pack(side = "left")
+		#ImGui.__CloseButton.pack(side = "right")
+		#ImGui.__TitleBar.grid(row = 0, column = 0)
 
 	def SetScene(scene):
 		ImGui.Scene = scene
@@ -160,10 +199,10 @@ class __ImGui:
 		self.Setup()
 	
 	def OnFrame(self):
-		if self.closed:
+		if ImGui.closed:
 			return
 
-		if self.scene and self.sceneUpdate:
+		if ImGui.Scene and self.sceneUpdate:
 			height = 0
 			for ent in self.scene._entities:
 				entView = self.tree.insert("", ent, text = EntityManager.GetEntityName(ent))

@@ -69,17 +69,14 @@ def Mat4ToList(matrix: glm.mat4):
 	return arr
 
 def noexcept(func):
-	def wrapper(*args, **kwargs):
+	def __wrapper(*args, **kwargs):
 		r = None
-
 		try:
 			r = func(*args, **kwargs)
-		except Exception as e:
+		except Exception:
 			pass
-
 		return r
-
-	return wrapper
+	return __wrapper
 
 class Abstract:
 	def __new__(self):
@@ -108,11 +105,9 @@ class Enum:
 class ObjectManager(Static):
 	Objects = []
 
-	@staticmethod
 	def AddObject(obj):
 		ObjectManager.Objects.append(obj)
 
-	@staticmethod
 	def DeleteObject(obj):
 		if obj not in ObjectManager.Objects:
 			Log(f"Cannot delete object of type {type(obj).__name__}, object not present.", LogLevel.Error)
@@ -127,7 +122,6 @@ class ObjectManager(Static):
 
 		Log(f"Object of type {type(obj).__name__} deleted.", LogLevel.Info)
 
-	@staticmethod
 	def DeleteAll():
 		for obj in ObjectManager.Objects:
 			try:
