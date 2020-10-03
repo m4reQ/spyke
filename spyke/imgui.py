@@ -5,18 +5,49 @@ from .ecs.entityManager import EntityManager
 import tkinter
 from tkinter import ttk
 
-class ImGui(object):
+class ImGui:
+	__Initialized = False
+
+	Scene = None
+	Renderer = None
+
+	BackgroundColor = "#090a29"
+	TextColor = "#edeef2"
+
+	__Handle = tkinter.Tk()
+
+	SceneUpdate = False
+	Closed = False
+
+	Pos = (0, 0)
+	Size = (0, 0)
+	MousePos = (0, 0)
+
+	@staticmethod
+	def Initialize(x: int, y: int, width: int, height: int):
+		if ImGui.__Initialized:
+			Log("Imgui already initialized.", LogLevel.Warning)
+			return
+
+		ImGui.Pos = (x, y)
+		ImGui.Size = (width, height)
+
+		if not ImGui.Scene:
+			Log("Imgui scene not set.", LogLevel.Warning)
+		
+		if not ImGui.Renderer:
+			Log("Imgui renderer not set.", LogLevel.Warning)
+		
+		ImGui.__Initialized = True
+	
+
 	BackgroundColor = "#090a29"
 	RowHeight = 20
 
 	def __init__(self, x, y, width, height):
 		self.handle = tkinter.Tk()
 
-		self.scene = None
-		self.renderer = None
-
 		self.sceneUpdate = False
-		
 		self.closed = False
 
 		self.x = x
