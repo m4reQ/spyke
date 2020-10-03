@@ -43,3 +43,7 @@ class Timer:
     @staticmethod
     def Stop():
         return time.perf_counter() - Timer.__Start
+    
+    @staticmethod
+    def GetCurrent():
+        return time.perf_counter()

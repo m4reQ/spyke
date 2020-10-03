@@ -1,17 +1,16 @@
-from . import WindowSpecs
-from .debug import Log, LogLevel
-from .inputHandler import InputHandler
-from .events import WindowEvent
+from .windowSpecs import WindowSpecs
+from ..inputHandler import InputHandler
+from ..events import WindowEvent
+from ..debug import Log, LogLevel, Timer
 from ..enums import WindowAPI
 
 import glfw
-from time import perf_counter
 
 class GlfwWindow(object):
 	Api = WindowAPI.GLFW
 
 	def __init__(self, specification: WindowSpecs):
-		start = perf_counter()
+		Timer.Start()
 
 		self.width = specification.Width
 		self.height = specification.Height
@@ -81,7 +80,7 @@ class GlfwWindow(object):
 
 		self.position = (0, 0)
 
-		Log(f"GLFW window initialized in {perf_counter() - start} seconds.", LogLevel.Info)
+		Log(f"GLFW window initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 	
 	def SwapBuffers(self):
 		glfw.swap_buffers(self.__handle)
@@ -151,17 +150,17 @@ class GlfwWindow(object):
 
 	def Run(self):
 		while self.isRunning:
-			start = perf_counter()
+			Timer.Start()
 			self.__DefUpdate()
 			if self.isActive:
 				self.Update()
-			self.updateTime = perf_counter() - start
+			self.updateTime = Timer.Stop()
 
-			start = perf_counter()
+			Timer.Start()
 			if self.isActive:
 				self.Render()
 				self.SwapBuffers()
-			self.renderTime = perf_counter() - start
+			self.renderTime = Timer.Stop()
 
 			self.frameTime = self.updateTime + self.renderTime
 		

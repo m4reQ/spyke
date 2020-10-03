@@ -1,18 +1,17 @@
-from . import WindowSpecs
-from .debug import Log, LogLevel
-from .inputHandler import InputHandler
-from .events import WindowEvent
+from .windowSpecs import WindowSpecs
+from ..inputHandler import InputHandler
+from ..events import WindowEvent
+from ..debug import Log, LogLevel, Timer
 from ..enums import WindowAPI
 
 import pygame
-from time import perf_counter
 
 class PygameWindow(object):
 	WindowCreationFlags = pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.OPENGL
 	Api = WindowAPI.Pygame
 
 	def __init__(self, specification: WindowSpecs):
-		start = perf_counter()
+		Timer.Start()
 		
 		self.width = specification.Width
 		self.height = specification.Height
@@ -54,7 +53,7 @@ class PygameWindow(object):
 		self.renderTime = 1.0
 		self.frameTime = 1.0
 
-		Log(f"Pygame window initialized in {perf_counter() - start} seconds.", LogLevel.Info)
+		Log(f"Pygame window initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 
 	def SwapBuffers(self):
 		pygame.display.flip()
@@ -109,15 +108,15 @@ class PygameWindow(object):
 	
 	def Run(self):
 		while self.isRunning:
-			start = perf_counter()
+			Timer.Start()
 			self.__DefUpdate()
 			self.Update()
-			self.updateTime = perf_counter() - start
+			self.updateTime = Timer.Stop()
 
-			start = perf_counter()
+			Timer.Start()
 			self.Render()
 			self.SwapBuffers()
-			self.renderTime = perf_counter() - start
+			self.renderTime = Timer.Stop()
 
 			self.frameTime = self.updateTime + self.renderTime
 		

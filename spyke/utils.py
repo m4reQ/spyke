@@ -81,7 +81,31 @@ def noexcept(func):
 
 	return wrapper
 
-class ObjectManager:
+class Abstract:
+	def __new__(self):
+		raise RuntimeError("Cannot instantiate abstract class.")
+
+class Static:
+	def __decorator(_cls):
+		def inner(cls):
+			for attr in cls.__dict__:
+				_attr = getattr(cls, attr)
+				if callable(_attr):
+					setattr(cls, attr, staticmethod(_attr))
+			return cls
+		return inner 
+
+	def __init_subclass__(cls, *args, **kwargs):
+		return Static.__decorator(_cls = cls)
+	
+	def __new__(self):
+		raise RuntimeError("Cannot instantiate static class.")
+
+class Enum:
+	def __new__(self):
+		raise RuntimeError("Cannot instantiate an enum.")
+
+class ObjectManager(Static):
 	Objects = []
 
 	@staticmethod

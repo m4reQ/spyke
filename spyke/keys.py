@@ -1,3 +1,5 @@
+from .utils import Enum
+
 import pygame
 import glfw
 
@@ -16,12 +18,12 @@ class MouseButton(object):
 		self.Pygame = pygameButton
 		self.Glfw = glfwButton
 
-class MouseButtons:
+class MouseButtons(Enum):
 	Left = 				MouseButton(1, 				glfw.MOUSE_BUTTON_LEFT)
 	Middle = 			MouseButton(2, 				glfw.MOUSE_BUTTON_MIDDLE)
 	Right = 			MouseButton(3, 				glfw.MOUSE_BUTTON_RIGHT)
 
-class KeyMods:
+class KeyMods(Enum):
 	ModShift = 			KeyMod(pygame.KMOD_SHIFT, 	glfw.MOD_SHIFT)
 	ModControl = 		KeyMod(pygame.KMOD_CTRL, 	glfw.MOD_CONTROL)
 	ModAlt = 			KeyMod(pygame.KMOD_ALT, 	glfw.MOD_ALT)
@@ -29,7 +31,7 @@ class KeyMods:
 	ModCapsLock = 		KeyMod(pygame.KMOD_CAPS, 	glfw.MOD_CAPS_LOCK)
 	ModNumLock = 		KeyMod(pygame.KMOD_NUM, 	glfw.MOD_NUM_LOCK)
 
-class Keys:
+class Keys(Enum):
 	KeyInvalid = 		Key(-1, 					glfw.KEY_UNKNOWN)
 	#special
 	KeySpace = 			Key(pygame.K_SPACE, 		glfw.KEY_SPACE)

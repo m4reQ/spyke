@@ -1,9 +1,9 @@
-from .windowUtils import WindowAPI
+from .enums import WindowAPI
 from .events import WindowEvent
 from .keys import Key, Keys, MouseButton
-import pygame
+from .utils import Static
 
-class InputHandler(object):
+class InputHandler(Static):
 	Api = WindowAPI.NoAPI
 
 	__Initialized = False
