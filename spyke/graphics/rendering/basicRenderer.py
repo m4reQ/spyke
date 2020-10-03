@@ -31,6 +31,8 @@ class BasicRenderer:
 			VertexArrayLayout(self.shader.GetAttribLocation("aTexIdx"), 		1, VertexAttribType.Float, False),
 			VertexArrayLayout(self.shader.GetAttribLocation("aTilingFactor"), 	2, VertexAttribType.Float, False)])
 
+		self.__batches = []
+
 		self.__vertexData = []
 		self.__vertexCount = 0
 		self.__indexCount = 0

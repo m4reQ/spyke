@@ -1,6 +1,7 @@
 from ..transform import CreateTransform
 from ..graphics import Font, TextureHandle
 from ..debug import Log, LogLevel
+from ..audio.sound import Sound
 
 import glm
 
@@ -103,3 +104,8 @@ class SpriteComponent(object):
 	def __init__(self, textureHandle: TextureHandle, tilingFactor: tuple):
 		self.TextureHandle = textureHandle
 		self.TilingFactor = tilingFactor
+
+class AudioComponent(object):
+	def __init__(self, filepath):
+		self.Filepath = filepath
+		self.Handle = Sound(filepath)
