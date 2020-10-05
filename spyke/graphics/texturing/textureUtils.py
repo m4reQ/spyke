@@ -31,4 +31,4 @@ IMAGE_FORMAT_MAP = {
 	"PNG": TextureType.Rgba,
 	"RGBA": TextureType.Rgba}
 
-WhiteTexture = TextureHandle(0.001, 0.001, 0.0)
+WhiteTexture = TextureHandle(0.001, 0.001, 0.0, 0)

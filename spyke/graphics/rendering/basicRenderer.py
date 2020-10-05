@@ -1,11 +1,11 @@
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
-from ...textureHandle import TextureHandle
-from ....enums import VertexAttribType, GLType
-from ....transform import TransformQuadVertices
-from ....debug import Log, LogLevel
-from ....utils import GetQuadIndexData, GetGLTypeSize, GL_FLOAT_SIZE
+from ..texturing.textureHandle import TextureHandle
+from ...enums import VertexAttribType, GLType
+from ...transform import TransformQuadVertices
+from ...debug import Log, LogLevel
+from ...utils import GetQuadIndexData, GetGLTypeSize, GL_FLOAT_SIZE
 
 from OpenGL import GL
 import glm

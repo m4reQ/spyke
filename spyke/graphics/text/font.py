@@ -1,14 +1,12 @@
 from .glyph import Glyph
 from .fontManager import FontManager
-from ..textureLoader import LoadTexture
-from ...debug import Log, LogLevel
-
-from time import perf_counter
+from ..texturing.textureLoader import LoadTexture
+from ...debug import Log, LogLevel, Timer
 
 class Font(object):
 	@staticmethod
 	def LoadFont(filepath: str, texSize: tuple):
-		start = perf_counter()
+		Timer.Start()
 		characters = {}
 		base = 1
 
@@ -46,13 +44,11 @@ class Font(object):
 		if None in characters:
 			raise RuntimeError("Cannot generate font.")
 			
-		Log(f"Font generated in {perf_counter() - start} seconds.", LogLevel.Info)
+		Log(f"Font generated in {Timer.Stop()} seconds.", LogLevel.Info)
 
 		return (characters, base)
 
 	def __init__(self, fontFilepath: str, bitmapFilepath: str):
-		start = perf_counter()
-
 		if not FontManager.Initialized:
 			FontManager.Initialize()
 
@@ -60,8 +56,6 @@ class Font(object):
 
 		self.__texId = FontManager.AddTexture(texData).Index
 		self.characters, self.baseSize = Font.LoadFont(fontFilepath, (texData.Width, texData.Height))
-
-		Log(f"Font '{fontFilepath}' loaded in {perf_counter() - start} seconds.", LogLevel.Info)
 
 	def GetGlyph(self, charId: int):
 		try:

@@ -1,4 +1,6 @@
-class WindowEvent:
+from .utils import Enum
+
+class WindowEvent(Enum):
 	CloseEvent = 0
 	ResizeEvent = 1
 	MouseMoveEvent = 2

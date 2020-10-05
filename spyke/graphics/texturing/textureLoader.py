@@ -1,12 +1,11 @@
 from .textureUtils import TextureData, IMAGE_FORMAT_MAP
-from .ogl.textureArray import TextureArray
-from ..debug import Log, LogLevel
+from .textureArray import TextureArray
+from ...debug import Log, LogLevel, Timer
 
-from time import perf_counter
 from PIL import Image
 
 def __LoadTexture(filepath: str):
-    start = perf_counter()
+    Timer.Start()
 
     try:
         img = Image.open(filepath)
@@ -24,7 +23,7 @@ def __LoadTexture(filepath: str):
 
     img.close()
 
-    Log(f"Image '{filepath}' loaded in {perf_counter() - start} seconds.", LogLevel.Info)
+    Log(f"Image '{filepath}' loaded in {Timer.Stop()} seconds.", LogLevel.Info)
 
     return texData
 

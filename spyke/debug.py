@@ -1,5 +1,4 @@
 from OpenGL.GL import glGetError, GL_NO_ERROR
-
 import time
 
 ENABLED = False

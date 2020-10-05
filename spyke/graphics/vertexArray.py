@@ -1,4 +1,4 @@
-from ...utils import GetGLTypeSize, GetPointer, ObjectManager
+from ..utils import GetGLTypeSize, GetPointer, ObjectManager
 
 from OpenGL import GL
 

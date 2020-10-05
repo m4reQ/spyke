@@ -1,6 +1,6 @@
-from ...utils import ObjectManager
-from ...debug import Log, LogLevel
-from .. import shaderSources
+from ..utils import ObjectManager
+from ..debug import Log, LogLevel
+from . import shaderSources
 
 from OpenGL import GL
 from glm import mat4

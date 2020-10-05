@@ -1,5 +1,5 @@
-from ..ogl.textureArray import TextureArray
-from ..textureUtils import TextureData
+from ..texturing.textureArray import TextureArray
+from ..texturing.textureUtils import TextureData
 from ...debug import Log, LogLevel
 
 class FontManager:

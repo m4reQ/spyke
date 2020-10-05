@@ -1,5 +1,5 @@
-from ...utils import INT_SIZE, GetPointer, ObjectManager
-from ...enums import BufferUsageFlag
+from ..utils import INT_SIZE, GetPointer, ObjectManager
+from ..enums import BufferUsageFlag
 
 from OpenGL import GL
 import numpy

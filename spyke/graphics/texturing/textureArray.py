@@ -1,5 +1,5 @@
-from ..textureUtils import GenRawTextureData, TextureType, TextureData
-from ..textureHandle import TextureHandle
+from .textureUtils import GenRawTextureData, TextureType, TextureData
+from .textureHandle import TextureHandle
 from ...utils import ObjectManager
 from ...debug import Log, LogLevel
 
@@ -76,7 +76,7 @@ class TextureArray(object):
 
 		Log(f"Texture '{texData.ImageName}' uploaded in {perf_counter() - start} seconds.", LogLevel.Info)
 
-		return TextureHandle(u, v, idx)
+		return TextureHandle(u, v, idx, self.__id)
 	
 	def Bind(self):
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)
@@ -87,3 +87,19 @@ class TextureArray(object):
 	@property
 	def CurrentLayer(self):
 		return self.__currentLayer
+	
+	@property
+	def IsAccepting(self):
+		return self.__currentLayer < self.__layersCount
+	
+	@property
+	def Width(self):
+		return self.__maxWidth
+	
+	@property
+	def Height(self):
+		return self.__maxHeight
+	
+	@property
+	def Layers(self):
+		return self.__layers

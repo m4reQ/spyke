@@ -68,6 +68,31 @@ def Mat4ToList(matrix: glm.mat4):
 
 	return arr
 
+def KwargParse(kwargs: dict, list: list, usage: str, copy = True) -> dict:
+	if not usage in ["n", "r", "l"]:
+		raise RuntimeError(f"Invalid usage mode: {usage}")
+	
+	if copy:
+		args = kwargs.copy()
+	else:
+		args = kwargs
+
+	if usage == "r":
+		for name in list:
+			try:
+				del args[name]
+			except KeyError:
+				pass
+		return args
+	elif usage == "l":
+		_args = args.copy()
+		for key in args.keys():
+			if key not in list:
+				del _args[key]
+		return _args
+	else:
+		return args
+
 def noexcept(func):
 	def __wrapper(*args, **kwargs):
 		r = None
@@ -95,7 +120,7 @@ class Static:
 	def __init_subclass__(cls, *args, **kwargs):
 		return Static.__decorator(_cls = cls)
 	
-	def __new__(self):
+	def __new__(self, *args, **kwargs):
 		raise RuntimeError("Cannot instantiate static class.")
 
 class Enum:

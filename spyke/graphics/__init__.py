@@ -1,12 +1,12 @@
-from .ogl.textureArray import TextureArray
+from .texturing.textureArray import TextureArray
+from .texturing.textureLoader import LoadTexture, UploadTexture
+from .texturing.textureUtils import WhiteTexture
+from .rendering.renderer import Renderer
 from .text.font import Font
-from .textureLoader import LoadTexture, UploadTexture
-from .ogl.shader import Shader
-from .ogl.rendering.renderer import Renderer
-from .ogl.glCommands import GLCommand
+from .shader import Shader
+from .glCommands import GLCommand
 from .cameras import *
-from .textureUtils import WhiteTexture
-from .ogl.vertexArray import VertexArray, VertexArrayLayout
-from .ogl.buffers import *
+from .vertexArray import VertexArray, VertexArrayLayout
+from .buffers import *
 from .renderable import *
     

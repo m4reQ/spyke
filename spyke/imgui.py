@@ -1,10 +1,37 @@
 from .debug import Log, LogLevel
-from .utils	import Static
+from .utils	import Static, KwargParse
 from .ecs import Scene
 from .ecs.entityManager import EntityManager
 
 import tkinter
 from tkinter import ttk
+############################################ PRACUJ KURWAAAAAAAA ###############################################
+
+class ToggledFrame(tkinter.Frame):
+	def __init__(self, master, *args, **options):
+		super().__init__(master, *args, **KwargParse(options, ["bg"], "l"))
+		
+		self.show = tkinter.IntVar(value = 0)
+		
+		self.__titleFrame = tkinter.Frame(self)
+
+		self.__title = tkinter.Label(self.__titleFrame, anchor = "w", **KwargParse(options, ["text", "font", "fg", "bg"], "l"))
+		self.__title.pack(side = "left", fill = "x")
+		
+		self.__button = ttk.Checkbutton(self.__titleFrame, text = "+", command = self.__Toggle, variable = self.show, style = "Toolbutton")
+		self.__button.pack(side = "right")
+
+		self.__titleFrame.pack(fill = "x")
+		
+		self.Frame = tkinter.Frame(self, bd = 1, **KwargParse(options, ["bg"], "l"))
+	
+	def __Toggle(self):
+		if bool(self.show.get()):
+			self.Frame.pack(fill = "x")
+			self.__button.configure(text = "-")
+		else:
+			self.Frame.forget()
+			self.__button.configure(text = "+")
 
 class ImGui(Static):
 	__Initialized = False
@@ -41,8 +68,9 @@ class ImGui(Static):
 	__TitleBar = tkinter.Frame(__Handle, bg = BackgroundColor, relief = "raised", bd = 2, highlightbackground = "#dadbe0")
 	__Title = tkinter.Label(__TitleBar, text = Title, bg = BackgroundColor, fg = TextColor)
 	__CloseButton = tkinter.Button(__TitleBar, text = 'x', fg = TextColor, bg = BackgroundColor, bd = 0, command = Close)
-	__RenderLabel = tkinter.Label(__Handle, bg = BackgroundColor, fg = TextColor, text = "Renderer stats:", bd = 0, anchor = "w", font = LabelFont)
-	__RenderStats = tkinter.Text(__Handle, bg = BackgroundColor, fg = TextColor, bd = 0)
+	__RendererFrame = ToggledFrame(__Handle, text = "Renderer stats", font = LabelFont, bg = BackgroundColor, fg = TextColor)
+	__RenderLabel = tkinter.Label(__RendererFrame.Frame, bg = BackgroundColor, fg = TextColor, text = "Renderer stats:", bd = 0, anchor = "w", font = LabelFont)
+	__RenderStats = tkinter.Text(__RendererFrame.Frame, bg = BackgroundColor, fg = TextColor, bd = 0)
 	__EntitiesLabel = tkinter.Label(__Handle, bg = BackgroundColor, fg = TextColor, text = "Entities:", bd = 0, anchor = "w", font = LabelFont)
 	__EntitiesTree = ttk.Treeview(__Handle, show = "tree")
 
@@ -88,7 +116,6 @@ class ImGui(Static):
 			for child in ImGui.__EntitiesTree.get_children():
 				ImGui.__EntitiesTree.delete(child)
 			
-			height = ImGui.BaseTreeHeight
 			for ent in ImGui.Scene._entities:
 				entView = ImGui.__EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
 				for comp in ImGui.Scene.components_for_entity(ent):
@@ -125,7 +152,7 @@ class ImGui(Static):
 		ImGui.__Handle.geometry(f"{ImGui.Size[0]}x{ImGui.Size[1]}+{ImGui.Pos[0]}+{ImGui.Pos[1]}")
 		ImGui.__Handle.bind("<Button-1>", ImGui.__GetMousePos)
 		ImGui.__Handle.title("Imgui")
-		ImGui.__Handle.overrideredirect(True)
+		#ImGui.__Handle.overrideredirect(True)
 		ImGui.__Handle.configure(bg = ImGui.BackgroundColor)
 
 		ImGui.__TitleBar.configure(width = ImGui.Size[0])
@@ -139,20 +166,14 @@ class ImGui(Static):
 		ImGui.__RenderStats.configure(height = 3)
 		ImGui.__RenderStats.pack(fill = "x")
 
+		ImGui.__RendererFrame.pack(fill = "x")
+
 		ImGui.__EntitiesLabel.pack(fill = "x")
 
 		ImGui.__EntitiesTree.bind("<ButtonRelease-1>", ImGui.__SelectTreeItem)
 		ImGui.__EntitiesTree.bind("<<TreeviewOpen>>", ImGui.__OpenTreeItem)
 		ImGui.__EntitiesTree.bind("<<TreeviewClose>>", ImGui.__CloseTreeItem)
 		ImGui.__EntitiesTree.pack(fill = "x", expand = False)
-
-		#ImGui.__TitleBar.bind("<B1-Motion>", ImGui.MoveByMouse)
-		#ImGui.__Title.bind("<B1-Motion>", ImGui.MoveByMouse)
-
-		#ImGui.__TitleBar.configure(width = ImGui.Size[0])
-		#ImGui.__Title.pack(side = "left")
-		#ImGui.__CloseButton.pack(side = "right")
-		#ImGui.__TitleBar.grid(row = 0, column = 0)
 
 	def SetScene(scene):
 		ImGui.Scene = scene
@@ -181,63 +202,3 @@ class ImGui(Static):
 		startY = event.y_root
 
 		ImGui.MousePos = (xWin - startX, yWin - startY)
-
-class __ImGui:
-	def __init__(self, x, y, width, height):
-		self.handle = tkinter.Tk()
-
-		self.sceneUpdate = False
-		self.closed = False
-
-		self.x = x
-		self.y = y
-		self.width = width
-		self.height = height
-
-		self.mousePos = (0, 0)
-
-		self.Setup()
-	
-	def OnFrame(self):
-		if ImGui.closed:
-			return
-
-		if ImGui.Scene and self.sceneUpdate:
-			height = 0
-			for ent in self.scene._entities:
-				entView = self.tree.insert("", ent, text = EntityManager.GetEntityName(ent))
-				for comp in self.scene.components_for_entity(ent):
-					self.tree.insert(entView, "end", text = type(comp).__name__.replace("Component", ''))
-					height += ImGui.RowHeight
-			
-			height = max(height, self.height)
-
-			self.tree.configure(height = height)
-			self.tree.update()
-
-			self.sceneUpdate = False
-		
-		if self.renderer:
-			rendererText = f"Draw calls: {self.renderer.drawsCount}\nVertex count: {self.renderer.vertexCount}"
-			self.rendererTextwidget.delete(1.0, "end")
-			self.rendererTextwidget.insert("end", rendererText)
-		
-		try:
-			self.handle.update()
-		except tkinter.TclError:
-			pass
-
-	def Setup(self):
-		#setup renderer view
-		renderTitle = tkinter.Label(self.handle, text = "Renderer stats:", bg = ImGui.BackgroundColor, fg = "#edeef2", anchor = 'w')
-		renderTitle.pack(expand = False, fill = 'x')
-		self.rendererTextwidget = tkinter.Text(self.handle, bg = ImGui.BackgroundColor, fg = "#edeef2", height = 40)
-		self.rendererTextwidget.pack(expand = False, fill = 'x')
-
-		#setup entities treeview
-		treeTitle = tkinter.Label(self.handle, text = "Entities:", bg = ImGui.BackgroundColor, fg = "#edeef2", anchor = 'w')
-		treeTitle.pack(expand = False, fill = 'x')
-		self.tree = ttk.Treeview(self.handle, show = "tree")
-		self.tree.column("#0", width = self.width, minwidth = self.width, stretch = True)
-		
-		self.tree.pack(expand = False, fill = 'x')

@@ -1,4 +1,4 @@
-from .textureHandle import TextureHandle
+from .texturing.textureHandle import TextureHandle
 from ..transform import CreateTranslation, CreateScale
 from ..utils import GetGLTypeSize, GLType
 

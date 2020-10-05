@@ -2,9 +2,9 @@ from .basicRenderer import BasicRenderer
 from .textRenderer import TextRenderer
 from .lineRenderer import LineRenderer
 from ..shader import Shader
-from ...text.font import Font
-from ....enums import RendererTarget, UniformTarget
-from ....debug import Log, LogLevel
+from ..text.font import Font
+from ...enums import RendererTarget, UniformTarget
+from ...debug import Log, LogLevel
 
 import glm
 
