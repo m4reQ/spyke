@@ -6,10 +6,6 @@ class WindowAPI:
 	Pygame = "API::Pygame"
 	NoAPI = "API::None"
 
-##### ECS #####
-class ComponentType:
-	Sprite, Audio = range(2)
-
 ##### GRAPHICS #####
 class CameraType:
 	Orthographic = "Orthographic"
@@ -25,6 +21,25 @@ class UniformTarget:
 	DeltaTime = "DELTA_TIME"
 
 ##### OpenGL #####
+class NvidiaStringName:
+	GpuMemInfoTotalAvailable = 0x9048
+	GpuMemInfoCurrentAvailable = 0x9049
+
+class StringName:
+	Vendor = GL.GL_VENDOR
+	Renderer = GL.GL_RENDERER
+	Version = GL.GL_VERSION
+	ShadingLanguageVersion = GL.GL_SHADING_LANGUAGE_VERSION
+	Extensions = GL.GL_EXTENSIONS
+
+class ErrorCode:
+	NoError = GL.GL_NO_ERROR
+	InvalidEnum = GL.GL_INVALID_ENUM
+	InvalidValue = GL.GL_INVALID_VALUE
+	InvalidOperation = GL.GL_INVALID_OPERATION
+	InvalidFramebufferOperation = GL.GL_INVALID_FRAMEBUFFER_OPERATION
+	OutOfMemory = GL.GL_OUT_OF_MEMORY
+
 class PrimitiveMode:
 	Triangles = GL.GL_TRIANGLES
 	Points = GL.GL_POINTS

@@ -1,6 +1,6 @@
 from .texturing.textureHandle import TextureHandle
 from ..transform import CreateTranslation, CreateScale
-from ..utils import GetGLTypeSize, GLType
+from ..utils import GL_FLOAT_SIZE
 
 import glm
 
@@ -9,7 +9,7 @@ class ARenderable(object):
 		self.Transform = glm.mat4(1.0)
 
 class Quad(ARenderable):
-	VertexSize = (3 + 4 + 2 + 1 + 2) * GetGLTypeSize(GLType.Float)
+	VertexSize = (3 + 4 + 2 + 1 + 2) * GL_FLOAT_SIZE
 	VertexLength = 3 + 4 + 2 + 1 + 2
 	"""
 	Vertex layout: pos - 3f, col - 4f, texPos - 2f, texId - 1f, tilingFactorXY - 2f
@@ -26,7 +26,7 @@ class Quad(ARenderable):
 		self.Transform = CreateTranslation(self.Position) * CreateScale((*self.Size, 0.0))
 
 class Line(ARenderable):
-	VertexSize = (3 + 4) * GetGLTypeSize(GLType.Float)
+	VertexSize = (3 + 4) * GL_FLOAT_SIZE
 	VertexLength = 3 + 4
 	"""
 	Vertex layout: pos - 3f, col - 4f
@@ -38,7 +38,7 @@ class Line(ARenderable):
 		self.Color = color
 
 class PostRenderQuad(ARenderable):
-	VertexSize = (3 + 4 + 2 + 2) * GetGLTypeSize(GLType.Float)
+	VertexSize = (3 + 4 + 2 + 2) * GL_FLOAT_SIZE
 	VertexLength = 3 + 4 + 2 + 2
 	"""
 	Vertex layout: pos - 3f, col - 4f, texCoord - 2f, tilingFactorXY - 2f
@@ -53,7 +53,7 @@ class PostRenderQuad(ARenderable):
 		self.Transform = CreateTranslation(self.Position) * CreateScale((*self.Size, 0.0))
 
 class ATextQuad(ARenderable):
-	VertexSize = (3 + 4 + 1 + 2) * GetGLTypeSize(GLType.Float)
+	VertexSize = (3 + 4 + 1 + 2) * GL_FLOAT_SIZE
 	VertexLength = (3 + 4 + 1 + 2)
 	"""
 	Vertex layout: pos - 3f, col - 4f, texId - 1f, texCoord - 2f

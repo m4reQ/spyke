@@ -16,10 +16,9 @@ class ToggledFrame(tkinter.Frame):
 		self.__titleFrame = tkinter.Frame(self)
 
 		self.__title = tkinter.Label(self.__titleFrame, anchor = "w", **KwargParse(options, ["text", "font", "fg", "bg"], "l"))
-		self.__title.pack(side = "left", fill = "x")
-		
 		self.__button = ttk.Checkbutton(self.__titleFrame, text = "+", command = self.__Toggle, variable = self.show, style = "Toolbutton")
 		self.__button.pack(side = "right")
+		self.__title.pack(side = "left", fill = "x", expand = True)
 
 		self.__titleFrame.pack(fill = "x")
 		
@@ -69,7 +68,6 @@ class ImGui(Static):
 	__Title = tkinter.Label(__TitleBar, text = Title, bg = BackgroundColor, fg = TextColor)
 	__CloseButton = tkinter.Button(__TitleBar, text = 'x', fg = TextColor, bg = BackgroundColor, bd = 0, command = Close)
 	__RendererFrame = ToggledFrame(__Handle, text = "Renderer stats", font = LabelFont, bg = BackgroundColor, fg = TextColor)
-	__RenderLabel = tkinter.Label(__RendererFrame.Frame, bg = BackgroundColor, fg = TextColor, text = "Renderer stats:", bd = 0, anchor = "w", font = LabelFont)
 	__RenderStats = tkinter.Text(__RendererFrame.Frame, bg = BackgroundColor, fg = TextColor, bd = 0)
 	__EntitiesLabel = tkinter.Label(__Handle, bg = BackgroundColor, fg = TextColor, text = "Entities:", bd = 0, anchor = "w", font = LabelFont)
 	__EntitiesTree = ttk.Treeview(__Handle, show = "tree")
@@ -152,7 +150,7 @@ class ImGui(Static):
 		ImGui.__Handle.geometry(f"{ImGui.Size[0]}x{ImGui.Size[1]}+{ImGui.Pos[0]}+{ImGui.Pos[1]}")
 		ImGui.__Handle.bind("<Button-1>", ImGui.__GetMousePos)
 		ImGui.__Handle.title("Imgui")
-		#ImGui.__Handle.overrideredirect(True)
+		ImGui.__Handle.overrideredirect(True)
 		ImGui.__Handle.configure(bg = ImGui.BackgroundColor)
 
 		ImGui.__TitleBar.configure(width = ImGui.Size[0])
@@ -162,7 +160,6 @@ class ImGui(Static):
 		ImGui.__CloseButton.pack(side = "right")
 		ImGui.__TitleBar.pack(side = "top", fill = "x")
 
-		ImGui.__RenderLabel.pack(fill = "x")
 		ImGui.__RenderStats.configure(height = 3)
 		ImGui.__RenderStats.pack(fill = "x")
 

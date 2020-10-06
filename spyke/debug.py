@@ -1,23 +1,18 @@
-from OpenGL.GL import glGetError, GL_NO_ERROR
+from .enums import StringName, ErrorCode, NvidiaStringName
+
+from OpenGL.GL import glGetError, glGetString, glGetIntegerv, glGetStringi, GL_NUM_EXTENSIONS
 import time
 
 ENABLED = False
 LOG_TIME = False
+IS_NVIDIA = False
 
 START_TIME = time.perf_counter()
 
 class LogLevel:
-    Info = "INFO"
-    Warning = "WARNING"
-    Error = "ERROR"
-
-def Enable():
-    global ENABLED
-    ENABLED = True
-
-def LogTime():
-    global LOG_TIME
-    LOG_TIME = True
+	Info = "INFO"
+	Warning = "WARNING"
+	Error = "ERROR"
 
 def Log(msg, logLevel: LogLevel):
     global ENABLED
@@ -29,8 +24,26 @@ def Log(msg, logLevel: LogLevel):
 
 def GetGLError():
     err = glGetError()
-    if err != GL_NO_ERROR:
+    if err != ErrorCode.NoError:
         Log(err, LogLevel.Error)
+
+def GetGLInfo():
+    print("-----INFO-----")
+    print(f"Renderer: {glGetString(StringName.Renderer).decode()}")
+    print(f"Vendor: {glGetString(StringName.Vendor).decode()}")
+    print(f"Version: {glGetString(StringName.Version).decode()}")
+    print(f"Shading language version: {glGetString(StringName.ShadingLanguageVersion).decode()}")
+
+    n = glGetIntegerv(GL_NUM_EXTENSIONS);
+
+    exts = []
+    for i in range(n):
+        exts.append(glGetStringi(StringName.Extensions, i).decode())
+    
+    print(f"Extensions: {', '.join(exts)}")
+
+    if IS_NVIDIA:
+        print(f"Total memory available: {glGetString(NvidiaStringName.GpuMemInfoTotalAvailable)}kB")
 
 class Timer:
     __Start = 0.0

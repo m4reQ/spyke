@@ -1,4 +1,3 @@
-from .enums import GLType, VertexAttribType
 from .debug import Log, LogLevel
 
 import ctypes
@@ -12,7 +11,7 @@ INT_SIZE = ctypes.sizeof(ctypes.c_int)
 GL_FLOAT_SIZE = 4
 GL_INT_SIZE = 4
 
-def GetGLTypeSize(type: GLType or VertexAttribType):
+def GetGLTypeSize(type: int) -> int:
 	if type == GL.GL_FLOAT:
 		return 4
 	elif type == GL.GL_UNSIGNED_BYTE or type == GL.GL_BYTE:
@@ -30,10 +29,10 @@ def GetGLTypeSize(type: GLType or VertexAttribType):
 	else:
 		raise RuntimeError(f"Invalid enum: {type}")
 
-def GetPointer(value):
+def GetPointer(value: int) -> ctypes.c_void_p:
 	return ctypes.c_void_p(value)
 
-def GetQuadIndexData(count):
+def GetQuadIndexData(count: int) -> list:
 	data = []
 
 	offset = 0
@@ -57,7 +56,7 @@ def CollectGarbage():
 	gc.collect()
 	Log(f"Garbage collection freed {objCount - gc.get_count()[0]} objects.", LogLevel.Info)
 
-def Mat4ToList(matrix: glm.mat4):
+def Mat4ToList(matrix: glm.mat4) -> list:
 	matList = matrix.to_list()
 	arr = []
 
@@ -68,30 +67,31 @@ def Mat4ToList(matrix: glm.mat4):
 
 	return arr
 
-def KwargParse(kwargs: dict, list: list, usage: str, copy = True) -> dict:
-	if not usage in ["n", "r", "l"]:
+def KwargParse(kwargs: dict, keywords: list, usage: str, copy = True) -> dict:
+	if not usage.lower() in ["n", "r", "l"]:
 		raise RuntimeError(f"Invalid usage mode: {usage}")
 	
 	if copy:
-		args = kwargs.copy()
+		_kwargs = kwargs.copy()
 	else:
-		args = kwargs
+		_kwargs = kwargs
 
 	if usage == "r":
-		for name in list:
+		for name in keywords:
 			try:
-				del args[name]
+				del _kwargs[name]
 			except KeyError:
 				pass
-		return args
+		return _kwargs
 	elif usage == "l":
-		_args = args.copy()
-		for key in args.keys():
-			if key not in list:
-				del _args[key]
-		return _args
+		_dict = _kwargs.copy()
+		for key in _kwargs.keys():
+			if key not in keywords:
+				del _dict[key]
+		_kwargs = _dict
+		return _kwargs
 	else:
-		return args
+		return _kwargs
 
 def noexcept(func):
 	def __wrapper(*args, **kwargs):
