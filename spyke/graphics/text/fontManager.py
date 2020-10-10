@@ -1,5 +1,6 @@
 from ..texturing.textureArray import TextureArray
 from ..texturing.textureUtils import TextureData
+from ..texturing.textureLoader import LoadTexture
 from ...debug import Log, LogLevel
 
 class FontManager:
@@ -21,8 +22,8 @@ class FontManager:
         FontManager.Initialized = True
     
     @staticmethod
-    def AddTexture(data: TextureData):
-        return FontManager.TextureArray.UploadTexture(data)
+    def AddTexture(texData: TextureData):
+        return FontManager.TextureArray.UploadTexture(texData)
     
     @staticmethod
     def Use():

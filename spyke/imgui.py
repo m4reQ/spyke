@@ -1,4 +1,4 @@
-from .debug import Log, LogLevel
+from .debug import Log, LogLevel, IS_NVIDIA, GetVideoMemoryAvailable, GetVideoMemoryCurrent
 from .utils	import Static, KwargParse
 from .ecs import Scene
 from .ecs.entityManager import EntityManager
@@ -16,6 +16,7 @@ class ToggledFrame(tkinter.Frame):
 		self.__titleFrame = tkinter.Frame(self)
 
 		self.__title = tkinter.Label(self.__titleFrame, anchor = "w", **KwargParse(options, ["text", "font", "fg", "bg"], "l"))
+		ttk.Style(master).configure("Toolbutton", **KwargParse(options, ["bg"], "l"))
 		self.__button = ttk.Checkbutton(self.__titleFrame, text = "+", command = self.__Toggle, variable = self.show, style = "Toolbutton")
 		self.__button.pack(side = "right")
 		self.__title.pack(side = "left", fill = "x", expand = True)
@@ -28,6 +29,7 @@ class ToggledFrame(tkinter.Frame):
 		if bool(self.show.get()):
 			self.Frame.pack(fill = "x")
 			self.__button.configure(text = "-")
+			self.__button.lower()
 		else:
 			self.Frame.forget()
 			self.__button.configure(text = "+")
@@ -48,7 +50,6 @@ class ImGui(Static):
 	SelectedEntity = None
 	BaseTreeHeight = 0
 	TreeHeightChange = 0
-	TreeHeight = 0
 
 	#main window
 	__Handle = tkinter.Tk()
@@ -107,7 +108,15 @@ class ImGui(Static):
 		
 		if ImGui.Renderer:
 			ImGui.__RenderStats.delete(1.0, "end")
+
 			text = f"Draws count: {ImGui.Renderer.drawsCount}\nVertices count: {ImGui.Renderer.vertexCount}\n"
+
+			mem = GetVideoMemoryAvailable() - GetVideoMemoryCurrent()
+			if mem != 1:
+				text += f"Video memory used: {mem / 1000000.0}GB\n"
+			else:
+				text += f"Video memory used: unavailable\n"
+
 			ImGui.__RenderStats.insert("end", text)
 
 		if ImGui.SceneUpdate:
@@ -147,10 +156,10 @@ class ImGui(Static):
 	def Setup():
 		ImGui.__Handle.update()
 		ImGui.__Handle.protocol("WM_DELETE_WINDOW", ImGui.Close)
-		ImGui.__Handle.geometry(f"{ImGui.Size[0]}x{ImGui.Size[1]}+{ImGui.Pos[0]}+{ImGui.Pos[1]}")
 		ImGui.__Handle.bind("<Button-1>", ImGui.__GetMousePos)
 		ImGui.__Handle.title("Imgui")
 		ImGui.__Handle.overrideredirect(True)
+		ImGui.__Handle.geometry(f"{ImGui.Size[0]}x{ImGui.Size[1]}+{ImGui.Pos[0]}+{ImGui.Pos[1]}")
 		ImGui.__Handle.configure(bg = ImGui.BackgroundColor)
 
 		ImGui.__TitleBar.configure(width = ImGui.Size[0])

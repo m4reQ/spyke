@@ -1,7 +1,8 @@
 from ..transform import CreateTransform
-from ..graphics import Font, TextureHandle
 from ..debug import Log, LogLevel
+from ..graphics import Font
 from ..audio.sound import Sound
+from ..graphics.texturing.textureUtils import TextureHandle
 
 import glm
 

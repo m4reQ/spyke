@@ -1,5 +1,3 @@
-from .textureHandle import TextureHandle
-
 from OpenGL.GL import GL_RGB, GL_RGBA
 import numpy
 
@@ -14,6 +12,22 @@ class TextureData(object):
 		self.Data = []
 		self.TextureType = None
 		self.ImageName = ""
+
+class TextureHandle(object):
+	def __init__(self, u: float, v: float, index: float, arrayId: int):
+		self.U = u
+		self.V = v
+		self.Index = index
+		self.TexarrayID = arrayId
+
+def GetWhiteTexture():
+	data = TextureData()
+	data.Width = 1
+	data.Height = 1
+	data.Data = [255, 255, 255]
+	data.TextureType = TextureType.Rgb
+
+	return data
 
 def GenRawTextureData(width: int, height: int, textureType: TextureType):
 	if textureType == TextureType.Rgb:
@@ -30,5 +44,3 @@ IMAGE_FORMAT_MAP = {
 	"RGB": TextureType.Rgb,
 	"PNG": TextureType.Rgba,
 	"RGBA": TextureType.Rgba}
-
-WhiteTexture = TextureHandle(0.001, 0.001, 0.0, 0)

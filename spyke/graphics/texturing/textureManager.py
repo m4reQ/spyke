@@ -1,28 +1,37 @@
 from .textureArray import TextureArray
-from .textureHandle import TextureHandle
+from .textureUtils import TextureData, GetWhiteTexture, TextureHandle
 from .textureLoader import LoadTexture
 from ...debug import Log, LogLevel
 from ...utils import Static
 
 class TextureManager(Static):
-    CreateIfNotPresent = True
-    DefaultLayersCount = 10
+	__TextureArrays = []
 
-    __TextureArrays = []
+	__LastId = 0
 
-    def CreateTextureArray(width: int, height: int, layers: int) -> None:
-        TextureManager.__TextureArrays.append(TextureArray(width, height, layers))
-    
-    def LoadTexture(filepath: int) -> TextureHandle:
-        texData = LoadTexture(filepath)
-        try:
-            arr = next((x for x in TextureManager.__TextureArrays if texData.Width <= x.Width and texData.Height <= x.Height and x.IsAccepting))
-        except StopIteration:
-            if TextureManager.CreateIfNotPresent:
-                Log("Texture manager automatically created new texture array.", LogLevel.Warning)
-                arr = TextureArray(texData.Width, texData.Height, TextureManager.DefaultLayersCount)
-                TextureManager.__TextureArrays.append(arr)
-            else:
-                raise RuntimeError("Cannot find suitable texture array to load texture into.")
+	__HasBlankArray = False
+	BlankArray = -1
 
-        return arr.UploadTexture(texData)
+	def CreateBlankArray() -> None:
+		if TextureManager.__HasBlankArray:
+			Log("Blank texture array already created.", LogLevel)
+		
+		ta = TextureArray(1, 1, 1)
+		TextureManager.__TextureArrays.append(ta)
+		ta.UploadTexture(GetWhiteTexture())
+
+		_id = TextureManager.__LastId
+		TextureManager.__LastId += 1
+
+		TextureManager.BlankArray = _id
+
+	def CreateTextureArray(width: int, height: int, layers: int) -> int:
+		TextureManager.__TextureArrays.append(TextureArray(width, height, layers))
+
+		_id = TextureManager.__LastId
+		TextureManager.__LastId += 1
+
+		return _id
+	
+	def LoadTexture(filepath: str, texArray: int) -> TextureHandle:
+		return TextureManager.__TextureArrays[texArray].UploadTexture(LoadTexture(filepath))

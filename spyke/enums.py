@@ -21,7 +21,7 @@ class UniformTarget:
 	DeltaTime = "DELTA_TIME"
 
 ##### OpenGL #####
-class NvidiaStringName:
+class NvidiaIntegerName:
 	GpuMemInfoTotalAvailable = 0x9048
 	GpuMemInfoCurrentAvailable = 0x9049
 

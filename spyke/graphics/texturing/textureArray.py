@@ -1,5 +1,4 @@
-from .textureUtils import GenRawTextureData, TextureType, TextureData
-from .textureHandle import TextureHandle
+from .textureUtils import GenRawTextureData, TextureType, TextureData, TextureHandle
 from ...utils import ObjectManager
 from ...debug import Log, LogLevel
 
@@ -26,14 +25,14 @@ class TextureArray(object):
 		if not TextureArray.__MaxLayersCount:
 			TextureArray.__MaxLayersCount = int(GL.glGetInteger(GL.GL_MAX_ARRAY_TEXTURE_LAYERS))
 		
-		if layersCount + 1 > TextureArray.__MaxLayersCount:
+		if layersCount > TextureArray.__MaxLayersCount:
 			raise RuntimeError(f"Cannot create texture array with {layersCount} layers (max. layers count: {TextureArray.__MaxLayersCount}).")
 
 		self.__maxWidth = maxWidth
 		self.__maxHeight = maxHeight
-		self.__layers = layersCount + 1
+		self.__layers = layersCount
 
-		self.__currentLayer = 1
+		self.__currentLayer = 0
 
 		TextureArray.RawData = GenRawTextureData(self.__maxWidth, self.__maxHeight, TextureArray.__TextureType)
 
@@ -45,8 +44,6 @@ class TextureArray(object):
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MIN_FILTER, TextureArray.__MinFilter)
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
-		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, self.__maxWidth, self.__maxHeight, 1, TextureArray.__TextureType, TextureArray.__Pixeltype, TextureArray.RawData)
-		GL.glGenerateMipmap(GL.GL_TEXTURE_2D_ARRAY)
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, 0)
 
 		ObjectManager.AddObject(self)
@@ -90,7 +87,7 @@ class TextureArray(object):
 	
 	@property
 	def IsAccepting(self):
-		return self.__currentLayer < self.__layersCount
+		return self.__currentLayer < self.__layers
 	
 	@property
 	def Width(self):

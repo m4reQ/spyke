@@ -1,4 +1,4 @@
-from .enums import StringName, ErrorCode, NvidiaStringName
+from .enums import StringName, ErrorCode, NvidiaIntegerName
 
 from OpenGL.GL import glGetError, glGetString, glGetIntegerv, glGetStringi, GL_NUM_EXTENSIONS
 import time
@@ -34,16 +34,20 @@ def GetGLInfo():
     print(f"Version: {glGetString(StringName.Version).decode()}")
     print(f"Shading language version: {glGetString(StringName.ShadingLanguageVersion).decode()}")
 
-    n = glGetIntegerv(GL_NUM_EXTENSIONS);
-
-    exts = []
-    for i in range(n):
-        exts.append(glGetStringi(StringName.Extensions, i).decode())
-    
-    print(f"Extensions: {', '.join(exts)}")
-
     if IS_NVIDIA:
-        print(f"Total memory available: {glGetString(NvidiaStringName.GpuMemInfoTotalAvailable)}kB")
+        print(f"Total video memory available: {glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable) / 1000000.0}GB")
+
+def GetVideoMemoryAvailable():
+    if IS_NVIDIA:
+        return glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable)
+    else:
+        return 1
+
+def GetVideoMemoryCurrent():
+    if IS_NVIDIA:
+        return glGetIntegerv(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
+    else:
+        return 1
 
 class Timer:
     __Start = 0.0
