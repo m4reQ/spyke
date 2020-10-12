@@ -42,16 +42,21 @@ class BasicRenderer:
 
 		Log("2D renderer initialized", LogLevel.Info)
 	
-	def BeginScene(self, viewProjection: glm.mat4, uniformName: str):
+	def BeginScene(self, viewProjection: glm.mat4, uniformName: str) -> None:
 		self.__viewProjection = viewProjection
 		self.__viewProjectionName = uniformName
 
 		self.renderStats.Clear()
 	
-	def EndScene(self):
-		self.__Flush()
+	def EndScene(self) -> None:
+		needsDraw = False
+		for batch in self.__batches:
+			needsDraw |= batch.dataSize != 0
+			if needsDraw:
+				self.__Flush()
+				break
 
-	def __Flush(self):
+	def __Flush(self) -> None:
 		Timer.Start()
 
 		self.shader.Use()
@@ -65,7 +70,7 @@ class BasicRenderer:
 			if batch.texarrayID != -1:
 				GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, batch.texarrayID)
 			else:
-				GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, TextureManager.GetArray(TextureManager.BlankArray))
+				TextureManager.GetArray(TextureManager.BlankArray).Bind()
 				
 			self.vbo.AddData(batch.data, batch.dataSize)
 

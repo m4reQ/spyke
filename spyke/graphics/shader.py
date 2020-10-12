@@ -1,6 +1,7 @@
+from . import shaderSources
+from ..enums import ShaderType
 from ..utils import ObjectManager
 from ..debug import Log, LogLevel
-from . import shaderSources
 
 from OpenGL import GL
 from glm import mat4
@@ -8,7 +9,7 @@ import numpy
 
 class Shader(object):
 	@staticmethod
-	def CompileShader(source, type):
+	def CompileShader(source: str, type: ShaderType):
 		shader = GL.glCreateShader(type)
 
 		GL.glShaderSource(shader, source)
@@ -22,7 +23,7 @@ class Shader(object):
 		return shader
 
 	@classmethod
-	def FromFile(cls, vertFile, fragFile):
+	def FromFile(cls, vertFile: str, fragFile: str):
 		shader = None
 
 		vertF = None

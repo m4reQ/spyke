@@ -7,7 +7,7 @@ from ..text.fontManager import FontManager
 from ..text.font import Font
 from ...utils import GetQuadIndexData, GL_FLOAT_SIZE
 from ...enums import GLType, VertexAttribType
-from ...debug import Log, LogLevel
+from ...debug import Log, LogLevel, Timer
 
 import glm
 from OpenGL import GL
@@ -36,13 +36,8 @@ class TextRenderer(object):
 		self.winSize = (1, 1)
 
 		self.__batches = []
-		self.__vertexCount = 0
-		self.__indexCount = 0
 
 		self.__viewProjection = glm.mat4(1.0)
-
-		self.drawsCount = 0
-		self.vertexCount = 0
 
 		self.renderStats = RenderStats()
 
@@ -51,13 +46,13 @@ class TextRenderer(object):
 	def Resize(self, width: int, height: int):
 		self.winSize = (width, height)
 
-	def BeginScene(self, viewProjection: glm.mat4, uniformName: str):
+	def BeginScene(self, viewProjection: glm.mat4, uniformName: str) -> None:
 		self.__viewProjection = viewProjection
 		self.__viewProjectionName = uniformName
 
 		self.renderStats.Clear()
 	
-	def EndScene(self):
+	def EndScene(self) -> None:
 		needsDraw = False
 		for batch in self.__batches:
 			needsDraw |= batch.dataSize != 0
@@ -65,44 +60,46 @@ class TextRenderer(object):
 				self.__Flush()
 				break
 
-	def __Flush(self):
-		self.shader.Use()
+	def __Flush(self) -> None:
+		Timer.Start()
 
+		self.shader.Use()
 		self.shader.SetUniformMat4(self.__viewProjectionName, self.__viewProjection, False)
 
 		FontManager.Use()
 
 		self.vbo.Bind()
-		self.vbo.AddData(self.__vertexData, len(self.__vertexData) * GL_FLOAT_SIZE)
-
 		self.vao.Bind()
-
 		self.ibo.Bind()
 
-		self.vertexCount = 0
+		for batch in self.__batches:
+			self.vbo.AddData(batch.data, batch.dataSize)
 
-		GL.glDrawElements(GL.GL_TRIANGLES, self.__indexCount, GLType.UnsignedInt, None)
+			GL.glDrawElements(GL.GL_TRIANGLES, batch.indexCount, GLType.UnsignedInt, None)
+			self.renderStats.DrawsCount += 1
 
-		self.__vertexData.clear()
+			batch.Clear()
 
-		self.vertexCount = self.__vertexCount
+		self.renderStats.DrawTime = Timer.Stop()
 
-		self.__vertexCount = 0
-		self.__indexCount = 0
-
-		self.drawsCount += 1
-
-	def DrawText(self, pos: glm.vec3, color: tuple, font: Font, size: int, text: str):
+	def DrawText(self, pos: glm.vec3, color: tuple, font: Font, size: int, text: str) -> None:
 		advanceSum = 0
 
 		glyphSize = size / font.baseSize
 
+		try:
+			batch = next(x for x in self.__batches if x.IsAccepting)
+		except StopIteration:
+			batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
+			self.__batches.append(batch)
+
 		for char in text:
-			try:
-				batch = next(x for x in self.__batches if x.IsAccepting)
-			except StopIteration:
-				batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
-				self.__batches.append(batch)
+			if not batch.IsAccepting:
+				try:
+					batch = next(x for x in self.__batches if x.IsAccepting)
+				except StopIteration:
+					batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
+					self.__batches.append(batch)
 
 			glyph = font.GetGlyph(ord(char))
 

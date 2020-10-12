@@ -65,3 +65,15 @@ class StaticIndexBuffer(object):
 class Framebuffer(object):
 	def __init__(self):
 		raise NotImplementedError("Class not implemented yet")
+
+	def __Invalidate(self, resizing: bool) -> None:
+		pass
+	
+	def Resize(self, width: int, height: int) -> None:
+		pass
+
+	def Bind(self) -> None:
+		pass
+
+	def Delete(self) -> None:
+		pass

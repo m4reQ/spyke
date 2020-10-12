@@ -44,6 +44,13 @@ class StringName:
 	ShadingLanguageVersion = GL.GL_SHADING_LANGUAGE_VERSION
 	Extensions = GL.GL_EXTENSIONS
 
+class ShaderType:
+	VertexShader = GL.GL_VERTEX_SHADER
+	FragmentShader = GL.GL_FRAGMENT_SHADER
+	GeometryShader = GL.GL_GEOMETRY_SHADER
+	ComputeShader = GL.GL_COMPUTE_SHADER
+	TessEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
+
 class ErrorCode:
 	NoError = GL.GL_NO_ERROR
 	InvalidEnum = GL.GL_INVALID_ENUM
