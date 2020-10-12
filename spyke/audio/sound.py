@@ -38,8 +38,7 @@ class Sound(object):
     def SetVolume(self, value: float):
         self.__source.set_gain(value)
 
-    @property
-    def State(self):
+    def GetState(self):
         return self.__source.get_state()
     
     @property

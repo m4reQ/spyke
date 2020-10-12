@@ -10,7 +10,7 @@ class VertexArrayLayout:
         self.IsNormalized = normalized
 
 class VertexArray(object):
-    def __init__(self, vertexSize):
+    def __init__(self, vertexSize: int):
         self.__vertexSize = vertexSize
 
         self.__id = GL.glGenVertexArrays(1)

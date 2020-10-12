@@ -1,10 +1,18 @@
 from OpenGL import GL
+import openal
 
 ##### WINDOW #####
 class WindowAPI:
 	GLFW = "API::GLFW"
 	Pygame = "API::Pygame"
 	NoAPI = "API::None"
+
+##### AUDIO #####
+class AudioState:
+	Initial = openal.AL_INITIAL
+	Paused = openal.AL_PAUSED
+	Playing = openal.AL_PLAYING
+	Stopped = openal.AL_STOPPED
 
 ##### GRAPHICS #####
 class CameraType:

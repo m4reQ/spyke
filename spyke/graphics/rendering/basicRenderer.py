@@ -1,10 +1,13 @@
+from .renderBatch import RenderBatch
+from .renderStats import RenderStats
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..texturing.textureUtils import TextureHandle
+from ..texturing.textureManager import TextureManager
 from ...enums import VertexAttribType, GLType
 from ...transform import TransformQuadVertices
-from ...debug import Log, LogLevel
+from ...debug import Log, LogLevel, Timer
 from ...utils import GetQuadIndexData, GetGLTypeSize, GL_FLOAT_SIZE
 
 from OpenGL import GL
@@ -33,15 +36,9 @@ class BasicRenderer:
 
 		self.__batches = []
 
-		self.__vertexData = []
-		self.__vertexCount = 0
-		self.__indexCount = 0
-
-		self.vertexCount = 0
-
 		self.__viewProjection = glm.mat4(1.0)
 
-		self.drawsCount = 0
+		self.renderStats = RenderStats()
 
 		Log("2D renderer initialized", LogLevel.Info)
 	
@@ -49,41 +46,40 @@ class BasicRenderer:
 		self.__viewProjection = viewProjection
 		self.__viewProjectionName = uniformName
 
-		self.drawsCount = 0
+		self.renderStats.Clear()
 	
 	def EndScene(self):
-		if len(self.__vertexData) != 0:
-			self.__Flush()
-		
-		return (self.drawsCount, self.vertexCount)
+		self.__Flush()
 
 	def __Flush(self):
-		self.shader.Use()
+		Timer.Start()
 
+		self.shader.Use()
 		self.shader.SetUniformMat4(self.__viewProjectionName, self.__viewProjection, False)
 
 		self.vbo.Bind()
-		self.vbo.AddData(self.__vertexData, len(self.__vertexData) * GL_FLOAT_SIZE)
-
 		self.vao.Bind()
-
 		self.ibo.Bind()
 
-		self.vertexCount = 0
+		for batch in self.__batches:
+			if batch.texarrayID != -1:
+				GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, batch.texarrayID)
+				
+			self.vbo.AddData(batch.data, batch.dataSize)
 
-		GL.glDrawElements(GL.GL_TRIANGLES, self.__indexCount, GLType.UnsignedInt, None)
+			GL.glDrawElements(GL.GL_TRIANGLES, batch.indexCount, GLType.UnsignedInt, None)
+			self.renderStats.DrawsCount += 1
 
-		self.__vertexData.clear()
-
-		self.vertexCount = self.__vertexCount
-		self.__vertexCount = 0
-		self.__indexCount = 0
-
-		self.drawsCount += 1
+			batch.Clear()
+		
+		self.renderStats.DrawTime = Timer.Stop()
 	
 	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
-		if self.__vertexCount + 4 > BasicRenderer.MaxVertexCount:
-			self.__Flush()
+		try:
+			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.isAccepting)
+		except StopIteration:
+			batch = RenderBatch(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
+			self.__batches.append(batch)
 		
 		translatedVerts = TransformQuadVertices(transform.to_tuple())
 		
@@ -93,7 +89,10 @@ class BasicRenderer:
 			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, color[0], color[1], color[2], color[3], texHandle.U, 0, 			texHandle.Index, tilingFactor[0], tilingFactor[1],
 			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V, texHandle.Index, tilingFactor[0], tilingFactor[1]]
 	
-		self.__vertexData.extend(data)
+		batch.AddData(data)
 		
-		self.__vertexCount += 4
-		self.__indexCount += 6
+		self.renderStats.VertexCount += 4
+		batch.indexCount += 6
+	
+	def GetStats(self) -> RenderStats:
+		return self.renderStats

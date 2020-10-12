@@ -3,6 +3,8 @@ from ..debug import Log, LogLevel
 from ..graphics import Font
 from ..audio.sound import Sound
 from ..graphics.texturing.textureUtils import TextureHandle
+from ..enums import CameraType
+from ..graphics.cameras import *
 
 import glm
 
@@ -107,6 +109,15 @@ class SpriteComponent(object):
 		self.TilingFactor = tilingFactor
 
 class AudioComponent(object):
-	def __init__(self, filepath):
+	def __init__(self, filepath: str, looping: bool):
 		self.Filepath = filepath
 		self.Handle = Sound(filepath)
+		self.Ended = False
+		self.Looping = looping
+
+class CameraComponent(object):
+	def __init__(self, cameraType: CameraType, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 10.0):
+		if cameraType == CameraType.Orthographic:
+			self.Camera = OrthographicCamera(left, right, bottom, top, zNear, zFar)
+		else:
+			raise RuntimeError("Invalid camera type")

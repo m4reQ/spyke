@@ -1,5 +1,4 @@
 from .textureUtils import TextureData, IMAGE_FORMAT_MAP
-from .textureArray import TextureArray
 from ...debug import Log, LogLevel, Timer
 
 from PIL import Image
@@ -19,16 +18,10 @@ def __LoadTexture(filepath: str):
     texData.Data = list(img.getdata())
     texData.TextureType = IMAGE_FORMAT_MAP[img.mode]
 
-    texData.ImageName = filepath
-
     img.close()
+
+    texData.ImageName = filepath
 
     Log(f"Image '{filepath}' loaded in {Timer.Stop()} seconds.", LogLevel.Info)
 
     return texData
-
-def UploadTexture(filename: str, textureArray: TextureArray):
-    return textureArray.UploadTexture(__LoadTexture(filename))
-
-def LoadTexture(filename: str):
-    return __LoadTexture(filename)

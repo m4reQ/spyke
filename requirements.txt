@@ -3,3 +3,4 @@ PyGLM
 PyOgg
 PyOpenAL
 PyOpenGL
+colorama

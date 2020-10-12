@@ -51,7 +51,7 @@ def GetQuadIndexData(count: int) -> list:
 	
 	return data
 
-def CollectGarbage():
+def CollectGarbage() -> None:
 	objCount = gc.get_count()[0]
 	gc.collect()
 	Log(f"Garbage collection freed {objCount - gc.get_count()[0]} objects.", LogLevel.Info)

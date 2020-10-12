@@ -4,6 +4,10 @@ from .textureLoader import LoadTexture
 from ...debug import Log, LogLevel
 from ...utils import Static
 
+from functools import lru_cache
+
+__debug__
+
 class TextureManager(Static):
 	__TextureArrays = []
 
@@ -35,3 +39,7 @@ class TextureManager(Static):
 	
 	def LoadTexture(filepath: str, texArray: int) -> TextureHandle:
 		return TextureManager.__TextureArrays[texArray].UploadTexture(LoadTexture(filepath))
+	
+	@lru_cache
+	def GetArray(_id: int) -> TextureArray:
+		return TextureManager.__TextureArrays[_id]

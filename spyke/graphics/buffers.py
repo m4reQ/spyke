@@ -5,7 +5,7 @@ from OpenGL import GL
 import numpy
 
 class DynamicVertexBuffer(object):
-	def __init__(self, size, usage = BufferUsageFlag.StreamDraw):
+	def __init__(self, size: int, usage = BufferUsageFlag.StreamDraw):
 		self.__size = size
 		self.__id = GL.glGenBuffers(1)
 
@@ -17,7 +17,7 @@ class DynamicVertexBuffer(object):
 
 		ObjectManager.AddObject(self)
 
-	def AddData(self, data, size):
+	def AddData(self, data: list, size: int):
 		GL.glBufferSubData(GL.GL_ARRAY_BUFFER, 0, size, numpy.asarray(data, dtype=numpy.float32))
 	
 	def Bind(self):
@@ -61,3 +61,7 @@ class StaticIndexBuffer(object):
 	@property
 	def ID(self):
 		return self.__id
+	
+class Framebuffer(object):
+	def __init__(self):
+		raise NotImplementedError("Class not implemented yet")
