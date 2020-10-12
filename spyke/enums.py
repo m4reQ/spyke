@@ -28,6 +28,10 @@ class UniformTarget:
 	ViewProjectionMatrix = "VIEW_PROJECTION_MATRIX"
 	DeltaTime = "DELTA_TIME"
 
+class TextureType:
+	Rgb = GL.GL_RGB
+	Rgba = GL.GL_RGBA
+
 ##### OpenGL #####
 class NvidiaIntegerName:
 	GpuMemInfoTotalAvailable = 0x9048

@@ -1,3 +1,5 @@
+from .renderStats import RenderStats
+from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
@@ -33,7 +35,7 @@ class TextRenderer(object):
 		
 		self.winSize = (1, 1)
 
-		self.__vertexData = []
+		self.__batches = []
 		self.__vertexCount = 0
 		self.__indexCount = 0
 
@@ -41,6 +43,8 @@ class TextRenderer(object):
 
 		self.drawsCount = 0
 		self.vertexCount = 0
+
+		self.renderStats = RenderStats()
 
 		Log("Text renderer initialized", LogLevel.Info)
 
@@ -51,13 +55,15 @@ class TextRenderer(object):
 		self.__viewProjection = viewProjection
 		self.__viewProjectionName = uniformName
 
-		self.drawsCount = 0
+		self.renderStats.Clear()
 	
 	def EndScene(self):
-		if len(self.__vertexData) != 0:
-			self.__Flush()
-
-		return (self.drawsCount, self.vertexCount)
+		needsDraw = False
+		for batch in self.__batches:
+			needsDraw |= batch.dataSize != 0
+			if needsDraw:
+				self.__Flush()
+				break
 
 	def __Flush(self):
 		self.shader.Use()
@@ -92,8 +98,11 @@ class TextRenderer(object):
 		glyphSize = size / font.baseSize
 
 		for char in text:
-			if self.__vertexCount + 4 > TextRenderer.MaxVertexCount:
-				self.__Flush()
+			try:
+				batch = next(x for x in self.__batches if x.IsAccepting)
+			except StopIteration:
+				batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
+				self.__batches.append(batch)
 
 			glyph = font.GetGlyph(ord(char))
 
@@ -111,6 +120,9 @@ class TextRenderer(object):
 			
 			advanceSum += glyph.Advance
 
-			self.__vertexData.extend(charData)
-			self.__vertexCount += 4
-			self.__indexCount += 6
+			batch.AddData(charData)
+			batch.indexCount += 6
+			self.renderStats.vertexCount += 4
+	
+	def GetStats(self) -> RenderStats:
+		return self.renderStats

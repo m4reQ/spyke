@@ -1,9 +1,6 @@
-from OpenGL.GL import GL_RGB, GL_RGBA
-import numpy
+from ...enums import TextureType
 
-class TextureType:
-	Rgb = GL_RGB
-	Rgba = GL_RGBA
+import numpy
 
 class TextureData(object):
 	def __init__(self):

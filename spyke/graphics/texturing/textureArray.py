@@ -1,10 +1,10 @@
-from .textureUtils import GenRawTextureData, TextureType, TextureData, TextureHandle
+from .textureUtils import GenRawTextureData, TextureData, TextureHandle
 from ...utils import ObjectManager
-from ...debug import Log, LogLevel
+from ...enums import TextureType
+from ...debug import Log, LogLevel, Timer
 
 import numpy
 from OpenGL import GL
-from time import perf_counter
 
 class TextureArray(object):
 	__RawData = []
@@ -20,7 +20,7 @@ class TextureArray(object):
 	__MinFastFilter = GL.GL_NEAREST_MIPMAP_LINEAR
 
 	def __init__(self, maxWidth: int, maxHeight: int, layersCount: int):
-		start = perf_counter()
+		Timer.Start()
 
 		if not TextureArray.__MaxLayersCount:
 			TextureArray.__MaxLayersCount = int(GL.glGetInteger(GL.GL_MAX_ARRAY_TEXTURE_LAYERS))
@@ -48,10 +48,10 @@ class TextureArray(object):
 
 		ObjectManager.AddObject(self)
 
-		Log(f"Texture array of size ({self.__maxWidth}x{self.__maxHeight}x{self.__layers}) initialized in {perf_counter() - start} seconds.", LogLevel.Info)
+		Log(f"Texture array of size ({self.__maxWidth}x{self.__maxHeight}x{self.__layers}) initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 	
 	def UploadTexture(self, texData: TextureData):
-		start = perf_counter()
+		Timer.Start()
 
 		self.Bind()
 
@@ -71,7 +71,7 @@ class TextureArray(object):
 
 		self.__currentLayer += 1
 
-		Log(f"Texture '{texData.ImageName}' uploaded in {perf_counter() - start} seconds.", LogLevel.Info)
+		Log(f"Texture '{texData.ImageName}' uploaded in {Timer.Stop()} seconds.", LogLevel.Info)
 
 		return TextureHandle(u, v, idx, self.__id)
 	

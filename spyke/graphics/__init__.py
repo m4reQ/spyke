@@ -1,5 +1,5 @@
 from .texturing.textureArray import TextureArray
-from .texturing.textureLoader import LoadTexture, UploadTexture
+from .texturing.textureLoader import LoadTexture
 from .texturing.textureManager import TextureManager
 from .rendering.renderer import Renderer
 from .text.font import Font
