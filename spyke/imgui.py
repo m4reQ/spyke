@@ -29,7 +29,6 @@ class ToggledFrame(tkinter.Frame):
 		if bool(self.show.get()):
 			self.Frame.pack(fill = "x")
 			self.__button.configure(text = "-")
-			self.__button.lower()
 		else:
 			self.Frame.forget()
 			self.__button.configure(text = "+")
