@@ -1,4 +1,5 @@
 from .textureUtils import GenRawTextureData, TextureData, TextureHandle
+from ... import USE_FAST_MIN_FILTER
 from ...utils import ObjectManager
 from ...enums import TextureType
 from ...debug import Log, LogLevel, Timer
@@ -16,8 +17,10 @@ class TextureArray(object):
 	__InternalFormat = GL.GL_RGBA8
 	__Pixeltype = GL.GL_UNSIGNED_BYTE
 
-	__MinFilter = GL.GL_LINEAR_MIPMAP_NEAREST
-	__MinFastFilter = GL.GL_NEAREST_MIPMAP_LINEAR
+	if USE_FAST_MIN_FILTER:
+		__MinFilter = GL.GL_NEAREST_MIPMAP_LINEAR
+	else:
+		__MinFilter = GL.GL_LINEAR_MIPMAP_NEAREST
 
 	def __init__(self, maxWidth: int, maxHeight: int, layersCount: int):
 		Timer.Start()
@@ -50,7 +53,7 @@ class TextureArray(object):
 
 		Log(f"Texture array of size ({self.__maxWidth}x{self.__maxHeight}x{self.__layers}) initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 	
-	def UploadTexture(self, texData: TextureData):
+	def UploadTexture(self, texData: TextureData) -> TextureHandle:
 		Timer.Start()
 
 		self.Bind()
@@ -65,15 +68,19 @@ class TextureArray(object):
 		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, texData.Width, texData.Height, 1, texData.TextureType, TextureArray.__Pixeltype, numpy.asarray(texData.Data, dtype = "uint8"))
 		GL.glGenerateMipmap(GL.GL_TEXTURE_2D_ARRAY)
 
-		u = (texData.Width - 0.5) / self.__maxWidth
-		v = (texData.Height - 0.5) / self.__maxHeight
-		idx = self.__currentLayer
+		handle = TextureHandle()
+		handle.U = (texData.Width - 0.5) / self.__maxWidth
+		handle.V = (texData.Height - 0.5) / self.__maxHeight
+		handle.Index = self.__currentLayer
+		handle.TexarrayID = self.__id
+		handle.Width = texData.Width
+		handle.Height = texData.Height
 
 		self.__currentLayer += 1
 
 		Log(f"Texture '{texData.ImageName}' uploaded in {Timer.Stop()} seconds.", LogLevel.Info)
 
-		return TextureHandle(u, v, idx, self.__id)
+		return handle
 	
 	def Bind(self):
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)

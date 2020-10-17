@@ -1,12 +1,34 @@
 from .textureArray import TextureArray
-from .textureUtils import TextureData, GetWhiteTexture, TextureHandle
-from .textureLoader import LoadTexture
-from ...debug import Log, LogLevel
+from .textureUtils import TextureData, GetWhiteTexture, TextureHandle, IMAGE_FORMAT_MAP
+from ...debug import Log, LogLevel, Timer
 from ...utils import Static
 
 from functools import lru_cache
+from PIL import Image
 
-__debug__
+class TextureLoader(Static):
+	def LoadTexture(filepath: str) -> TextureData:
+		Timer.Start()
+
+		try:
+			img = Image.open(filepath)
+		except FileNotFoundError:
+			raise RuntimeError(f"Cannot find image file: {filepath}.")
+
+		texData = TextureData()
+		texData.Width = img.size[0]
+		texData.Height = img.size[1]
+
+		texData.Data = list(img.getdata())
+		texData.TextureType = IMAGE_FORMAT_MAP[img.mode]
+
+		img.close()
+
+		texData.ImageName = filepath
+
+		Log(f"Image '{filepath}' loaded in {Timer.Stop()} seconds.", LogLevel.Info)
+
+		return texData
 
 class TextureManager(Static):
 	__TextureArrays = []
@@ -38,7 +60,10 @@ class TextureManager(Static):
 		return _id
 	
 	def LoadTexture(filepath: str, texArray: int) -> TextureHandle:
-		return TextureManager.__TextureArrays[texArray].UploadTexture(LoadTexture(filepath))
+		return TextureManager.UploadTexture(TextureLoader.LoadTexture(filepath), texArray)
+	
+	def UploadTexture(texData: TextureData, texArray: int) -> TextureHandle:
+		return TextureManager.__TextureArrays[texArray].UploadTexture(texData)
 	
 	@lru_cache
 	def GetArray(_id: int) -> TextureArray:

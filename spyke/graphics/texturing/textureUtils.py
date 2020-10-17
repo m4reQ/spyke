@@ -16,6 +16,8 @@ class TextureHandle(object):
 		self.V = v
 		self.Index = index
 		self.TexarrayID = arrayId
+		self.Width = 0
+		self.Height = 0
 
 def GetWhiteTexture():
 	data = TextureData()

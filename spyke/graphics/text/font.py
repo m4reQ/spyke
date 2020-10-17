@@ -1,11 +1,11 @@
 from .glyph import Glyph
 from .fontManager import FontManager
-from ..texturing.textureLoader import LoadTexture
+from ..texturing.textureManager import TextureManager
 from ...debug import Log, LogLevel, Timer
 
 class Font(object):
 	@staticmethod
-	def LoadFont(filepath: str, texSize: tuple):
+	def __LoadFont(filepath: str, texSize: tuple) -> list:
 		Timer.Start()
 		characters = {}
 		base = 1
@@ -52,12 +52,11 @@ class Font(object):
 		if not FontManager.Initialized:
 			FontManager.Initialize()
 
-		texData = LoadTexture(bitmapFilepath)
+		handle = TextureManager.LoadTexture(bitmapFilepath, FontManager.TextureArray)
+		self.__texId = handle.Index
+		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (handle.Width, handle.Height))
 
-		self.__texId = FontManager.AddTexture(texData).Index
-		self.characters, self.baseSize = Font.LoadFont(fontFilepath, (texData.Width, texData.Height))
-
-	def GetGlyph(self, charId: int):
+	def GetGlyph(self, charId: int) -> Glyph:
 		try:
 			return self.characters[charId]
 		except KeyError:

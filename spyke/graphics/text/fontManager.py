@@ -1,6 +1,6 @@
 from ..texturing.textureArray import TextureArray
-from ..texturing.textureUtils import TextureData
-from ..texturing.textureLoader import LoadTexture
+from ..texturing.textureUtils import TextureData, TextureHandle
+from ..texturing.textureManager import TextureManager
 from ...debug import Log, LogLevel
 
 class FontManager:
@@ -12,19 +12,19 @@ class FontManager:
     Initialized = False
 
     @staticmethod
-    def Initialize():
+    def Initialize() -> None:
         if FontManager.Initialized:
             Log("Font manager already initialized.", LogLevel.Warning)
             return
         
-        FontManager.TextureArray = TextureArray(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures)
+        FontManager.TextureArray = TextureManager.CreateTextureArray(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures)
 
         FontManager.Initialized = True
     
     @staticmethod
-    def AddTexture(texData: TextureData):
-        return FontManager.TextureArray.UploadTexture(texData)
+    def AddTexture(texData: TextureData) -> TextureHandle:
+        return TextureManager.UploadTexture(texData, FontManager.TextureArray)
     
     @staticmethod
-    def Use():
-        FontManager.TextureArray.Bind()
+    def Use() -> None:
+        TextureManager.GetArray(FontManager.TextureArray).Bind()

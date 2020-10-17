@@ -1,4 +1,4 @@
-from ....utils import GL_FLOAT_SIZE
+from ...utils import GL_FLOAT_SIZE
 
 class RenderBatch(object):
 	def __init__(self, maxSize: int):
