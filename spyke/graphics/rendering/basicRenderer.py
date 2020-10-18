@@ -1,5 +1,6 @@
 from .renderBatch import RenderBatch
 from .renderStats import RenderStats
+from .rendererComponent import RendererComponent
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
@@ -13,7 +14,7 @@ from ...utils import GetQuadIndexData, GetGLTypeSize, GL_FLOAT_SIZE
 from OpenGL import GL
 import glm
 
-class BasicRenderer:
+class BasicRenderer(RendererComponent):
 	MaxQuadCount = 100
 	MaxVertexCount = MaxQuadCount * 4
 
@@ -86,6 +87,7 @@ class BasicRenderer:
 			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.isAccepting)
 		except StopIteration:
 			batch = RenderBatch(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
+			batch.texArrayID = texHandle.TexarrayID
 			self.__batches.append(batch)
 		
 		translatedVerts = TransformQuadVertices(transform.to_tuple())

@@ -2,6 +2,7 @@ pygame==2.0.0.dev6
 PyGLM
 PyOgg
 PyOpenAL
+numpy
 PyOpenGL
 PyOpenGL-accelerate
 colorama

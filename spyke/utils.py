@@ -104,7 +104,7 @@ def noexcept(func):
 	return __wrapper
 
 class Abstract:
-	def __new__(self):
+	def __init__(self, *args, **kwargs):
 		raise RuntimeError("Cannot instantiate abstract class.")
 
 class Static:
@@ -115,7 +115,7 @@ class Static:
 				if callable(_attr):
 					setattr(cls, attr, staticmethod(_attr))
 			return cls
-		return inner 
+		return inner
 
 	def __init_subclass__(cls, *args, **kwargs):
 		return Static.__decorator(_cls = cls)

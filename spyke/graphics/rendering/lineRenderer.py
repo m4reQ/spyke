@@ -1,3 +1,4 @@
+from .rendererComponent import RendererComponent
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer
@@ -8,7 +9,7 @@ from ...debug import Log, LogLevel
 import glm
 from OpenGL import GL
 
-class LineRenderer(object):
+class LineRenderer(RendererComponent):
 	MaxLinesCount = 500
 	MaxVertexCount = MaxLinesCount * 2
 

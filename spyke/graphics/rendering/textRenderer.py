@@ -1,5 +1,6 @@
 from .renderStats import RenderStats
 from .renderBatch import RenderBatch
+from .rendererComponent import RendererComponent
 from ..shader import Shader
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
@@ -12,7 +13,7 @@ from ...debug import Log, LogLevel, Timer
 import glm
 from OpenGL import GL
 
-class TextRenderer(object):
+class TextRenderer(RendererComponent):
 	MaxChars = 500
 	MaxVertexCount = MaxChars * 4
 
