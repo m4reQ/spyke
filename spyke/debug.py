@@ -4,6 +4,8 @@ from .enums import StringName, ErrorCode, NvidiaIntegerName
 from OpenGL.GL import glGetError, glGetString, glGetIntegerv, glGetStringi, GL_NUM_EXTENSIONS
 import time
 import colorama
+import psutil
+import os
 
 if DEBUG_COLOR:
 	colorama.init()
@@ -43,32 +45,27 @@ if DEBUG_ENABLE:
 		else:
 			Log = __Log
 
+__PROCESS = psutil.Process(os.getpid())
+
 def GetGLError():
 	err = glGetError()
 	if err != ErrorCode.NoError:
 		Log(err, LogLevel.Error)
-
-def GetGLInfo():
-	print("-----INFO-----")
-	print(f"Renderer: {glGetString(StringName.Renderer).decode()}")
-	print(f"Vendor: {glGetString(StringName.Vendor).decode()}")
-	print(f"Version: {glGetString(StringName.Version).decode()}")
-	print(f"Shading language version: {glGetString(StringName.ShadingLanguageVersion).decode()}")
-
-	if IS_NVIDIA:
-		print(f"Total video memory available: {glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable) / 1000000.0}GB")
-
-def GetVideoMemoryAvailable():
-	if IS_NVIDIA:
-		return glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable)
-	else:
-		return 1
 
 def GetVideoMemoryCurrent():
 	if IS_NVIDIA:
 		return glGetIntegerv(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
 	else:
 		return 1
+
+def GetMemoryUsed():
+	return __PROCESS.memory_info().rss
+
+def EnsureString(string):
+	if isinstance(string, str):
+		return string
+	
+	return string.decode("ASCII")
 
 class Timer:
 	__Start = 0.0
@@ -84,3 +81,38 @@ class Timer:
 	@staticmethod
 	def GetCurrent():
 		return time.perf_counter()
+
+class GLInfo:
+	Renderer = ""
+	Vendor = ""
+	Version = ""
+	GLSLVersion = ""
+	MemoryAvailable = 0
+
+	__Checked = False
+
+	@staticmethod
+	def TryGetInfo():
+		GLInfo.Renderer = EnsureString(glGetString(StringName.Renderer))
+		GLInfo.Vendor = EnsureString(glGetString(StringName.Vendor))
+		GLInfo.Version = EnsureString(glGetString(StringName.Version))
+		GLInfo.GLSLVersion = EnsureString(glGetString(StringName.ShadingLanguageVersion))
+		if IS_NVIDIA:
+			GLInfo.MemoryAvailable = glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable)
+		
+		GLInfo.__Checked = True
+		
+	@staticmethod
+	def PrintInfo():
+		if not GLInfo.__Checked:
+			GLInfo.TryGetInfo()
+		
+		print("-----GL INFO-----")
+		print(f"Renderer: {GLInfo.Renderer}")
+		print(f"Vendor: {GLInfo.Vendor}")
+		print(f"Version: {GLInfo.Version}")
+		print(f"Shading language version: {GLInfo.GLSLVersion}")
+		if GLInfo.MemoryAvailable != 0:
+			print(f"Total video memory available: {glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable) / 1000000.0}GB")
+		else:
+			print("Total video memory available: unavailable.")

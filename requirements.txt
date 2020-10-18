@@ -6,3 +6,4 @@ PyOpenGL
 PyOpenGL-accelerate
 colorama
 numpy
+psutil

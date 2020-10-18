@@ -1,4 +1,4 @@
-from .debug import Log, LogLevel, IS_NVIDIA, GetVideoMemoryAvailable, GetVideoMemoryCurrent
+from .debug import Log, LogLevel, GetVideoMemoryCurrent, GLInfo, IS_NVIDIA, GetMemoryUsed
 from .utils	import Static, KwargParse
 from .ecs import Scene
 from .ecs.entityManager import EntityManager
@@ -108,10 +108,10 @@ class ImGui(Static):
 		if ImGui.Renderer:
 			ImGui.__RenderStats.delete(1.0, "end")
 
-			text = f"Draws count: {ImGui.Renderer.drawsCount}\nVertices count: {ImGui.Renderer.vertexCount}\n"
+			text = f"Draws count: {ImGui.Renderer.drawsCount}\nVertices count: {ImGui.Renderer.vertexCount}\nMemory used: {GetMemoryUsed() / 1000}kB\n"
 
-			mem = GetVideoMemoryAvailable() - GetVideoMemoryCurrent()
-			if mem != 1:
+			mem = GLInfo.MemoryAvailable - GetVideoMemoryCurrent()
+			if IS_NVIDIA:
 				text += f"Video memory used: {mem / 1000000.0}GB\n"
 			else:
 				text += f"Video memory used: unavailable\n"
