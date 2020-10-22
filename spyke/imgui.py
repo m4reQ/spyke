@@ -1,5 +1,6 @@
-from .debug import Log, LogLevel, GetVideoMemoryCurrent, GLInfo, IS_NVIDIA, GetMemoryUsed
+from .debug import Log, LogLevel, GetVideoMemoryCurrent, GLInfo, GetMemoryUsed
 from .utils	import Static, KwargParse
+from . import IS_NVIDIA
 from .ecs import Scene
 from .ecs.entityManager import EntityManager
 
@@ -52,6 +53,9 @@ class ImGui(Static):
 
 	#main window
 	__Handle = tkinter.Tk()
+
+	def IsInitialized():
+		return ImGui.__Initialized
 
 	def Close():
 		ImGui.Closed = True

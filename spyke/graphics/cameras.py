@@ -9,6 +9,9 @@ class OrthographicCamera(object):
         self.viewProjectionMatrix = glm.mat4(1.0)
 
         self.position = glm.vec2(0)
+
+        self.zNear = zNear
+        self.zFar = zFar
         
         self.RecalculateMatrices()
     
@@ -30,3 +33,5 @@ class OrthographicCamera(object):
     
     def ReinitProjectionMatrix(self, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 10.0):
         self.projectionMatrix = glm.ortho(left, right, bottom, top, zNear, zFar)
+
+        self.RecalculateMatrices()

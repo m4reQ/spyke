@@ -8,8 +8,6 @@ import numpy
 from OpenGL import GL
 
 class TextureArray(object):
-	__RawData = []
-
 	__MaxLayersCount = 0
 
 	__TextureType = TextureType.Rgba
@@ -37,8 +35,6 @@ class TextureArray(object):
 
 		self.__currentLayer = 0
 
-		TextureArray.RawData = GenRawTextureData(self.__maxWidth, self.__maxHeight, TextureArray.__TextureType)
-
 		self.__id = GL.glGenTextures(1)
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)
 		GL.glTexStorage3D(GL.GL_TEXTURE_2D_ARRAY, TextureArray.__MipmapLevels, TextureArray.__InternalFormat, self.__maxWidth, self.__maxHeight, self.__layers)
@@ -64,7 +60,7 @@ class TextureArray(object):
 			raise RuntimeError("Texture size is higher than maximum.")
 		
 		if texData.Width != self.__maxWidth or texData.Height != self.__maxHeight:
-			GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, self.__maxWidth, self.__maxHeight, 1, TextureArray.__TextureType, TextureArray.__Pixeltype, TextureArray.RawData)
+			GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, self.__maxWidth, self.__maxHeight, 1, TextureArray.__TextureType, TextureArray.__Pixeltype, GenRawTextureData(self.__maxWidth, self.__maxHeight, TextureArray.__TextureType))
 		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, texData.Width, texData.Height, 1, texData.TextureType, TextureArray.__Pixeltype, numpy.asarray(texData.Data, dtype = "uint8"))
 		GL.glGenerateMipmap(GL.GL_TEXTURE_2D_ARRAY)
 

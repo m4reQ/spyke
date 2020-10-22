@@ -15,6 +15,15 @@ class RenderBatch(object):
 		self.data.extend(data)
 		self.dataSize += len(data) * GL_FLOAT_SIZE
 	
+	def TryAddData(self, data: list) -> bool:
+		if self.dataSize + len(data) * GL_FLOAT_SIZE > self.maxSize:
+			return False
+
+		self.data.extend(data)
+		self.dataSize += len(data) * GL_FLOAT_SIZE
+
+		return True
+	
 	def Clear(self) -> None:
 		self.data.clear()
 		self.dataSize = 0

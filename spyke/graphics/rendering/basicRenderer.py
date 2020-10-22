@@ -7,9 +7,9 @@ from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..texturing.textureUtils import TextureHandle
 from ..texturing.textureManager import TextureManager
 from ...enums import VertexAttribType, GLType
-from ...transform import TransformQuadVertices
+from ...transform import TransformQuadVertices, GetQuadIndexData
 from ...debug import Log, LogLevel, Timer
-from ...utils import GetQuadIndexData, GetGLTypeSize, GL_FLOAT_SIZE
+from ...utils import GL_FLOAT_SIZE
 
 from OpenGL import GL
 import glm
@@ -84,10 +84,10 @@ class BasicRenderer(RendererComponent):
 	
 	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
 		try:
-			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.isAccepting)
+			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.IsAccepting)
 		except StopIteration:
 			batch = RenderBatch(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
-			batch.texArrayID = texHandle.TexarrayID
+			batch.texarrayID = texHandle.TexarrayID
 			self.__batches.append(batch)
 		
 		translatedVerts = TransformQuadVertices(transform.to_tuple())
@@ -98,7 +98,12 @@ class BasicRenderer(RendererComponent):
 			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, color[0], color[1], color[2], color[3], texHandle.U, 0, 			texHandle.Index, tilingFactor[0], tilingFactor[1],
 			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V, texHandle.Index, tilingFactor[0], tilingFactor[1]]
 	
-		batch.AddData(data)
+		if not batch.TryAddData(data):
+			newBatch = RenderBatch(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
+			newBatch.texarrayID = batch.texarrayID
+			self.__batches.append(newBatch)
+
+			newBatch.AddData(data)
 		
 		self.renderStats.VertexCount += 4
 		batch.indexCount += 6

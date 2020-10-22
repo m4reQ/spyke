@@ -1,11 +1,16 @@
-from . import DEBUG_ENABLE, START_TIME, DEBUG_LOG_TIME, IS_NVIDIA, DEBUG_COLOR
+#temporarily placed here to avoid circular import between imgui-debug-utils.compat 
+def _EnsureString(string):
+	if isinstance(string, str):
+		return string
+	
+	return string.decode("ASCII")
+
+from . import DEBUG_ENABLE, START_TIME, DEBUG_LOG_TIME, IS_NVIDIA, DEBUG_COLOR, _PROCESS
 from .enums import StringName, ErrorCode, NvidiaIntegerName
 
-from OpenGL.GL import glGetError, glGetString, glGetIntegerv, glGetStringi, GL_NUM_EXTENSIONS
+from OpenGL.GL import glGetError, glGetString, glGetIntegerv, GL_NUM_EXTENSIONS
 import time
 import colorama
-import psutil
-import os
 
 if DEBUG_COLOR:
 	colorama.init()
@@ -32,7 +37,7 @@ def __LogColored(msg: str, logLevel: LogLevel) -> None:
 def __LogTimedColored(msg: str, logLevel: LogLevel) -> None:
 	print(f"{LEVEL_COLOR_MAP[logLevel]}[{logLevel}][{(time.perf_counter() - START_TIME):.3F}s] {msg}{colorama.Style.RESET_ALL}")
 
-Log = lambda: None
+Log = lambda _, __: None
 if DEBUG_ENABLE:
 	if DEBUG_COLOR:
 		if DEBUG_LOG_TIME:
@@ -44,8 +49,6 @@ if DEBUG_ENABLE:
 			Log = __LogTimed
 		else:
 			Log = __Log
-
-__PROCESS = psutil.Process(os.getpid())
 
 def GetGLError():
 	err = glGetError()
@@ -59,27 +62,21 @@ def GetVideoMemoryCurrent():
 		return 1
 
 def GetMemoryUsed():
-	return __PROCESS.memory_info().rss
-
-def EnsureString(string):
-	if isinstance(string, str):
-		return string
-	
-	return string.decode("ASCII")
+	return _PROCESS.memory_info().rss
 
 class Timer:
 	__Start = 0.0
 	
 	@staticmethod
-	def Start():
+	def Start() -> None:
 		Timer.__Start = time.perf_counter()
 	
 	@staticmethod
-	def Stop():
+	def Stop() -> float:
 		return time.perf_counter() - Timer.__Start
 	
 	@staticmethod
-	def GetCurrent():
+	def GetCurrent() -> float:
 		return time.perf_counter()
 
 class GLInfo:
@@ -93,10 +90,10 @@ class GLInfo:
 
 	@staticmethod
 	def TryGetInfo():
-		GLInfo.Renderer = EnsureString(glGetString(StringName.Renderer))
-		GLInfo.Vendor = EnsureString(glGetString(StringName.Vendor))
-		GLInfo.Version = EnsureString(glGetString(StringName.Version))
-		GLInfo.GLSLVersion = EnsureString(glGetString(StringName.ShadingLanguageVersion))
+		GLInfo.Renderer = _EnsureString(glGetString(StringName.Renderer))
+		GLInfo.Vendor = _EnsureString(glGetString(StringName.Vendor))
+		GLInfo.Version = _EnsureString(glGetString(StringName.Version))
+		GLInfo.GLSLVersion = _EnsureString(glGetString(StringName.ShadingLanguageVersion))
 		if IS_NVIDIA:
 			GLInfo.MemoryAvailable = glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable)
 		
@@ -113,6 +110,6 @@ class GLInfo:
 		print(f"Version: {GLInfo.Version}")
 		print(f"Shading language version: {GLInfo.GLSLVersion}")
 		if GLInfo.MemoryAvailable != 0:
-			print(f"Total video memory available: {glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable) / 1000000.0}GB")
+			print(f"Total video memory: {glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable) / 1000000.0}GB")
 		else:
-			print("Total video memory available: unavailable.")
+			print("Total video memory: unavailable.")

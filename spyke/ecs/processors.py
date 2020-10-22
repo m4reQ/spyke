@@ -1,8 +1,18 @@
-from .esper import Processor
+from .esper import Processor, World as Scene
 from .components import *
 from ..graphics import Renderer, GLCommand, OrthographicCamera, RenderTarget
 from ..enums import ClearMask, AudioState
 from ..debug import Log, LogLevel
+from ..events import WindowEvent
+from ..imgui import ImGui
+from ..inputHandler import InputHandler
+
+def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
+	scene.add_processor(RenderingProcessor(renderer))
+	scene.add_processor(WindowEventProcessor())
+	scene.add_processor(TransformProcessor())
+	if ImGui.IsInitialized():
+		scene.add_processor(ImguiProcessor())
 
 class RenderingProcessor(Processor):
 	def __init__(self, renderer: Renderer):
@@ -33,8 +43,32 @@ class TransformProcessor(Processor):
 			if transform.ShouldRecalculate:
 				transform.Recalculate()
 
+class WindowEventProcessor(Processor):
+	def process(self, *args, **kwargs):
+		try:
+			window = kwargs["window"]
+		except KeyError:
+			raise RuntimeError("Window handle not set in process method.")
+
+		try:
+			renderTarget = kwargs["renderTarget"]
+		except KeyError:
+			renderTarget = None
+
+		if InputHandler.Resized():
+			GLCommand.Scissor(0, 0, window.width, window.height)
+			GLCommand.Viewport(0, 0, window.width, window.height)
+			if renderTarget:
+				renderTarget.Camera.ReinitProjectionMatrix(0.0, 1.0, 0.0, float(window.width) / window.height, renderTarget.Camera.zNear, renderTarget.Camera.zFar)
+
+class ImguiProcessor(Processor):
+	def process(self, *args, **kwargs):
+		ImGui.OnFrame()
+
 class AudioProcessor(Processor):
 	def process(self, *args, **kwargs):
 		for _, audio in self.world.get_component(AudioComponent):
 			state = audio.Handle.GetState()
+
+
 			

@@ -6,7 +6,8 @@ from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..text.fontManager import FontManager
 from ..text.font import Font
-from ...utils import GetQuadIndexData, GL_FLOAT_SIZE
+from ...transform import GetQuadIndexData
+from ...utils import GL_FLOAT_SIZE
 from ...enums import GLType, VertexAttribType
 from ...debug import Log, LogLevel, Timer
 
