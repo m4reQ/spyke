@@ -22,7 +22,21 @@ OpenGL.ERROR_CHECKING = False
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
 
-IS_NVIDIA = False
+import glfw
+glfw.init()
+glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+handle = glfw.create_window(1, 1, "", None, None)
+glfw.make_context_current(handle)
+from OpenGL import GL
+vendorStr = GL.glGetString(GL.GL_VENDOR).decode("ASCII").lower()
+
+if "nvidia" in vendorStr:
+    IS_NVIDIA = True
+else:
+    IS_NVIDIA = False
+
+glfw.set_window_should_close(handle, glfw.TRUE)
+glfw.terminate()
 
 DEBUG_LOG_TIME = True
 DEBUG_ENABLE = True

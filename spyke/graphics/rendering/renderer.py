@@ -66,9 +66,9 @@ class Renderer(object):
 	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple) -> None:
 		self.__renderers["basic"].RenderQuad(transform, color, texHandle, tilingFactor)
 	
-	def RenderLine(self, startPos: glm.vec2, endPos: glm.vec2, color: tuple) -> None:
+	def RenderLine(self, startPos: glm.vec3, endPos: glm.vec3, color: tuple) -> None:
 		try:
-			self.__renderers["line"].Render(item) ############################CHUUUUJJJJJ
+			self.__renderers["line"].Render(startPos, endPos, color)
 		except AttributeError:
 			pass
 	

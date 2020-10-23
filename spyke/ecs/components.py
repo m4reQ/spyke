@@ -63,8 +63,6 @@ class TransformComponent(object):
 			self.__scaleMatrix = glm.scale(glm.mat4(1.0), glm.vec3(self.__size.x, self.__size.y, 0.0))
 		
 		self.Matrix = self.__transMatrix * self.__rotMatrix * self.__scaleMatrix
-
-		Log("Recalculate", LogLevel.Info)
 	
 	@property
 	def ShouldRecalculate(self):
@@ -107,6 +105,11 @@ class SpriteComponent(object):
 	def __init__(self, textureHandle: TextureHandle, tilingFactor: tuple):
 		self.TextureHandle = textureHandle
 		self.TilingFactor = tilingFactor
+
+class LineComponent(object):
+	def __init__(self, startPos: glm.vec3, endPos: glm.vec3):
+		self.StartPos = startPos
+		self.EndPos = endPos
 
 class AudioComponent(object):
 	def __init__(self, filepath: str, looping: bool):

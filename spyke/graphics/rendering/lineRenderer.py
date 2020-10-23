@@ -1,10 +1,12 @@
+from .renderStats import RenderStats
 from .rendererComponent import RendererComponent
+from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer
 from ...utils import GL_FLOAT_SIZE
 from ...enums import GLType, VertexAttribType
-from ...debug import Log, LogLevel
+from ...debug import Log, LogLevel, Timer
 
 import glm
 from OpenGL import GL
@@ -17,6 +19,7 @@ class LineRenderer(RendererComponent):
 
 	def __init__(self, shader: Shader):
 		self.shader = shader
+
 		self.vao = VertexArray(LineRenderer.__VertexSize)
 		self.vbo = DynamicVertexBuffer(LineRenderer.MaxVertexCount * LineRenderer.__VertexSize)
 
@@ -26,12 +29,11 @@ class LineRenderer(RendererComponent):
 			[VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 	3, VertexAttribType.Float, False),
 			VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 		4, VertexAttribType.Float, False)])
 
-		self.__vertexCount = 0
-		self.__vertexData = []
+		self.__batches = []
 
 		self.__viewProjection = glm.mat4(1.0)
 
-		self.drawsCount = 0
+		self.renderStats = RenderStats()
 
 		Log("Line renderer initialized", LogLevel.Info)
 
@@ -39,38 +41,47 @@ class LineRenderer(RendererComponent):
 		self.__viewProjection = viewProjection
 		self.__viewProjectionName = uniformName
 
-		self.drawsCount = 0
+		self.renderStats.Clear()
 	
 	def EndScene(self):
-		if len(self.__vertexData) != 0:
-			self.__Flush()
+		needsDraw = False
+		for batch in self.__batches:
+			needsDraw |= batch.dataSize != 0
+			if needsDraw:
+				self.__Flush()
+				return
 	
 	def __Flush(self):
-		self.shader.Use()
+		Timer.Start()
 
+		self.shader.Use()
 		self.shader.SetUniformMat4(self.__viewProjectionName, self.__viewProjection, False)
 
 		self.vbo.Bind()
-		self.vbo.AddData(self.__vertexData, len(self.__vertexData) * GL_FLOAT_SIZE)
-
 		self.vao.Bind()
 
-		GL.glDrawArrays(GL.GL_LINES, 0, self.__vertexCount)
+		for batch in self.__batches:
+			self.vbo.AddData(batch.data, batch.dataSize)
 
-		self.__vertexData.clear()
+			GL.glDrawArrays(GL.GL_LINES, 0, self.renderStats.VertexCount)
+			self.renderStats.DrawsCount += 1
 
-		self.__vertexCount = 0
+			batch.Clear()
+		
 
-		self.drawsCount += 1
+		self.renderStats.DrawTime = Timer.Stop()
 	
-	def Render(self, item):
-		if self.__vertexCount + 2 > LineRenderer.MaxVertexCount:
-			self.__Flush()
-		
+	def Render(self, startPos: glm.vec3, endPos: glm.vec3, color: tuple):
 		data = [
-			item.StartPosition[0], item.StartPosition[1], item.StartPosition[2], item.Color[0], item.Color[1], item.Color[2], item.Color[3],
-			item.EndPosition[0], item.EndPosition[1], item.EndPosition[2], item.Color[0], item.Color[1], item.Color[2], item.Color[3]]
+			startPos.x, startPos.y, startPos.z, color[0], color[1], color[2], color[3],
+			endPos.x, endPos.y, endPos.z, color[0], color[1], color[2], color[3]]
 
-		self.__vertexData.extend(data)
+		try:
+			batch = next(x for x in self.__batches if x.WouldAccept(len(data) * GL_FLOAT_SIZE))
+		except StopIteration:
+			batch = RenderBatch(LineRenderer.MaxVertexCount * LineRenderer.__VertexSize)
+			self.__batches.append(batch)
+
+		batch.AddData(data)
 		
-		self.__vertexCount += 2
+		self.renderStats.VertexCount += 2

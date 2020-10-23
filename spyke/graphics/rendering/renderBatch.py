@@ -29,6 +29,9 @@ class RenderBatch(object):
 		self.dataSize = 0
 		self.indexCount = 0
 	
+	def WouldAccept(self, size) -> bool:
+		return self.dataSize + size <= self.maxSize
+	
 	@property
 	def IsAccepting(self) -> bool:
 		return self.dataSize < self.maxSize

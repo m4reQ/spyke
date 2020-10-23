@@ -80,6 +80,8 @@ class GlfwWindow(object):
 
 		self.position = (0, 0)
 
+		InputHandler.PutEvent(WindowEvent.ResizeEvent)
+
 		Log(f"GLFW window initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 	
 	def SwapBuffers(self):
@@ -133,9 +135,6 @@ class GlfwWindow(object):
 		InputHandler.AddKey(key)
 
 	def __DefUpdate(self):
-		InputHandler.ClearEvents()
-		InputHandler.ClearKeys()
-
 		glfw.poll_events()
 
 		if glfw.window_should_close(self.__handle):

@@ -96,13 +96,6 @@ class TextRenderer(RendererComponent):
 			self.__batches.append(batch)
 
 		for char in text:
-			if not batch.IsAccepting:
-				try:
-					batch = next(x for x in self.__batches if x.IsAccepting)
-				except StopIteration:
-					batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
-					self.__batches.append(batch)
-
 			glyph = font.GetGlyph(ord(char))
 
 			advance = advanceSum / self.winSize[0] * glyphSize
@@ -119,9 +112,14 @@ class TextRenderer(RendererComponent):
 			
 			advanceSum += glyph.Advance
 
+			if not batch.WouldAccept(len(charData) * GL_FLOAT_SIZE):
+				batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
+				self.__batches.append(batch)
+			
 			batch.AddData(charData)
+			
 			batch.indexCount += 6
-			self.renderStats.vertexCount += 4
+			self.renderStats.VertexCount += 4
 	
 	def GetStats(self) -> RenderStats:
 		return self.renderStats

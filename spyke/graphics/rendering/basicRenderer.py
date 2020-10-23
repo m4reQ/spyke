@@ -83,13 +83,6 @@ class BasicRenderer(RendererComponent):
 		self.renderStats.DrawTime = Timer.Stop()
 	
 	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
-		try:
-			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.IsAccepting)
-		except StopIteration:
-			batch = RenderBatch(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
-			batch.texarrayID = texHandle.TexarrayID
-			self.__batches.append(batch)
-		
 		translatedVerts = TransformQuadVertices(transform.to_tuple())
 		
 		data = [
@@ -97,13 +90,15 @@ class BasicRenderer(RendererComponent):
 			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, color[0], color[1], color[2], color[3], 0, 0, 					texHandle.Index, tilingFactor[0], tilingFactor[1],
 			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, color[0], color[1], color[2], color[3], texHandle.U, 0, 			texHandle.Index, tilingFactor[0], tilingFactor[1],
 			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V, texHandle.Index, tilingFactor[0], tilingFactor[1]]
-	
-		if not batch.TryAddData(data):
-			newBatch = RenderBatch(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
-			newBatch.texarrayID = batch.texarrayID
-			self.__batches.append(newBatch)
 
-			newBatch.AddData(data)
+		try:
+			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.WouldAccept(len(data) * GL_FLOAT_SIZE))
+		except StopIteration:
+			batch = RenderBatch(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
+			batch.texarrayID = texHandle.TexarrayID
+			self.__batches.append(batch)
+	
+		batch.AddData(data)
 		
 		self.renderStats.VertexCount += 4
 		batch.indexCount += 6

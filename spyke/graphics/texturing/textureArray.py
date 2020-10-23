@@ -11,7 +11,7 @@ class TextureArray(object):
 	__MaxLayersCount = 0
 
 	__TextureType = TextureType.Rgba
-	__MipmapLevels = 4
+	__MipmapLevels = 2
 	__InternalFormat = GL.GL_RGBA8
 	__Pixeltype = GL.GL_UNSIGNED_BYTE
 

@@ -17,16 +17,33 @@ class InputHandler(Static):
 	MousePos = (0, 0)
 	MouseScrollOffset = (0, 0)
 
+	IsKeyDown = lambda _: None
+	IsKeyUp = lambda _: None
+	IsButtonDown = lambda _: None
+	IsButtonUp = lambda _: None
+
+	UpdateKeyState = lambda: None
+
 	def Initialize(windowApi: WindowAPI) -> None:
 		InputHandler.Api = windowApi
 
+		if InputHandler.Api == WindowAPI.Pygame:
+			InputHandler.IsKeyDown = InputHandler.__PygameIsKeyDown
+			InputHandler.IsKeyUp = InputHandler.__PygameIsKeyUp
+			InputHandler.IsButtonDown = InputHandler.__PygameIsButtonDown
+			InputHandler.IsButtonUp = InputHandler.__PygameIsButtonUp
+
+			InputHandler.UpdateKeyState = __PygameUpdateKeyState
+		elif InputHandler.Api == WindowAPI.GLFW:
+			InputHandler.IsKeyDown = InputHandler.__GlfwIsKeyDown
+			InputHandler.IsKeyUp = InputHandler.__GlfwIsKeyUp
+			InputHandler.IsButtonDown = InputHandler.__GlfwIsButtonDown
+			InputHandler.IsButtonUp = InputHandler.__GlfwIsButtonUp
+
 		InputHandler.Initialized = True
 	
-	def UpdateKeyState() -> None:
-		if InputHandler.Api == WindowAPI.Pygame:
-			InputHandler.__Keys = pygame.key.get_pressed()
-		else:
-			raise NotImplementedError()
+	def __PygameUpdateKeyState() -> None:
+		InputHandler.__Keys = pygame.key.get_pressed()
 	
 	def PutEvent(event: WindowEvent) -> None:
 		InputHandler.__Events.append(event)
@@ -39,6 +56,12 @@ class InputHandler(Static):
 		
 		InputHandler.__Events.remove(event)
 		return event
+	
+	def RemoveEvent(event: WindowEvent) -> None:
+		try:
+			InputHandler.__Events.remove(event)
+		except ValueError:
+			pass
 	
 	def GetEvents() -> list:
 		return InputHandler.__Events
@@ -80,34 +103,26 @@ class InputHandler(Static):
 		except IndexError:
 			return None
 	
-	def IsKeyDown(key: Key) -> bool:
-		if InputHandler.Api == WindowAPI.Pygame:
-			return key.Pygame in InputHandler.__Keys
-		elif InputHandler.Api == WindowAPI.GLFW:
-			return key.Glfw in InputHandler.__Keys
-		else:
-			raise RuntimeError(f"Unsupported API: {InputHandler.Api}")
+	def __PygameIsKeyDown(key: Key) -> bool:
+		return key.Pygame in InputHandler.__Keys
 	
-	def IsKeyUp(key: Key) -> bool:
-		if InputHandler.Api == WindowAPI.Pygame:
-			return key.Pygame not in InputHandler.__Keys
-		elif InputHandler.Api == WindowAPI.GLFW:
-			return key.Glfw not in InputHandler.__Keys
-		else:
-			raise RuntimeError(f"Unsupported API: {InputHandler.Api}")
+	def __GlfwIsKeyDown(key: Key) -> bool:
+		return key.Glfw in InputHandler.__Keys
 	
-	def IsButtonDown(button: MouseButton) -> bool:
-		if InputHandler.Api == WindowAPI.Pygame:
-			return button.Pygame in InputHandler.__MouseButtons
-		elif InputHandler.Api == WindowAPI.GLFW:
-			return button.Glfw in InputHandler.__MouseButtons
-		else:
-			raise RuntimeError(f"Unsupported API: {InputHandler.Api}")
+	def __PygameIsKeyUp(key: Key) -> bool:
+		return key.Pygame not in InputHandler.__Keys
 	
-	def IsButtonUp(button: MouseButton) -> bool:
-		if InputHandler.Api == WindowAPI.Pygame:
-			return button.Pygame not in InputHandler.__MouseButtons
-		elif InputHandler.Api == WindowAPI.GLFW:
-			return button.Glfw not in InputHandler.__MouseButtons
-		else:
-			raise RuntimeError(f"Unsupported API: {InputHandler.Api}")
+	def __GlfwIsKeyUp(key: Key) -> bool:
+		return key.Glfw not in InputHandler.__Keys
+
+	def __PygameIsButtonDown(button: MouseButton) -> bool:
+		return button.Pygame in InputHandler.__MouseButtons
+	
+	def __GlfwIsButtonDown(button: MouseButton) -> bool:
+		return button.Glfw in InputHandler.__MouseButtons
+
+	def __PygameIsButtonUp(button: MouseButton) -> bool:
+		return button.Pygame not in InputHandler.__MouseButtons
+	
+	def __GlfwIsButtonUp(button: MouseButton) -> bool:
+		return button.Glfw not in InputHandler.__MouseButtons

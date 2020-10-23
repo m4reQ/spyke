@@ -138,3 +138,4 @@ textures/
 launch.bat
 test.py
 *.jpg
+tests/
