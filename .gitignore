@@ -136,6 +136,5 @@ dmypy.json
 fonts/
 textures/
 launch.bat
-test.py
 *.jpg
 tests/
