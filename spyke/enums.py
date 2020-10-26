@@ -33,6 +33,22 @@ class TextureType:
 	Rgba = GL.GL_RGBA
 
 ##### OpenGL #####
+class HintMode:
+	Fastest = GL.GL_FASTEST
+	Nicest = GL.GL_NICEST
+	DontCare = GL.GL_DONT_CARE
+
+class Hint:
+	FogHint = GL.GL_FOG_HINT
+	FragmentShaderDerivativeHint = GL.GL_FRAGMENT_SHADER_DERIVATIVE_HINT
+	GenerateMipmapHint = GL.GL_GENERATE_MIPMAP_HINT
+	LineSmoothHint = GL.GL_LINE_SMOOTH_HINT
+	PerspectiveCorrectionHint = GL.GL_PERSPECTIVE_CORRECTION_HINT
+	PointSmoothHint = GL.GL_POINT_SMOOTH_HINT
+	PolygonSmoothHint = GL.GL_POLYGON_SMOOTH_HINT
+	TextureCompressionHint = GL.GL_TEXTURE_COMPRESSION_HINT
+	MultisampleFilterNvHint = 0x8534
+
 class NvidiaIntegerName:
 	GpuMemInfoTotalAvailable = 0x9048
 	GpuMemInfoCurrentAvailable = 0x9049

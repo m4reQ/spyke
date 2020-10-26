@@ -1,5 +1,5 @@
 import glm
-from glm import vec2 as Vector2, vec3 as Vector3
+from glm import vec2 as Vector2, vec3 as Vector3, mat4 as Matrix4
 from functools import lru_cache
 
 IdentityMatrix4 = glm.mat4(1.0)

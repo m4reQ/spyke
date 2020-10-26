@@ -1,213 +1,121 @@
-from .debug import Log, LogLevel, GetVideoMemoryCurrent, GLInfo, GetMemoryUsed
-from .utils	import Static, KwargParse
 from . import IS_NVIDIA
-from .ecs import Scene
+from .debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
 from .ecs.entityManager import EntityManager
 
 import tkinter
 from tkinter import ttk
-############################################ PRACUJ KURWAAAAAAAA ###############################################
 
-class ToggledFrame(tkinter.Frame):
-	def __init__(self, master, *args, **options):
-		super().__init__(master, *args, **KwargParse(options, ["bg"], "l"))
-		
-		self.show = tkinter.IntVar(value = 0)
-		
-		self.__titleFrame = tkinter.Frame(self)
-
-		self.__title = tkinter.Label(self.__titleFrame, anchor = "w", **KwargParse(options, ["text", "font", "fg", "bg"], "l"))
-		ttk.Style(master).configure("Toolbutton", **KwargParse(options, ["bg"], "l"))
-		self.__button = ttk.Checkbutton(self.__titleFrame, text = "+", command = self.__Toggle, variable = self.show, style = "Toolbutton")
-		self.__button.pack(side = "right")
-		self.__title.pack(side = "left", fill = "x", expand = True)
-
-		self.__titleFrame.pack(fill = "x")
-		
-		self.Frame = tkinter.Frame(self, bd = 1, **KwargParse(options, ["bg"], "l"))
-	
-	def __Toggle(self):
-		if bool(self.show.get()):
-			self.Frame.pack(fill = "x")
-			self.__button.configure(text = "-")
-		else:
-			self.Frame.forget()
-			self.__button.configure(text = "+")
-
-class ImGui(Static):
+class ImGui:
 	__Initialized = False
+	__SceneUpdate = False
 
-	Scene = None
-	Renderer = None
+	__ParentWindow = None
+	__Renderer = None
+	__Scene = None
 
-	Title = "Imgui"
+	__StatsTextTemplate = """Draws count: {0}
+Vertices count: {1}
+Memory used: {2:.2f}kB
+Video memory used: {3}"""
 
-	BackgroundColor = "#090a29"
-	TextColor = "#edeef2"
-	LabelFont = ("Helvetica", 12, "bold")
-	RowHeight = 20
-
-	SelectedEntity = None
-	BaseTreeHeight = 0
-	TreeHeightChange = 0
-
-	#main window
-	__Handle = tkinter.Tk()
-
-	def IsInitialized():
-		return ImGui.__Initialized
-
-	def Close():
-		ImGui.Closed = True
-
-		try:
-			ImGui.__Handle.destroy()
-		except Exception:
-			pass
-
-		Log("Imgui window closed.", LogLevel.Info)
+	MainWindow = tkinter.Tk()
+	MainWindow.title("Imgui")
+	MainWindow.grid_rowconfigure(0, weight = 1)
+	MainWindow.grid_rowconfigure(1, weight = 5)
+	MainWindow.grid_rowconfigure(2, weight = 1)
+	MainWindow.grid_columnconfigure(1, weight = 1)
 
 	#widgets
-	__TitleBar = tkinter.Frame(__Handle, bg = BackgroundColor, relief = "raised", bd = 2, highlightbackground = "#dadbe0")
-	__Title = tkinter.Label(__TitleBar, text = Title, bg = BackgroundColor, fg = TextColor)
-	__CloseButton = tkinter.Button(__TitleBar, text = 'x', fg = TextColor, bg = BackgroundColor, bd = 0, command = Close)
-	__RendererFrame = ToggledFrame(__Handle, text = "Renderer stats", font = LabelFont, bg = BackgroundColor, fg = TextColor)
-	__RenderStats = tkinter.Text(__RendererFrame.Frame, bg = BackgroundColor, fg = TextColor, bd = 0)
-	__EntitiesLabel = tkinter.Label(__Handle, bg = BackgroundColor, fg = TextColor, text = "Entities:", bd = 0, anchor = "w", font = LabelFont)
-	__EntitiesTree = ttk.Treeview(__Handle, show = "tree")
+	RenderStatsLabel = tkinter.Label(MainWindow, text = "Render stats", bd = 0)
+	EntitiesLabel = tkinter.Label(MainWindow, text = "Entities", bd = 0)
+	RenderStatsText = tkinter.Text(MainWindow, width = 35, height = 5)
+	EntitiesTree = ttk.Treeview(MainWindow, show = "tree")
+	InspectorFrame = tkinter.Frame(MainWindow)
 
-	SceneUpdate = False
-	Closed = False
+	#inspector widgets
 
-	Pos = (0, 0)
-	Size = (0, 0)
-	MousePos = (0, 0)
 
-	def Initialize(x: int, y: int, width: int, height: int):
-		if ImGui.__Initialized:
-			Log("Imgui already initialized.", LogLevel.Warning)
-			return
+	#grid
+	RenderStatsLabel.grid(row = 0, column = 0, sticky = "n")
+	RenderStatsText.grid(row = 1, column = 0, sticky = "news", padx = 1)
+	EntitiesLabel.grid(row = 0, column = 1, sticky = "n")
+	EntitiesTree.grid(row = 1, column = 1, sticky = "news", padx = 1)
+	InspectorFrame.grid(row = 2, column = 1, sticky = "news")
 
-		ImGui.Pos = (x, y)
-		ImGui.Size = (width, height)
-
-		if not ImGui.Scene:
-			Log("Imgui scene not set.", LogLevel.Warning)
-		
-		if not ImGui.Renderer:
-			Log("Imgui renderer not set.", LogLevel.Warning)
-		
-		ImGui.Setup()
-		
-		ImGui.__Initialized = True
-
-		Log("Imgui window started.", LogLevel.Info)
+	def BindRenderer(renderer) -> None:
+		ImGui.__Renderer = renderer
 	
-	def OnFrame():
-		if ImGui.Closed:
+	def BindScene(scene) -> None:
+		ImGui.__Scene = scene
+		ImGui.__SceneUpdate = True
+
+	def UpdateScene() -> None:
+		ImGui.__SceneUpdate = True
+	
+	def Initialize(parentWindow) -> None:
+		ImGui.__Initialized = True
+		ImGui.__ParentWindow = parentWindow
+	
+	def IsInitialized() -> bool:
+		return ImGui.__Initialized
+	
+	def Close() -> None:
+		ImGui.__Initialized = False
+		try:
+			ImGui.MainWindow.destroy()
+		except tkinter.TclError:
+			pass
+
+	def OnFrame() -> None:
+		if not ImGui.__Initialized:
 			return
 
-		ImGui.TreeHeightChange = 0
+		ImGui.__HandleRenderStats()
+		ImGui.__HandleEntities()
 		
-		if ImGui.Renderer:
-			ImGui.__RenderStats.delete(1.0, "end")
-
-			text = f"Draws count: {ImGui.Renderer.drawsCount}\nVertices count: {ImGui.Renderer.vertexCount}\nMemory used: {GetMemoryUsed() / 1000}kB\n"
-
-			mem = GLInfo.MemoryAvailable - GetVideoMemoryCurrent()
-			if IS_NVIDIA:
-				text += f"Video memory used: {mem / 1000000.0}GB\n"
-			else:
-				text += f"Video memory used: unavailable\n"
-
-			ImGui.__RenderStats.insert("end", text)
-
-		if ImGui.SceneUpdate:
-			for child in ImGui.__EntitiesTree.get_children():
-				ImGui.__EntitiesTree.delete(child)
-			
-			for ent in ImGui.Scene._entities:
-				entView = ImGui.__EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
-				for comp in ImGui.Scene.components_for_entity(ent):
-					ImGui.__EntitiesTree.insert(entView, "end", text = type(comp).__name__.replace("Component", ''))
-				ImGui.BaseTreeHeight += 1
-
-			ImGui.__EntitiesTree.configure(height = ImGui.BaseTreeHeight + ImGui.TreeHeightChange)
-			ImGui.__EntitiesTree.update()
-
-			ImGui.SceneUpdate = False
-						
 		try:
-			ImGui.__Handle.update()
+			ImGui.MainWindow.update()
 		except tkinter.TclError:
 			pass
 	
-	def __OpenTreeItem(event):
-		item = ImGui.__EntitiesTree.focus()
-		ent = ImGui.__EntitiesTree.item(item)["values"][0]
-		entHeight = len(ImGui.Scene.components_for_entity(ent))
-		ImGui.__EntitiesTree.configure(height = ImGui.BaseTreeHeight + entHeight)
-		ImGui.__EntitiesTree.update()
-	
-	def __SelectTreeItem(event):
-		ImGui.SelectedEntity = ImGui.__EntitiesTree.item(ImGui.__EntitiesTree.focus())
-	
-	def __CloseTreeItem(event):
-		ImGui.__EntitiesTree.configure(height = ImGui.BaseTreeHeight)
-		ImGui.__EntitiesTree.update()
+	def __HandleEntities() -> None:
+		if not ImGui.__Scene or not ImGui.__SceneUpdate:
+			return
+		
+		for child in ImGui.EntitiesTree.get_children():
+			ImGui.EntitiesTree.delete(child)
+		
+		for ent in ImGui.__Scene._entities:
+			entView = ImGui.EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
+			for comp in ImGui.__Scene.components_for_entity(ent):
+				ImGui.EntitiesTree.insert(entView, "end", text = type(comp).__name__.replace("Component", ""))
+		
+		ImGui.__SceneUpdate = False
 
-	def Setup():
-		ImGui.__Handle.update()
-		ImGui.__Handle.protocol("WM_DELETE_WINDOW", ImGui.Close)
-		ImGui.__Handle.bind("<Button-1>", ImGui.__GetMousePos)
-		ImGui.__Handle.title("Imgui")
-		ImGui.__Handle.overrideredirect(True)
-		ImGui.__Handle.geometry(f"{ImGui.Size[0]}x{ImGui.Size[1]}+{ImGui.Pos[0]}+{ImGui.Pos[1]}")
-		ImGui.__Handle.configure(bg = ImGui.BackgroundColor)
+	def __HandleRenderStats() -> None:
+		if not ImGui.__Renderer:
+			drawsCount = 0
+			vertexCount = 0
+		else:
+			drawsCount = ImGui.__Renderer.drawsCount
+			vertexCount = ImGui.__Renderer.vertexCount
+		
+		if not IS_NVIDIA:
+			vidMemUsed = "unavailable"
+		else:
+			vidMemUsed = f"{GLInfo.MemoryAvailable - GetVideoMemoryCurrent() / 1000000.0}GB"
+		
+		memUsed = GetMemoryUsed() / 1000.0
 
-		ImGui.__TitleBar.configure(width = ImGui.Size[0])
-		ImGui.__TitleBar.bind("<B1-Motion>", ImGui.MoveByMouse)
-		ImGui.__Title.bind("<B1-Motion>", ImGui.MoveByMouse)
-		ImGui.__Title.pack(side = "left")
-		ImGui.__CloseButton.pack(side = "right")
-		ImGui.__TitleBar.pack(side = "top", fill = "x")
+		text = ImGui.__StatsTextTemplate.format(drawsCount, vertexCount, memUsed, vidMemUsed)
 
-		ImGui.__RenderStats.configure(height = 3)
-		ImGui.__RenderStats.pack(fill = "x")
+		try:
+			ImGui.RenderStatsText.delete(1.0, "end")
+			ImGui.RenderStatsText.insert("end", text)
+		except tkinter.TclError:
+			pass
 
-		ImGui.__RendererFrame.pack(fill = "x")
-
-		ImGui.__EntitiesLabel.pack(fill = "x")
-
-		ImGui.__EntitiesTree.bind("<ButtonRelease-1>", ImGui.__SelectTreeItem)
-		ImGui.__EntitiesTree.bind("<<TreeviewOpen>>", ImGui.__OpenTreeItem)
-		ImGui.__EntitiesTree.bind("<<TreeviewClose>>", ImGui.__CloseTreeItem)
-		ImGui.__EntitiesTree.pack(fill = "x", expand = False)
-
-	def SetScene(scene):
-		ImGui.Scene = scene
-		ImGui.SceneUpdate = True
-	
-	def SetRenderer(renderer):
-		ImGui.Renderer = renderer
-	
-	def Move(x, y):
-		ImGui.Pos = (x, y)
-
-		ImGui.__Handle.geometry(f"+{ImGui.Pos[0]}+{ImGui.Pos[1]}")
-
-	def MoveByMouse(event):
-		ImGui.Move(event.x_root + ImGui.MousePos[0], event.y_root + ImGui.MousePos[1])
-	
-	def Resize(width, height):
-		ImGui.Size = (width, height)
-
-		ImGui.__Handle.geometry(f"{ImGui.Size[0]}x{ImGui.Size[1]}")
-	
-	def __GetMousePos(event):
-		xWin = ImGui.__Handle.winfo_x()
-		yWin = ImGui.__Handle.winfo_y()
-		startX = event.x_root
-		startY = event.y_root
-
-		ImGui.MousePos = (xWin - startX, yWin - startY)
+if __name__ == "__main__":
+	ImGui.Initialize(None)
+	while True:
+		ImGui.OnFrame()

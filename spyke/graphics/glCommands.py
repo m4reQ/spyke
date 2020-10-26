@@ -7,6 +7,9 @@ class GLCommand(Static):
 	def Clear(masks: ClearMask):
 		GL.glClear(masks)
 	
+	def Hint(hint: int, value: int):
+		GL.glHint(hint, value)
+	
 	def Viewport(x: int, y: int, width: int, height: int):
 		GL.glViewport(x, y, width, height)
 	

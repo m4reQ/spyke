@@ -59,7 +59,7 @@ def GetVideoMemoryCurrent():
 	if IS_NVIDIA:
 		return glGetIntegerv(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
 	else:
-		return 1
+		return 0
 
 def GetMemoryUsed():
 	return _PROCESS.memory_info().rss

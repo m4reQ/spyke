@@ -6,10 +6,11 @@ from ..buffers import Framebuffer
 from ..texturing.textureUtils import TextureHandle
 from ..shader import Shader
 from ..text.font import Font
-from ...enums import RendererTarget, UniformTarget
+from ..glCommands import GLCommand
+from ...enums import RendererTarget, UniformTarget, EnableCap, Hint, HintMode
 from ...debug import Log, LogLevel
-
-import glm
+from ...transform import Vector3, Matrix4
+from ... import USE_FAST_NV_MULTISAMPLE, IS_NVIDIA
 
 class Renderer(object):
 	def __init__(self, shader: Shader):
@@ -24,6 +25,13 @@ class Renderer(object):
 
 		self.drawsCount = 0
 		self.vertexCount = 0
+
+		GLCommand.Enable(EnableCap.MultiSample)
+		if IS_NVIDIA:
+			if USE_FAST_NV_MULTISAMPLE:
+				GLCommand.Hint(Hint.MultisampleFilterNvHint, HintMode.Fastest)
+			else:
+				GLCommand.Hint(Hint.MultisampleFilterNvHint, HintMode.Nicest)
 
 	def AddComponent(self, componentType: RendererTarget, shader: Shader) -> None:
 		if componentType == RendererTarget.BasicRenderer2D:
@@ -63,23 +71,29 @@ class Renderer(object):
 			Framebuffer.UnbindAll()
 			self.__clearFramebuffers = False
 	
-	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple) -> None:
+	def RenderQuad(self, transform: Matrix4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple) -> None:
 		self.__renderers["basic"].RenderQuad(transform, color, texHandle, tilingFactor)
 	
-	def RenderLine(self, startPos: glm.vec3, endPos: glm.vec3, color: tuple) -> None:
+	def RenderLine(self, startPos: Vector3, endPos: Vector3, color: tuple) -> None:
 		try:
 			self.__renderers["line"].Render(startPos, endPos, color)
-		except AttributeError:
+		except (AttributeError, KeyError):
 			pass
 	
-	def RenderText(self, pos: tuple, color: tuple, font: Font, size: int, text: str) -> None:
+	def RenderText(self, pos: Vector3, color: tuple, font: Font, size: int, text: str) -> None:
 		try:
 			self.__renderers["text"].DrawText(pos, color, font, size, text)
-		except AttributeError:
+		except (AttributeError, KeyError):
+			pass
+	
+	def RenderFramebuffer(self, pos: Vector3, framebuffer: Framebuffer) -> None:
+		try:
+			self.__renderers["post"].RenderFramebuffer(pos, framebuffer)
+		except (AttributeError, KeyError):
 			pass
 	
 	def Resize(self, width: int, height: int) -> None:
 		try:
 			self.__renderers["text"].Resize(width, height)
-		except AttributeError:
+		except (AttributeError, KeyError):
 			pass
