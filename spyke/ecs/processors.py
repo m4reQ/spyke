@@ -6,13 +6,14 @@ from ..enums import ClearMask, AudioState, WindowEvent
 from ..debug import Log, LogLevel
 from ..imgui import ImGui
 from ..inputHandler import InputHandler
+from ..utils import LerpVec2, LerpVec4
 
 import numpy
 #endregion
 
 def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
 	scene.AddProcessor(RenderingProcessor(renderer), priority = 99)
-	scene.AddProcessor(WindowEventProcessor())
+	scene.AddProcessor(WindowEventProcessor(), priority = 1)
 	scene.AddProcessor(TransformProcessor())
 	scene.AddProcessor(ParticleProcessor())
 	if ImGui.IsInitialized():
@@ -90,12 +91,15 @@ class ParticleProcessor(Processor):
 
 		for _, (particleComponent) in self.world.GetComponent(ParticleComponent):
 			if not particleComponent.Started or particleComponent.Ended:
+				for particle in particleComponent.ParticlePool:
+					particle.IsActive = False
 				continue
 
 			if particleComponent.TimeElapsed >= particleComponent.Duration:
-				particleComponent.TimeElapsed -= particleComponent.Duration
 				if not particleComponent.Looping:
 					particleComponent.Ended = True
+				else:
+					particleComponent.TimeElapsed -= particleComponent.Duration
 
 			for particle in particleComponent.ParticlePool:
 				if not particle.IsActive:
@@ -111,11 +115,11 @@ class ParticleProcessor(Processor):
 
 				life = particle.LifeRemaining / particle.LifeTime
 
-				particle.Color = numpy.interp(life, particle.ColorEnd.to_tuple(), particle.ColorBegin.to_tuple())
+				particle.Color = LerpVec4(life, particle.ColorBegin, particle.ColorEnd)
 				if particleComponent.FadeAway:
 					particle.Color.w = particle.Color.w * life
 
-				size = glm.vec2(numpy.interp(life, particle.SizeEnd.to_tuple(), particle.SizeBegin.to_tuple()))
+				size = LerpVec2(life, particle.SizeBegin, particle.SizeEnd)
 
 				particle.Transform = CreateTransform(glm.vec3(particle.Position.x, particle.Position.y, 0.0), size, particle.Rotation)
 

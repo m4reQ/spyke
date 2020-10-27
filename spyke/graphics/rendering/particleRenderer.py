@@ -48,7 +48,7 @@ class ParticleRenderer(RendererComponent):
             transformedVerts[0].x, transformedVerts[0].y, transformedVerts[0].z, color[0], color[1], color[2], color[3], 0.0, texHandle.V,          texHandle.Index,
             transformedVerts[1].x, transformedVerts[1].y, transformedVerts[1].z, color[0], color[1], color[2], color[3], 0.0, 0.0,                  texHandle.Index,
             transformedVerts[2].x, transformedVerts[2].y, transformedVerts[2].z, color[0], color[1], color[2], color[3], texHandle.U, 0.0,          texHandle.Index,
-            transformedVerts[3].x, transformedVerts[3].y, transformedVerts[3].z, color[0], color[1], color[2], color[3], texHandle.u, texHandle.V,  texHandle.Index]
+            transformedVerts[3].x, transformedVerts[3].y, transformedVerts[3].z, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V,  texHandle.Index]
 
         try:
             batch = next(x for x in self.batches if x.texarrayID == texHandle.TexarrayID and x.WouldAccept(len(data) * GL_FLOAT_SIZE))
@@ -62,11 +62,11 @@ class ParticleRenderer(RendererComponent):
         self.renderStats.VertexCount += 4
         batch.indexCount += 6
 
-    def BeginScene(self, viewProjection: Matrix4, uniformName: str):
+    def BeginScene(self, viewProjection: Matrix4) -> None:
         self.__viewProjection = viewProjection
         self.renderStats.Clear()
 
-    def EndScene(self):
+    def EndScene(self) -> None:
         needsDraw = False
         for batch in self.batches:
             needsDraw |= batch.dataSize != 0

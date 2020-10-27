@@ -1,9 +1,11 @@
+#region Import
 from . import IS_NVIDIA
 from .debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
 from .ecs.entityManager import EntityManager
 
 import tkinter
 from tkinter import ttk
+#endregion
 
 class ImGui:
 	__Initialized = False
@@ -16,7 +18,8 @@ class ImGui:
 	__StatsTextTemplate = """Draws count: {0}
 Vertices count: {1}
 Memory used: {2:.2f}kB
-Video memory used: {3}"""
+Video memory used: {3}GB
+Window size: {4}x{5}"""
 
 	MainWindow = tkinter.Tk()
 	MainWindow.title("Imgui")
@@ -103,11 +106,11 @@ Video memory used: {3}"""
 		if not IS_NVIDIA:
 			vidMemUsed = "unavailable"
 		else:
-			vidMemUsed = f"{GLInfo.MemoryAvailable - GetVideoMemoryCurrent() / 1000000.0}GB"
+			vidMemUsed = (GLInfo.MemoryAvailable - GetVideoMemoryCurrent()) / 1000000.0
 		
 		memUsed = GetMemoryUsed() / 1000.0
 
-		text = ImGui.__StatsTextTemplate.format(drawsCount, vertexCount, memUsed, vidMemUsed)
+		text = ImGui.__StatsTextTemplate.format(drawsCount, vertexCount, memUsed, vidMemUsed, ImGui.__ParentWindow.width, ImGui.__ParentWindow.height)
 
 		try:
 			ImGui.RenderStatsText.delete(1.0, "end")

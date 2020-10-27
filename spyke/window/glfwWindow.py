@@ -131,7 +131,6 @@ class GlfwWindow(object):
 		InputHandler.AddKey(key)
 
 	def __DefUpdate(self):
-		InputHandler.ClearEvents()
 		glfw.poll_events()
 
 		if glfw.window_should_close(self.__handle):

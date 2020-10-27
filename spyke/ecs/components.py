@@ -186,6 +186,9 @@ class ParticleComponent(object):
 			self.IsActive = False
 
 			self.Transform = glm.mat4(1.0)
+		
+		def __repr__(self):
+			return "Active: " + str(self.IsActive)
 
 	def __init__(self, position: glm.vec2, duration: float, texHandle: TextureHandle, count: int):
 		self.Duration = duration
@@ -219,7 +222,7 @@ class ParticleComponent(object):
 		self.ParticlePool = []
 		self.ActiveParticleIndex = ParticleComponent.MaxCount - 1
 
-		for i in range(self.Count):
+		for _ in range(self.Count):
 			self.ParticlePool.append(ParticleComponent.Particle())
 	
 	def Start(self):
@@ -258,7 +261,7 @@ class ParticleComponent(object):
 		particle.LifeRemaining = self.Duration
 
 		oldIndex = self.ActiveParticleIndex
-		self.ActiveParticleIndex = oldIndex % len(self.ParticlePool)
+		self.ActiveParticleIndex = (oldIndex - 1) % len(self.ParticlePool)
 
 class AudioComponent(object):
 	def __init__(self, filepath: str, looping: bool):
