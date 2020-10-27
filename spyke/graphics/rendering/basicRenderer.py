@@ -20,8 +20,8 @@ class BasicRenderer(RendererComponent):
 
 	__VertexSize = (3 + 4 + 2 + 1 + 2) * GL_FLOAT_SIZE
 
-	def __init__(self, shader: Shader):
-		self.shader = shader
+	def __init__(self):
+		self.shader = Shader.FromFile("spyke/shaderSources/basicVertex.glsl", "spyke/shaderSources/basicFragment.glsl")
 		self.vao = VertexArray(BasicRenderer.__VertexSize)
 		self.vbo = DynamicVertexBuffer(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
 		self.ibo = StaticIndexBuffer(GetQuadIndexData(BasicRenderer.MaxQuadCount))

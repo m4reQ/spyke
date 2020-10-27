@@ -12,8 +12,8 @@ from OpenGL import GL
 class PostRenderer(object):
     __VertexSize = 3 * GL_FLOAT_SIZE
 
-    def __init__(self, shader: Shader):
-        self.__shader = shader
+    def __init__(self):
+        self.__shader = Shader.FromFile("spyke/shaderSources/postVertex.glsl", "spyke/shaderSources/postFragment.glsl")
 
         self.__vbo = DynamicVertexBuffer(6 * PostRenderer.__VertexSize)
         self.__vao = VertexArray(PostRenderer.__VertexSize)

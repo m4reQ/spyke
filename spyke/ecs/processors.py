@@ -1,11 +1,12 @@
+#region Import
 from .esper import Processor, World as Scene
 from .components import *
 from ..graphics import Renderer, GLCommand, OrthographicCamera, RenderTarget
-from ..enums import ClearMask, AudioState
+from ..enums import ClearMask, AudioState, WindowEvent
 from ..debug import Log, LogLevel
-from ..events import WindowEvent
 from ..imgui import ImGui
 from ..inputHandler import InputHandler
+#endregion
 
 def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
 	scene.AddProcessor(RenderingProcessor(renderer))
@@ -37,6 +38,10 @@ class RenderingProcessor(Processor):
 		
 		for _, (line, color) in self.world.GetComponents(LineComponent, ColorComponent):
 			self.renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
+		
+		for _, (particleComponent) in self.world.GetComponent(ParticleComponent):
+			for particle in particleComponent.ParticlePool:
+				self.renderer.RenderParticle(particle.Transform, particle.Color.to_tuple(), particle.TexHandle)
 		
 		self.renderer.EndScene()
 
@@ -73,5 +78,38 @@ class AudioProcessor(Processor):
 		for _, audio in self.world.GetComponent(AudioComponent):
 			state = audio.Handle.GetState()
 
+class ParticleProcessor(Processor):
+	def Process(self, *args, **kwargs):
+		dt = self.world.GetFrameTime()
 
-			
+		for _, (particleComponent) in self.world.GetComponent(ParticleComponent):
+			if not particleComponent.Started or particleComponent.Ended:
+				continue
+
+			if particleComponent.TimeElapsed >= particleComponent.Duration:
+				particleComponent.TimeElapsed -= particleComponent.Duration
+				if not particleComponent.Looping:
+					particleComponent.Ended = True
+
+			for particle in particleComponent.ParticlePool:
+				if not particle.IsActive:
+					continue
+
+				if particle.LifeRemaining <= 0.0:
+					particle.IsActive = False
+					continue
+				
+				particle.LifeRemaining -= dt
+				particle.Position += particle.Velocity * dt
+				particle.Rotation += particleComponent.RotationSpeed * dt
+
+				life = particle.LifeRemaining / particle.LifeTime
+				color = glm.lerp(particle.ColorEnd, particle.ColorBegin, life)
+				if particleComponent.FadeAway:
+					color.w = color.w * life
+
+				size = glm.lerp(particle.SizeEnd, particle.SizeBegin, life)
+
+				particle.Transform = CreateTransform(glm.vec3(particle.Position, 0.0), glm.vec3(size, 0.0), particle.Rotation)
+
+		particleComponent.TimeElapsed += dt

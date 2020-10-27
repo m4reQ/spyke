@@ -2,6 +2,7 @@
 Changes made by m4reQ:
 - changed time measurement function from time.process_time to time.perf_counter
 - changed names of public functions to use PascalCase naming convention
+- added World.GetFrameTime function that returns sum of all processing times from previous frame
 """
 
 import time as _time
@@ -64,6 +65,9 @@ class World:
         self._components.clear()
         self._entities.clear()
         self.clear_cache()
+    
+    def GetFrameTime(self) -> float:
+        return sum(self.process_times.values())
 
     def AddProcessor(self, processor_instance: Processor, priority=0) -> None:
         """Add a Processor instance to the World.

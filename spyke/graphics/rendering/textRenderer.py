@@ -20,8 +20,8 @@ class TextRenderer(RendererComponent):
 
 	__VertexSize = (3 + 4 + 1 + 2) * GL_FLOAT_SIZE
 	
-	def __init__(self, shader: Shader):
-		self.shader = shader
+	def __init__(self):
+		self.shader = Shader.FromFile("spyke/shaderSources/textVertex.glsl", "spyke/shaderSources/textFragment.glsl")
 
 		self.vao = VertexArray(TextRenderer.__VertexSize)
 		self.vbo = DynamicVertexBuffer(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)

@@ -1,12 +1,15 @@
+#region Import
 from ..transform import CreateTransform
 from ..debug import Log, LogLevel
 from ..graphics import Font
 from ..audio.sound import Sound
-from ..graphics.texturing.textureUtils import TextureHandle
+from ..graphics.texturing.textureUtils import TextureHandle, No
 from ..enums import CameraType
 from ..graphics.cameras import *
 
 import glm
+import random
+#endregion
 
 class ColorComponent(object):
 	def __init__(self, *args):
@@ -158,6 +161,102 @@ class ScriptComponent(object):
 		
 	def __Process(self, *args, **kwargs):
 		self.OnProcess(*args, **kwargs)
+
+class ParticleComponent(object):
+	MaxCount = 20
+
+	class Particle(object):
+		def __init__(self):
+			self.TexHandle = TextureHandle(0.0, 0.0, 0, -1)
+
+			self.Position = glm.vec2(0.0)
+			self.Velocity = glm.vec2(0.0)
+			self.Rotation = 0.0
+
+			self.ColorBegin = glm.vec4(1.0, 1.0, 1.0, 1.0)
+			self.ColorEnd = glm.vec4(1.0, 1.0, 1.0, 1.0)
+			self.Color = glm.vec4(1.0, 1.0, 1.0, 1.0)
+
+			self.SizeBegin = glm.vec2(1.0)
+			self.SizeEnd = glm.vec2(1.0)
+
+			self.LifeTime = 1.0
+			self.LifeRemaining = 0.0
+
+			self.IsActive = False
+
+			self.Transform = glm.mat4(1.0)
+
+	def __init__(self, position: glm.vec2, duration: float, texHandle: TextureHandle, count: int):
+		self.Duration = duration
+		self.TimeElapsed = 0.0
+
+		self.Started = False
+		self.Ended = False
+		self.Paused = False
+		self.Looping = False
+
+		self.TexHandle = texHandle
+
+		self.ColorBegin = glm.vec4(1.0, 1.0, 1.0, 1.0)
+		self.ColorEnd = glm.vec4(1.0, 1.0, 1.0, 1.0)
+		self.FadeAway = False
+
+		self.SizeBegin = glm.vec2(1.0)
+		self.SizeEnd = glm.vec2(1.0)
+
+		self.Velocity = glm.vec2(0.0)
+		self.VelocityVariation = glm.vec2(0.0)
+		self.MovementSpeed = 0.08
+		self.RotationSpeed = 0.01
+		self.RotationDelta = 0.0
+		self.BasePosition = position
+		self.RandomizeMovement = False
+
+		self.Count = max(count, ParticleComponent.MaxCount)
+
+		self.ParticlePool = []
+		self.ActiveParticleIndex = ParticleComponent.MaxCount - 1
+
+		for i in range(self.Count):
+			self.ParticlePool[i] = ParticleComponent.Particle()
+	
+	def Start(self):
+		self.Started = True
+	
+	def Pause(self):
+		self.Paused = True
+	
+	def EmitParticle(self):
+		particle = self.ParticlePool[self.ActiveParticleIndex]
+		
+		particle.IsActive = True
+
+		particle.Position = self.BasePosition
+		if self.RandomizeMovement:
+			particle.Rotation = random.random() * self.RotationDelta * glm.pi()
+		else:
+			particle.Rotation = self.RotationDelta * glm.pi()
+		
+		particle.Velocity = self.Velocity
+		if self.RandomizeMovement:
+			particle.Velocity.x += self.VelocityVariation.x * (random.random() - 0.5)
+			particle.Velocity.y += self.VelocityVariation.y * (random.random() - 0.5)
+		else:
+			particle.Velocity.x += self.VelocityVariation.x
+			particle.Velocity.y += self.VelocityVariation.y
+		
+		particle.BeginColor = self.ColorBegin
+		particle.EndColor = self.ColorEnd
+
+		particle.SizeBegin = self.SizeBegin
+		particle.SizeEnd = self.SizeEnd
+
+		particle.LifeTime = self.Duration
+		particle.LifeRemaining = self.Duration
+
+		oldIndex = self.ActiveParticleIndex
+		self.ActiveParticleIndex = oldIndex % len(self.ParticlePool)
 
 class AudioComponent(object):
 	def __init__(self, filepath: str, looping: bool):

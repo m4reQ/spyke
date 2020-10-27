@@ -17,8 +17,8 @@ class LineRenderer(RendererComponent):
 
 	__VertexSize = (3 + 4) * GL_FLOAT_SIZE
 
-	def __init__(self, shader: Shader):
-		self.shader = shader
+	def __init__(self):
+		self.shader = Shader.FromFile("spyke/shaderSources/lineVertex.glsl", "spyke/shaderSources/lineFragment.glsl")
 
 		self.vao = VertexArray(LineRenderer.__VertexSize)
 		self.vbo = DynamicVertexBuffer(LineRenderer.MaxVertexCount * LineRenderer.__VertexSize)
@@ -67,7 +67,6 @@ class LineRenderer(RendererComponent):
 			self.renderStats.DrawsCount += 1
 
 			batch.Clear()
-		
 
 		self.renderStats.DrawTime = Timer.Stop()
 	
