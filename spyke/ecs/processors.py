@@ -8,17 +8,17 @@ from ..imgui import ImGui
 from ..inputHandler import InputHandler
 
 def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
-	scene.add_processor(RenderingProcessor(renderer))
-	scene.add_processor(WindowEventProcessor())
-	scene.add_processor(TransformProcessor())
+	scene.AddProcessor(RenderingProcessor(renderer))
+	scene.AddProcessor(WindowEventProcessor())
+	scene.AddProcessor(TransformProcessor())
 	if ImGui.IsInitialized():
-		scene.add_processor(ImguiProcessor())
+		scene.AddProcessor(ImguiProcessor())
 
 class RenderingProcessor(Processor):
 	def __init__(self, renderer: Renderer):
 		self.renderer = renderer
 
-	def process(self, *args, **kwargs):
+	def Process(self, *args, **kwargs):
 		try:
 			renderTarget = kwargs["renderTarget"]
 		except KeyError:
@@ -29,25 +29,25 @@ class RenderingProcessor(Processor):
 		
 		self.renderer.BeginScene(renderTarget)
 
-		for _, (sprite, transform, color) in self.world.get_components(SpriteComponent, TransformComponent, ColorComponent):
+		for _, (sprite, transform, color) in self.world.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
 			self.renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
 		
-		for _, (text, transform, color) in self.world.get_components(TextComponent, TransformComponent, ColorComponent):
+		for _, (text, transform, color) in self.world.GetComponents(TextComponent, TransformComponent, ColorComponent):
 			self.renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
 		
-		for _, (line, color) in self.world.get_components(LineComponent, ColorComponent):
+		for _, (line, color) in self.world.GetComponents(LineComponent, ColorComponent):
 			self.renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
 		
 		self.renderer.EndScene()
 
 class TransformProcessor(Processor):
-	def process(self, *args, **kwargs):
-		for _, transform in self.world.get_component(TransformComponent):
+	def Process(self, *args, **kwargs):
+		for _, transform in self.world.GetComponent(TransformComponent):
 			if transform.ShouldRecalculate:
 				transform.Recalculate()
 
 class WindowEventProcessor(Processor):
-	def process(self, *args, **kwargs):
+	def Process(self, *args, **kwargs):
 		if InputHandler.Resized():
 			InputHandler.RemoveEvent(WindowEvent.ResizeEvent)
 			try:
@@ -59,18 +59,18 @@ class WindowEventProcessor(Processor):
 			GLCommand.Viewport(0, 0, window.width, window.height)
 
 			try:
-				renderer = self.world.get_processor(RenderingProcessor).renderer
+				renderer = self.world.GetProcessor(RenderingProcessor).renderer
 				renderer.Resize(window.width, window.height)
 			except Exception:
 				pass
 
 class ImguiProcessor(Processor):
-	def process(self, *args, **kwargs):
+	def Process(self, *args, **kwargs):
 		ImGui.OnFrame()
 
 class AudioProcessor(Processor):
-	def process(self, *args, **kwargs):
-		for _, audio in self.world.get_component(AudioComponent):
+	def Process(self, *args, **kwargs):
+		for _, audio in self.world.GetComponent(AudioComponent):
 			state = audio.Handle.GetState()
 
 

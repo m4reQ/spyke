@@ -19,20 +19,15 @@ class CameraType:
 	Orthographic = "Orthographic"
 	Perspective = "Perspective"
 
-class RendererTarget:
-	BasicRenderer2D = "BasicRenderer2D"
-	TextRenderer = "TextRenderer"
-	LineRenderer = "LineRenderer"
-
 class UniformTarget:
 	ViewProjectionMatrix = "VIEW_PROJECTION_MATRIX"
 	DeltaTime = "DELTA_TIME"
 
+##### OpenGL #####
 class TextureType:
 	Rgb = GL.GL_RGB
 	Rgba = GL.GL_RGBA
-
-##### OpenGL #####
+	
 class HintMode:
 	Fastest = GL.GL_FASTEST
 	Nicest = GL.GL_NICEST

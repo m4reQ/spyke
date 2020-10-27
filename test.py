@@ -67,6 +67,9 @@ class Window(GlfwWindow):
 		self.scene.add_component(self.ent3, LineComponent(Vector3(0.2, 0.2, 0.02), Vector3(0.5, 0.5, 0.02)))
 		self.scene.add_component(self.ent3, ColorComponent(0.3, 0.7, 0.5, 0.7))
 
+		self.ent4 = EntityManager.CreateEntity(self.scene, "Framebuffer")
+		self.scene.add_component
+
 		ImGui.BindScene(self.scene)
 		ImGui.BindRenderer(self.renderer)
 		ImGui.Initialize(self)

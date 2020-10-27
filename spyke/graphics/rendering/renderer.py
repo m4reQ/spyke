@@ -1,6 +1,7 @@
 from .basicRenderer import BasicRenderer
 from .textRenderer import TextRenderer
 from .lineRenderer import LineRenderer
+from .postRenderer import PostRenderer
 from .renderTarget import RenderTarget
 from ..buffers import Framebuffer
 from ..texturing.textureUtils import TextureHandle
@@ -33,15 +34,17 @@ class Renderer(object):
 			else:
 				GLCommand.Hint(Hint.MultisampleFilterNvHint, HintMode.Nicest)
 
-	def AddComponent(self, componentType: RendererTarget, shader: Shader) -> None:
-		if componentType == RendererTarget.BasicRenderer2D:
-			self.__renderers["basic"] = BasicRenderer(shader)
-		elif componentType == RendererTarget.TextRenderer:
-			self.__renderers["text"] = TextRenderer(shader)
-		elif componentType == RendererTarget.LineRenderer:
-			self.__renderers["line"] = LineRenderer(shader)
+	def AddComponent(self, component) -> None:
+		if isinstance(component, BasicRenderer):
+			self.__renderers["basic"] = component
+		elif isinstance(component, TextRenderer):
+			self.__renderers["text"] = component
+		elif isinstance(component, LineRenderer):
+			self.__renderers["line"] = component
+		elif isinstance(component, PostRenderer):
+			self.__renderers["post"] = component
 		else:
-			raise RuntimeError(f"Invalid component type: {componentType}.")
+			raise RuntimeError(f"Invalid component type: {type(component).__name__}.")
 	
 	def BeginScene(self, renderTarget: RenderTarget) -> None:
 		if renderTarget.HasFramebuffer:
