@@ -2,14 +2,15 @@ from . import shaderSources
 from ..enums import ShaderType
 from ..utils import ObjectManager
 from ..debug import Log, LogLevel
+from ...transform import Matrix4
 
 from OpenGL import GL
-from glm import mat4
 import numpy
+from functools import lru_cache
 
 class Shader(object):
 	@staticmethod
-	def CompileShader(source: str, type: ShaderType):
+	def __CompileShader(source: str, type: ShaderType) -> int:
 		shader = GL.glCreateShader(type)
 
 		GL.glShaderSource(shader, source)
@@ -24,48 +25,19 @@ class Shader(object):
 
 	@classmethod
 	def FromFile(cls, vertFile: str, fragFile: str):
-		shader = None
-
-		vertF = None
-		fragF = None
-
 		try:
-			vertF = open(vertFile, "r")
-			fragF = open(fragFile, "r")
-
-			vertSource = vertF.read()
-			fragSource = fragF.read()
-
-			shader = cls(vertSource, fragSource)
+			with open(vertFile, "r") as f:
+				vertSource = f.read()
+			with open(fragFile, "r") as f:
+				fragSource = f.read()
 		except FileNotFoundError as e:
 			raise RuntimeError(f"Cannot find shader file named '{e.filename}'")
-		finally:
-			if vertF:
-				vertF.close()
-			if fragF:
-				fragF.close()
-		
-		return shader
-	
-	@classmethod
-	def Basic2D(cls):
-		return cls(shaderSources.BASIC_VERTEX, shaderSources.BASIC_FRAGMENT)
-	
-	@classmethod
-	def BasicText(cls):
-		return cls(shaderSources.TEXT_VERTEX, shaderSources.TEXT_FRAGMENT)
-	
-	@classmethod
-	def BasicLine(cls):
-		return cls(shaderSources.LINE_VERTEX, shaderSources.LINE_FRAGMENT)
-	
-	@classmethod
-	def BasicPostprocessing(cls):
-		return cls(shaderSources.POST_VERTEX, shaderSources.POST_FRAGMENT)
 
-	def __init__(self, vertSource, fragSource):
-		vertShader = Shader.CompileShader(vertSource, GL.GL_VERTEX_SHADER)
-		fragShader = Shader.CompileShader(fragSource, GL.GL_FRAGMENT_SHADER)
+		return cls(vertSource, fragSource)
+	
+	def __init__(self, vertSource: str, fragSource: str):
+		vertShader = Shader.__CompileShader(vertSource, GL.GL_VERTEX_SHADER)
+		fragShader = Shader.__CompileShader(fragSource, GL.GL_FRAGMENT_SHADER)
 
 		self.__id = GL.glCreateProgram()
 		GL.glAttachShader(self.__id, vertShader)
@@ -88,20 +60,22 @@ class Shader(object):
 
 		ObjectManager.AddObject(self)
 	
-	def Use(self):
+	def Use(self) -> None:
 		GL.glUseProgram(self.__id)
 	
-	def Delete(self):
+	def Delete(self) -> None:
 		GL.glDeleteProgram(self.__id)
 
-	def GetAttribLocation(self, name):
+	@lru_cache
+	def GetAttribLocation(self, name: str) -> int:
 		loc = GL.glGetAttribLocation(self.__id, name)
 		if loc == -1:
 			Log(f"Cannot find attribute named '{name}'", LogLevel.Warning)
 
 		return loc
 	
-	def GetUniformLocation(self, name):
+	@lru_cache
+	def GetUniformLocation(self, name: str) -> int:
 		if name in self.uniforms.keys():
 			return self.uniforms[name]
 
@@ -114,16 +88,15 @@ class Shader(object):
 		
 		return loc
 	
-	def SetUniform1i(self, name: str, value: int):
-		loc = self.GetUniformLocation(name)
+	def SetUniform1i(self, name: str, value: int) -> None:
+		GL.glUniform1i(self.GetUniformLocation(name), value)
 
-		GL.glUniform1i(loc, value)
+	def SetUniform1f(self, name: str, value: float) -> None:
+		GL.glUniform1f(self.GetUniformLocation(name), value)
 	
-	def SetUniformMat4(self, name: str, value: mat4, transpose: bool):
-		loc = self.GetUniformLocation(name)
-
-		GL.glUniformMatrix4fv(loc, 1, transpose, numpy.asarray(value, dtype="float32"))
+	def SetUniformMat4(self, name: str, value: Matrix4, transpose: bool) -> None:
+		GL.glUniformMatrix4fv(self.GetUniformLocation(name), 1, transpose, numpy.asarray(value, dtype="float32"))
 	
 	@property
-	def ID(self):
+	def ID(self) -> int:
 		return self.__id

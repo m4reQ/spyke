@@ -1,20 +1,33 @@
 from OpenGL import GL
 import openal
 
-##### WINDOW #####
+#region Window
 class WindowAPI:
 	GLFW = "API::GLFW"
 	Pygame = "API::Pygame"
 	NoAPI = "API::None"
 
-##### AUDIO #####
+class WindowEvent:
+	CloseEvent = 0
+	ResizeEvent = 1
+	MouseMoveEvent = 2
+	MouseClickEvent = 3
+	MouseScrollEvent = 4
+	KeyEvent = 5
+	IconifiedEvent = 6
+	FileDropEvent = 7
+	TextDropEvent = 8
+#endregion
+
+#region Audio
 class AudioState:
 	Initial = openal.AL_INITIAL
 	Paused = openal.AL_PAUSED
 	Playing = openal.AL_PLAYING
 	Stopped = openal.AL_STOPPED
+#endregion
 
-##### GRAPHICS #####
+#region Graphics
 class CameraType:
 	Orthographic = "Orthographic"
 	Perspective = "Perspective"
@@ -22,8 +35,9 @@ class CameraType:
 class UniformTarget:
 	ViewProjectionMatrix = "VIEW_PROJECTION_MATRIX"
 	DeltaTime = "DELTA_TIME"
+#endregion
 
-##### OpenGL #####
+#region OpenGL
 class TextureType:
 	Rgb = GL.GL_RGB
 	Rgba = GL.GL_RGBA
@@ -152,3 +166,5 @@ class BufferUsageFlag:
 	StaticDraw = GL.GL_STATIC_DRAW
 	DynamicDraw = GL.GL_DYNAMIC_DRAW
 	StreamDraw = GL.GL_STREAM_DRAW
+
+#endregion

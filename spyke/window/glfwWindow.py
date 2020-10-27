@@ -1,8 +1,7 @@
 from .windowSpecs import WindowSpecs
 from ..inputHandler import InputHandler
-from ..events import WindowEvent
 from ..debug import Log, LogLevel, Timer
-from ..enums import WindowAPI
+from ..enums import WindowAPI, WindowEvent
 
 import glfw
 
@@ -87,10 +86,7 @@ class GlfwWindow(object):
 	def SwapBuffers(self):
 		glfw.swap_buffers(self.__handle)
 
-	def Update(self):
-		pass
-
-	def Render(self):
+	def OnFrame(self):
 		pass
 	
 	def Close(self):
@@ -135,6 +131,7 @@ class GlfwWindow(object):
 		InputHandler.AddKey(key)
 
 	def __DefUpdate(self):
+		InputHandler.ClearEvents()
 		glfw.poll_events()
 
 		if glfw.window_should_close(self.__handle):
@@ -150,18 +147,13 @@ class GlfwWindow(object):
 	def Run(self):
 		while self.isRunning:
 			Timer.Start()
+			
 			self.__DefUpdate()
 			if self.isActive:
-				self.Update()
-			self.updateTime = Timer.Stop()
-
-			Timer.Start()
-			if self.isActive:
-				self.Render()
+				self.OnFrame()
 				self.SwapBuffers()
-			self.renderTime = Timer.Stop()
 
-			self.frameTime = self.updateTime + self.renderTime
+			self.frameTime = Timer.Stop()
 		
 		self.Close()
 		self.__DefClose()

@@ -1,8 +1,7 @@
 from .windowSpecs import WindowSpecs
 from ..inputHandler import InputHandler
-from ..events import WindowEvent
 from ..debug import Log, LogLevel, Timer
-from ..enums import WindowAPI
+from ..enums import WindowAPI, WindowEvent
 
 import pygame
 
@@ -58,10 +57,7 @@ class PygameWindow(object):
 	def SwapBuffers(self):
 		pygame.display.flip()
 
-	def Update(self):
-		pass
-
-	def Render(self):
+	def OnFrame(self):
 		pass
 
 	def Close(self):
@@ -69,7 +65,6 @@ class PygameWindow(object):
 
 	def __DefUpdate(self):
 		InputHandler.ClearEvents()
-		InputHandler.ClearKeys()
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -109,16 +104,12 @@ class PygameWindow(object):
 	def Run(self):
 		while self.isRunning:
 			Timer.Start()
+
 			self.__DefUpdate()
-			self.Update()
-			self.updateTime = Timer.Stop()
-
-			Timer.Start()
-			self.Render()
+			self.OnFrame()
 			self.SwapBuffers()
-			self.renderTime = Timer.Stop()
-
-			self.frameTime = self.updateTime + self.renderTime
+			
+			self.frameTime = Timer.Stop()
 		
 		self.Close()
 		self.__DefClose()
