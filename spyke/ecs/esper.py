@@ -55,8 +55,8 @@ class World:
             self._process = self._timed_process
 
     def clear_cache(self) -> None:
-        self.get_component.cache_clear()
-        self.get_components.cache_clear()
+        self.GetComponent.cache_clear()
+        self.GetComponents.cache_clear()
 
     def ClearDatabase(self) -> None:
         """Remove all Entities and Components from the World."""
@@ -121,7 +121,7 @@ class World:
 
         # TODO: duplicate add_component code here for performance
         for component in components:
-            self.add_component(self._next_entity_id, component)
+            self.AddComponent(self._next_entity_id, component)
 
         # self.clear_cache()
         return self._next_entity_id

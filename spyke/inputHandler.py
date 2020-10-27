@@ -1,9 +1,10 @@
-from .enums import WindowAPI
-from .events import WindowEvent
+#region Import
+from .enums import WindowAPI, WindowEvent
 from .keys import Key, Keys, MouseButton
 from .utils import Static
 
 import pygame
+#endregion
 
 class InputHandler(Static):
 	Api = WindowAPI.NoAPI

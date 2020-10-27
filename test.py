@@ -23,8 +23,18 @@ from spyke.utils import CollectGarbage
 
 from spyke.transform import *
 
-from spyke.events import WindowEvent
 from spyke.inputHandler import InputHandler
+from spyke.keys import *
+
+class KeysProcessor(Processor):
+	def Process(self, *args, **kwargs):
+		ent = kwargs["ent"]
+		if InputHandler.IsKeyDown(Keys.KeyA):
+			system = self.world.ComponentForEntity(ent, ParticleComponent)
+			for _ in range(5):
+				system.EmitParticle()
+				
+		InputHandler.ClearKeys()
 
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
@@ -41,9 +51,10 @@ class Window(GlfwWindow):
 		GLCommand.BlendFunction(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha)
 
 		self.scene = EntityManager.CreateScene("Test", True)
-		self.renderer = Renderer(Shader.Basic2D())
-		self.renderer.AddComponent(RendererTarget.TextRenderer, Shader.BasicText())
-		self.renderer.AddComponent(RendererTarget.LineRenderer, Shader.BasicLine())
+		self.renderer = Renderer()
+		self.renderer.AddComponent(BasicRenderer())
+		self.renderer.AddComponent(LineRenderer())
+		self.renderer.AddComponent(TextRenderer())
 
 		TextureManager.CreateBlankArray()
 		self.texarray = TextureManager.CreateTextureArray(1920, 1080, 3)
@@ -54,21 +65,30 @@ class Window(GlfwWindow):
 		self.font = Font("tests/ArialNative.fnt", "tests/ArialNative.png")
 
 		self.ent1 = EntityManager.CreateEntity(self.scene, "TestText")
-		self.scene.add_component(self.ent1, ColorComponent(0.0, 1.0, 1.0, 0.7))
-		self.scene.add_component(self.ent1, SpriteComponent(self.tex, (2.0, 2.0)))
-		self.scene.add_component(self.ent1, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector2(0.5, 0.5), 17.0))
+		self.scene.AddComponent(self.ent1, ColorComponent(0.0, 1.0, 1.0, 0.7))
+		self.scene.AddComponent(self.ent1, SpriteComponent(self.tex, (2.0, 2.0)))
+		self.scene.AddComponent(self.ent1, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector2(0.5, 0.5), 17.0))
 
 		self.ent2 = EntityManager.CreateEntity(self.scene, "FOO")
-		self.scene.add_component(self.ent2, TransformComponent(Vector3(0.01, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
-		self.scene.add_component(self.ent2, TextComponent("TEST", 30, self.font))
-		self.scene.add_component(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
+		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.01, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
+		self.scene.AddComponent(self.ent2, TextComponent("TEST", 30, self.font))
+		self.scene.AddComponent(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
 
 		self.ent3 = EntityManager.CreateEntity(self.scene, "Line")
-		self.scene.add_component(self.ent3, LineComponent(Vector3(0.2, 0.2, 0.02), Vector3(0.5, 0.5, 0.02)))
-		self.scene.add_component(self.ent3, ColorComponent(0.3, 0.7, 0.5, 0.7))
+		self.scene.AddComponent(self.ent3, LineComponent(Vector3(0.2, 0.2, 0.02), Vector3(0.5, 0.5, 0.02)))
+		self.scene.AddComponent(self.ent3, ColorComponent(0.3, 0.7, 0.5, 0.7))
 
-		self.ent4 = EntityManager.CreateEntity(self.scene, "Framebuffer")
-		self.scene.add_component
+		self.ent4 = EntityManager.CreateEntity(self.scene, "Particles")
+		self.particleSystem1 = ParticleComponent(Vector2(0.3, 0.3), 10.0, NoTexture, 20)
+		self.scene.AddComponent(self.ent4, self.particleSystem1)
+		self.particleSystem1.SizeBegin = Vector2(0.05, 0.05)
+		self.particleSystem1.SizeEnd = Vector2(0.2, 0.2)
+		self.particleSystem1.Velocity = Vector2(0.0, 0.03)
+		self.particleSystem1.VelocityVariation = Vector2(0.001, 0.001)
+		self.particleSystem1.RandomizeMovement = True
+		self.particleSystem1.Start()
+
+		self.scene.AddProcessor(KeysProcessor())
 
 		ImGui.BindScene(self.scene)
 		ImGui.BindRenderer(self.renderer)
@@ -79,14 +99,10 @@ class Window(GlfwWindow):
 		self.renderTarget = RenderTarget(self.camera)
 
 		CollectGarbage()
-	
-	def Render(self):
-		self.scene.process(renderTarget = self.renderTarget, window = self)
-	
-	def Update(self):
-		processingTime = sum(self.scene.process_times.values())
-		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(processingTime, 5)) + "s")
-	
+	def OnFrame(self):
+		self.scene.Process(renderTarget = self.renderTarget, window = self, ent = self.ent4)
+		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(self.scene.GetFrameTime(), 5)) + "s")
+
 	def Close(self):
 		ObjectManager.DeleteAll()
 		ImGui.Close()

@@ -6,12 +6,15 @@ from ..enums import ClearMask, AudioState, WindowEvent
 from ..debug import Log, LogLevel
 from ..imgui import ImGui
 from ..inputHandler import InputHandler
+
+import numpy
 #endregion
 
 def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
-	scene.AddProcessor(RenderingProcessor(renderer))
+	scene.AddProcessor(RenderingProcessor(renderer), priority = 99)
 	scene.AddProcessor(WindowEventProcessor())
 	scene.AddProcessor(TransformProcessor())
+	scene.AddProcessor(ParticleProcessor())
 	if ImGui.IsInitialized():
 		scene.AddProcessor(ImguiProcessor())
 
@@ -41,6 +44,9 @@ class RenderingProcessor(Processor):
 		
 		for _, (particleComponent) in self.world.GetComponent(ParticleComponent):
 			for particle in particleComponent.ParticlePool:
+				if not particle.IsActive:
+					continue
+
 				self.renderer.RenderParticle(particle.Transform, particle.Color.to_tuple(), particle.TexHandle)
 		
 		self.renderer.EndScene()
@@ -104,12 +110,13 @@ class ParticleProcessor(Processor):
 				particle.Rotation += particleComponent.RotationSpeed * dt
 
 				life = particle.LifeRemaining / particle.LifeTime
-				color = glm.lerp(particle.ColorEnd, particle.ColorBegin, life)
+
+				particle.Color = numpy.interp(life, particle.ColorEnd.to_tuple(), particle.ColorBegin.to_tuple())
 				if particleComponent.FadeAway:
-					color.w = color.w * life
+					particle.Color.w = particle.Color.w * life
 
-				size = glm.lerp(particle.SizeEnd, particle.SizeBegin, life)
+				size = glm.vec2(numpy.interp(life, particle.SizeEnd.to_tuple(), particle.SizeBegin.to_tuple()))
 
-				particle.Transform = CreateTransform(glm.vec3(particle.Position, 0.0), glm.vec3(size, 0.0), particle.Rotation)
+				particle.Transform = CreateTransform(glm.vec3(particle.Position.x, particle.Position.y, 0.0), size, particle.Rotation)
 
-		particleComponent.TimeElapsed += dt
+			particleComponent.TimeElapsed += dt

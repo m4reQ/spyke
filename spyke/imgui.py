@@ -87,7 +87,7 @@ Video memory used: {3}"""
 		
 		for ent in ImGui.__Scene._entities:
 			entView = ImGui.EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
-			for comp in ImGui.__Scene.components_for_entity(ent):
+			for comp in ImGui.__Scene.ComponentsForEntity(ent):
 				ImGui.EntitiesTree.insert(entView, "end", text = type(comp).__name__.replace("Component", ""))
 		
 		ImGui.__SceneUpdate = False

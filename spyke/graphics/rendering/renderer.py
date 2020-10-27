@@ -1,24 +1,28 @@
+#region Import
 from .basicRenderer import BasicRenderer
 from .textRenderer import TextRenderer
 from .lineRenderer import LineRenderer
 from .postRenderer import PostRenderer
+from .particleRenderer import ParticleRenderer
 from .renderTarget import RenderTarget
 from ..buffers import Framebuffer
 from ..texturing.textureUtils import TextureHandle
-from ..shader import Shader
+from ..shading.shader import Shader
 from ..text.font import Font
 from ..glCommands import GLCommand
-from ...enums import RendererTarget, UniformTarget, EnableCap, Hint, HintMode
+from ...enums import UniformTarget, EnableCap, Hint, HintMode
 from ...debug import Log, LogLevel
 from ...transform import Vector3, Matrix4
 from ... import USE_FAST_NV_MULTISAMPLE, IS_NVIDIA
+#endregion
 
 class Renderer(object):
-	def __init__(self, shader: Shader):
+	def __init__(self):
 		self.__renderers = {
-			"basic": BasicRenderer(shader),
+			"basic": BasicRenderer(),
 			"text": None,
 			"line": None,
+			"part": None,
 			"post": None}
 
 		self.__renderTarget = None
@@ -41,6 +45,8 @@ class Renderer(object):
 			self.__renderers["text"] = component
 		elif isinstance(component, LineRenderer):
 			self.__renderers["line"] = component
+		elif isinstance(component, ParticleRenderer):
+			self.__renderers["part"] = component
 		elif isinstance(component, PostRenderer):
 			self.__renderers["post"] = component
 		else:
@@ -53,7 +59,7 @@ class Renderer(object):
 
 		for renderer in self.__renderers.values():
 			try:
-				renderer.BeginScene(renderTarget.Camera.viewProjectionMatrix, "uViewProjection")
+				renderer.BeginScene(renderTarget.Camera.viewProjectionMatrix)
 			except AttributeError:
 				pass
 	
@@ -86,6 +92,12 @@ class Renderer(object):
 	def RenderText(self, pos: Vector3, color: tuple, font: Font, size: int, text: str) -> None:
 		try:
 			self.__renderers["text"].DrawText(pos, color, font, size, text)
+		except (AttributeError, KeyError):
+			pass
+	
+	def RenderParticle(self, transform: Matrix4, color: tuple, texHandle: TextureHandle) -> None:
+		try:
+			self.__renderers["part"].RenderParticle(transform, color, texHandle)
 		except (AttributeError, KeyError):
 			pass
 	

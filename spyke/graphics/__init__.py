@@ -1,9 +1,13 @@
-from .texturing.textureArray import TextureArray
-from .texturing.textureManager import TextureManager
+from .texturing import *
 from .rendering.renderer import Renderer
 from .rendering.renderTarget import RenderTarget
+from .rendering.textRenderer import TextRenderer
+from .rendering.lineRenderer import LineRenderer
+from .rendering.basicRenderer import BasicRenderer
+from .rendering.postRenderer import PostRenderer
+from .rendering.particleRenderer import ParticleRenderer
+from .shading.shader import Shader
 from .text.font import Font
-from .shader import Shader
 from .glCommands import GLCommand
 from .cameras import *
 from .vertexArray import VertexArray, VertexArrayLayout

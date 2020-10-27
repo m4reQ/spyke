@@ -1,3 +1,4 @@
+#region Import
 from .textureArray import TextureArray
 from .textureUtils import TextureData, GetWhiteTexture, TextureHandle, IMAGE_FORMAT_MAP
 from ...debug import Log, LogLevel, Timer
@@ -5,6 +6,7 @@ from ...utils import Static
 
 from functools import lru_cache
 from PIL import Image
+#endregion
 
 class TextureLoader(Static):
 	def LoadTexture(filepath: str) -> TextureData:

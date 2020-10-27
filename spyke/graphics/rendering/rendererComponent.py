@@ -1,5 +1,5 @@
 from .renderStats import RenderStats
-from ..shader import Shader
+from ..shading.shader import Shader
 from ...utils import Abstract
 
 import glm

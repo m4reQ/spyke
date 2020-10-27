@@ -43,3 +43,5 @@ IMAGE_FORMAT_MAP = {
 	"RGB": TextureType.Rgb,
 	"PNG": TextureType.Rgba,
 	"RGBA": TextureType.Rgba}
+
+NoTexture = TextureHandle(0.0, 0.0, 0.0, -1)

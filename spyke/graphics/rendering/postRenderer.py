@@ -1,5 +1,6 @@
+#region Import
 from .renderStats import RenderStats
-from ..shader import Shader
+from ..shading.shader import Shader
 from ..buffers import DynamicVertexBuffer, Framebuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ...utils.memory import GL_FLOAT_SIZE
@@ -8,6 +9,7 @@ from ...enums import VertexAttribType
 from ...debug import Timer
 
 from OpenGL import GL
+#endregion
 
 class PostRenderer(object):
     __VertexSize = 3 * GL_FLOAT_SIZE
@@ -25,9 +27,8 @@ class PostRenderer(object):
 
         self.__viewProjection = Matrix4(1.0)
     
-    def BeginScene(self, viewProjection: Matrix4, uniformName: str) -> None:
+    def BeginScene(self, viewProjection: Matrix4) -> None:
         self.__viewProjection = viewProjection
-        self.__viewProjectionName = uniformName
 
         self.__renderStats.Clear()
 
@@ -48,7 +49,7 @@ class PostRenderer(object):
             translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 1.0]
         
         self.__shader.Use()
-        self.__shader.SetUniformMat4(self.__viewProjectionName, self.__viewProjection, False)
+        self.__shader.SetUniformMat4("uViewProjection", self.__viewProjection, False)
 
         self.__vbo.Bind()
         self.__vbo.AddData(data, len(data) * GL_FLOAT_SIZE)

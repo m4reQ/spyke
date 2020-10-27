@@ -3,7 +3,7 @@ from ..transform import CreateTransform
 from ..debug import Log, LogLevel
 from ..graphics import Font
 from ..audio.sound import Sound
-from ..graphics.texturing.textureUtils import TextureHandle, No
+from ..graphics.texturing.textureUtils import TextureHandle
 from ..enums import CameraType
 from ..graphics.cameras import *
 
@@ -200,6 +200,7 @@ class ParticleComponent(object):
 
 		self.ColorBegin = glm.vec4(1.0, 1.0, 1.0, 1.0)
 		self.ColorEnd = glm.vec4(1.0, 1.0, 1.0, 1.0)
+		self.Color = glm.vec4(1.0, 1.0, 1.0, 1.0)
 		self.FadeAway = False
 
 		self.SizeBegin = glm.vec2(1.0)
@@ -219,7 +220,7 @@ class ParticleComponent(object):
 		self.ActiveParticleIndex = ParticleComponent.MaxCount - 1
 
 		for i in range(self.Count):
-			self.ParticlePool[i] = ParticleComponent.Particle()
+			self.ParticlePool.append(ParticleComponent.Particle())
 	
 	def Start(self):
 		self.Started = True
@@ -248,6 +249,7 @@ class ParticleComponent(object):
 		
 		particle.BeginColor = self.ColorBegin
 		particle.EndColor = self.ColorEnd
+		particle.Color = self.ColorBegin
 
 		particle.SizeBegin = self.SizeBegin
 		particle.SizeEnd = self.SizeEnd

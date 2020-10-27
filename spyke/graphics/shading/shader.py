@@ -1,12 +1,13 @@
-from . import shaderSources
-from ..enums import ShaderType
-from ..utils import ObjectManager
-from ..debug import Log, LogLevel
+#region Import
+from ...enums import ShaderType
+from ...debug import Log, LogLevel
+from ...utils import ObjectManager
 from ...transform import Matrix4
 
 from OpenGL import GL
 import numpy
 from functools import lru_cache
+#endregion
 
 class Shader(object):
 	@staticmethod

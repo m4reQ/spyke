@@ -8,7 +8,7 @@ class EntityManager:
 
     @staticmethod
     def CreateEntity(scene: Scene, name: str, *components):
-        ent = scene.create_entity(*components)
+        ent = scene.CreateEntity(*components)
         EntityManager.__EntityNames[ent] = name
         return ent
 

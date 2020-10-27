@@ -1,18 +1,20 @@
+#region Import
 from .renderStats import RenderStats
 from .renderBatch import RenderBatch
 from .rendererComponent import RendererComponent
-from ..shader import Shader
+from ..shading.shader import Shader
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..text.fontManager import FontManager
 from ..text.font import Font
-from ...transform import GetQuadIndexData
+from ...transform import GetQuadIndexData, Matrix4, Vector3
 from ...utils import GL_FLOAT_SIZE
 from ...enums import GLType, VertexAttribType
 from ...debug import Log, LogLevel, Timer
 
 import glm
 from OpenGL import GL
+#endregion
 
 class TextRenderer(RendererComponent):
 	MaxChars = 500
@@ -48,9 +50,8 @@ class TextRenderer(RendererComponent):
 	def Resize(self, width: int, height: int):
 		self.winSize = (width, height)
 
-	def BeginScene(self, viewProjection: glm.mat4, uniformName: str) -> None:
+	def BeginScene(self, viewProjection: Matrix4) -> None:
 		self.__viewProjection = viewProjection
-		self.__viewProjectionName = uniformName
 
 		self.renderStats.Clear()
 	
@@ -66,7 +67,7 @@ class TextRenderer(RendererComponent):
 		Timer.Start()
 
 		self.shader.Use()
-		self.shader.SetUniformMat4(self.__viewProjectionName, self.__viewProjection, False)
+		self.shader.SetUniformMat4("uViewProjection", self.__viewProjection, False)
 
 		FontManager.Use()
 
@@ -84,7 +85,7 @@ class TextRenderer(RendererComponent):
 
 		self.renderStats.DrawTime = Timer.Stop()
 
-	def DrawText(self, pos: glm.vec3, color: tuple, font: Font, size: int, text: str) -> None:
+	def DrawText(self, pos: Vector3, color: tuple, font: Font, size: int, text: str) -> None:
 		advanceSum = 0
 
 		glyphSize = size / font.baseSize
