@@ -12,3 +12,5 @@ from .glCommands import GLCommand
 from .cameras import *
 from .vertexArray import VertexArray, VertexArrayLayout
 from .buffers import *
+
+from glm import vec4 as Color

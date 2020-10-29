@@ -3,7 +3,7 @@ from ..transform import CreateTransform
 from ..debug import Log, LogLevel
 from ..graphics import Font
 from ..audio.sound import Sound
-from ..graphics.texturing.textureUtils import TextureHandle
+from ..graphics.texturing.textureUtils import TextureHandle, NoTexture
 from ..enums import CameraType
 from ..graphics.cameras import *
 
@@ -167,7 +167,7 @@ class ParticleComponent(object):
 
 	class Particle(object):
 		def __init__(self):
-			self.TexHandle = TextureHandle(0.0, 0.0, 0, -1)
+			self.TexHandle = NoTexture
 
 			self.Position = glm.vec2(0.0)
 			self.Velocity = glm.vec2(0.0)
@@ -259,6 +259,8 @@ class ParticleComponent(object):
 
 		particle.LifeTime = self.Duration
 		particle.LifeRemaining = self.Duration
+
+		particle.TexHandle = self.TexHandle
 
 		oldIndex = self.ActiveParticleIndex
 		self.ActiveParticleIndex = (oldIndex - 1) % len(self.ParticlePool)

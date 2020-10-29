@@ -88,6 +88,7 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 		self.particleSystem1.SizeBegin = Vector2(0.007, 0.007)
 		self.particleSystem1.SizeEnd = Vector2(0.05, 0.05)
+		self.particleSystem1.ColorEnd = Color(1.0, 0.7, 0.1, 1.0)
 		self.particleSystem1.Velocity = Vector2(0.0, 0.03)
 		self.particleSystem1.VelocityVariation = Vector2(0.01, 0.01)
 		self.particleSystem1.RotationDelta = 13.0

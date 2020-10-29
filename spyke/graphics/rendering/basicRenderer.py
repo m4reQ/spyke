@@ -85,6 +85,7 @@ class BasicRenderer(RendererComponent):
 	
 	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
 		transformedVerts = TransformQuadVertices(transform.to_tuple())
+
 		
 		data = [
 			transformedVerts[0].x, transformedVerts[0].y, transformedVerts[0].z, color[0], color[1], color[2], color[3], 0.0, texHandle.V, 			texHandle.Index, tilingFactor[0], tilingFactor[1],

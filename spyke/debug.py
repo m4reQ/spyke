@@ -5,12 +5,13 @@ def _EnsureString(string):
 	
 	return string.decode("ASCII")
 
-from . import DEBUG_ENABLE, START_TIME, DEBUG_LOG_TIME, IS_NVIDIA, DEBUG_COLOR, _PROCESS
+from . import DEBUG_ENABLE, START_TIME, DEBUG_LOG_TIME, IS_NVIDIA, DEBUG_COLOR, AUTO_LOG_EXCEPTIONS, _PROCESS
 from .enums import StringName, ErrorCode, NvidiaIntegerName
 
 from OpenGL.GL import glGetError, glGetString, glGetIntegerv, GL_NUM_EXTENSIONS
 import time
 import colorama
+import sys
 
 if DEBUG_COLOR:
 	colorama.init()
@@ -49,6 +50,12 @@ if DEBUG_ENABLE:
 			Log = __LogTimed
 		else:
 			Log = __Log
+
+def __ExcHook(excType, value, _):
+	Log(f"{type(excType).__name__}: {value}", LogLevel.Error)
+
+if AUTO_LOG_EXCEPTIONS:
+	sys.excepthook = __ExcHook
 
 def GetGLError():
 	err = glGetError()
