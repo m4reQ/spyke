@@ -2,22 +2,22 @@
 from .esper import Processor, World as Scene
 from .components import *
 from ..graphics import Renderer, GLCommand, OrthographicCamera, RenderTarget
-from ..enums import ClearMask, AudioState, WindowEvent
+from ..enums import ClearMask, AudioState
 from ..debug import Log, LogLevel
 from ..imgui import ImGui
-from ..inputHandler import InputHandler
+from ..input import *
 from ..utils import LerpVec2, LerpVec4
 
 import numpy
 #endregion
 
 def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
-	scene.AddProcessor(RenderingProcessor(renderer), priority = 99)
 	scene.AddProcessor(WindowEventProcessor(), priority = 1)
 	scene.AddProcessor(TransformProcessor())
 	scene.AddProcessor(ParticleProcessor())
 	if ImGui.IsInitialized():
 		scene.AddProcessor(ImguiProcessor())
+	scene.AddProcessor(RenderingProcessor(renderer), priority = 99)
 
 class RenderingProcessor(Processor):
 	def __init__(self, renderer: Renderer):
@@ -60,21 +60,20 @@ class TransformProcessor(Processor):
 
 class WindowEventProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		if InputHandler.Resized():
-			InputHandler.RemoveEvent(WindowEvent.ResizeEvent)
+		event = EventHandler.PickEventByType(EventType.WindowResize)
+		if event and not event.Handled:
 			try:
 				window = kwargs["window"]
 			except KeyError:
-				raise RuntimeError("Window handle not set in process method.")
-
+				Log("Window handle not set as processing argument.", LogLevel.Warning)
+				return
+			
 			GLCommand.Scissor(0, 0, window.width, window.height)
 			GLCommand.Viewport(0, 0, window.width, window.height)
 
-			try:
-				renderer = self.world.GetProcessor(RenderingProcessor).renderer
+			renderer = self.world.GetProcessor(RenderingProcessor)
+			if renderer:
 				renderer.Resize(window.width, window.height)
-			except Exception:
-				pass
 
 class ImguiProcessor(Processor):
 	def Process(self, *args, **kwargs):

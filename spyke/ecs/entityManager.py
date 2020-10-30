@@ -19,14 +19,14 @@ class EntityManager:
         return scene
     
     @lru_cache
-    def GetScene(name: str):
+    def GetScene(name: str) -> Scene:
         try:
             return EntityManager.__Scenes[name]
         except KeyError:
             raise RuntimeError(f"Cannot find scene named '{name}'.")
     
     @lru_cache
-    def GetEntityName(ent: int):
+    def GetEntityName(ent: int) -> str:
         try:
             return EntityManager.__EntityNames[ent]
         except KeyError:

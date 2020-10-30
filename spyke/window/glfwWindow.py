@@ -1,13 +1,13 @@
+#region Import
 from .windowSpecs import WindowSpecs
-from ..inputHandler import InputHandler
+from ..input.event import *
+from ..input.eventHandler import EventHandler
 from ..debug import Log, LogLevel, Timer
-from ..enums import WindowAPI, WindowEvent
 
 import glfw
+#endregion
 
 class GlfwWindow(object):
-	Api = WindowAPI.GLFW
-
 	def __init__(self, specification: WindowSpecs):
 		Timer.Start()
 
@@ -77,71 +77,80 @@ class GlfwWindow(object):
 		self.renderTime = 1.0
 		self.frameTime = 1.0
 
-		self.position = (0, 0)
+		self.positionX, self.positionY = glfw.get_window_pos(self.__handle)
 
-		InputHandler.PutEvent(WindowEvent.ResizeEvent)
+		EventHandler.DispatchEvent(WindowResizeEvent(self.width, self.height))
 
 		Log(f"GLFW window initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 	
-	def SwapBuffers(self):
-		glfw.swap_buffers(self.__handle)
-
 	def OnFrame(self):
 		pass
 	
-	def Close(self):
+	def OnClose(self):
 		pass
 
 	def __ResizeCb(self, _, width, height):
 		self.width = width
 		self.height = height
 
-		InputHandler.PutEvent(WindowEvent.ResizeEvent)
+		EventHandler.DispatchEvent(WindowResizeEvent(width, height))
 	
 	def __CursorPosCb(self, _, x, y):
-		if InputHandler.MousePos != (x, y):
-			InputHandler.PutEvent(WindowEvent.MouseMoveEvent)
-		
-		InputHandler.MousePos = (x, y)
+		EventHandler.DispatchEvent(MouseMovedEvent(x, y))
 	
 	def __WindowPosCallback(self, _, x, y):
-		self.position = (x, y)
+		if (x, y) != (self.positionX, self.positionY):
+			EventHandler.DispatchEvent(WindowMovedEvent(x, y))
+			self.positionX = x
+			self.positionY = y
 	
 	def __IconifyCb(self, _, value):
 		if value == 1:
-			InputHandler.PutEvent(WindowEvent.IconifiedEvent)
+			EventHandler.DispatchEvent(WindowIconifiedEvent())
+			EventHandler.DispatchEvent(WindowResizeEvent(0, 0))
 			self.isActive = False
 		elif value == 0:
+			EventHandler.DispatchEvent(WindowResizeEvent(self.width, self.height))
 			self.isActive = True
 		
 	def __MouseCb(self, _, button, action, mods):
-		InputHandler.PutEvent(WindowEvent.MouseClickEvent)
-
 		if action == glfw.PRESS:
-			InputHandler.AddButton(button)
+			EventHandler.DispatchEvent(MouseButtonPressedEvent(button))
+		elif action == glfw.RELEASE:
+			EventHandler.DispatchEvent(MouseButtonReleasedEvent(button))
 	
 	def __MouseScrollCb(self, _, xOffset, yOffset):
-		InputHandler.PutEvent(WindowEvent.MouseScrollEvent)
-
-		InputHandler.MouseScrollOffset = (xOffset, yOffset)
+		EventHandler.DispatchEvent(MouseScrolledEvent(xOffset, yOffset))
 	
 	def __KeyCb(self, _, key, scancode, action, mods):
-		InputHandler.PutEvent(WindowEvent.KeyEvent)
-
-		InputHandler.AddKey(key)
+		if action == glfw.PRESS:
+			EventHandler.DispatchEvent(KeyPressedEvent(key, 0))
+		elif action == glfw.RELEASE:
+			EventHandler.DispatchEvent(KeyReleasedEvent(key))
 
 	def __DefUpdate(self):
+		EventHandler.ClearEvents()
 		glfw.poll_events()
 
 		if glfw.window_should_close(self.__handle):
-			InputHandler.PutEvent(WindowEvent.CloseEvent)
+			EventHandler.DispatchEvent(WindowCloseEvent())
 			self.isRunning = False
 
 	def __DefClose(self):
+		glfw.destroy_window(self.__handle)
 		glfw.terminate()
 	
-	def SetTitle(self, title: str):
+	def SetTitle(self, title: str) -> None:
 		glfw.set_window_title(self.__handle, title)
+	
+	def SwapBuffers(self) -> None:
+		glfw.swap_buffers(self.__handle)
+	
+	def SetVsync(self, value: bool) -> None:
+		if value:
+			glfw.swap_interval(1)
+		else:
+			glfw.swap_interval(0)
 
 	def Run(self):
 		while self.isRunning:
@@ -154,7 +163,7 @@ class GlfwWindow(object):
 
 			self.frameTime = Timer.Stop()
 		
-		self.Close()
+		self.OnClose()
 		self.__DefClose()
 	
 	@property

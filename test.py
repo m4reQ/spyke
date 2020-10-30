@@ -22,20 +22,14 @@ from spyke.enums import *
 from spyke.utils import CollectGarbage
 
 from spyke.transform import *
-
-from spyke.inputHandler import InputHandler
 from spyke.keys import *
+from spyke.input import *
 
-class KeysProcessor(Processor):
+class KeyProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		ent = kwargs["ent"]
-		if InputHandler.IsKeyDown(Keys.KeyA):
-			system = self.world.ComponentForEntity(ent, ParticleComponent)
-
-			for _ in range(5):
-				system.EmitParticle()
-				
-		InputHandler.ClearKeys()
+		if InputHandler.IsKeyPressed(Keys.KeyA.Glfw):
+			self.world.GetComponent(ParticleComponent)
+			part.EmitParticle()
 
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
@@ -43,7 +37,7 @@ class Window(GlfwWindow):
 
 		debug.GLInfo.PrintInfo()
 
-		InputHandler.Initialize(self.Api)
+		InputHandler.Initialize(self)
 
 		GLCommand.Scissor(0, 0, self.width, self.height)
 		GLCommand.Viewport(0, 0, self.width, self.height)
@@ -53,7 +47,6 @@ class Window(GlfwWindow):
 		GLCommand.BlendFunction(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha)
 
 		self.scene = EntityManager.CreateScene("Test", True)
-		self.scene.AddProcessor(KeysProcessor())
 
 		self.renderer = Renderer()
 		self.renderer.AddComponent(BasicRenderer())
@@ -101,6 +94,7 @@ class Window(GlfwWindow):
 		ImGui.Initialize(self)
 
 		InitializeDefaultProcessors(self.scene, self.renderer)
+		self.scene.AddProcessor(KeyProcessor())
 
 		self.renderTarget = RenderTarget(self.camera)
 
@@ -109,7 +103,7 @@ class Window(GlfwWindow):
 		self.scene.Process(renderTarget = self.renderTarget, window = self, ent = self.ent4)
 		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(self.scene.GetFrameTime(), 5)) + "s")
 
-	def Close(self):
+	def OnClose(self):
 		ObjectManager.DeleteAll()
 		ImGui.Close()
 		CollectGarbage()

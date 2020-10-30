@@ -7,9 +7,9 @@ BIT = lambda x: 1 << x
 
 class EventType(Enum):
 	Default = 0
-	WindowStart, WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved = range(1, 7)
-	KeyPressed, KeyReleased = range(7, 9)
-	MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled = range(9, 13)
+	WindowStart, WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved, WindowIconified = range(1, 8)
+	KeyPressed, KeyReleased = range(8, 10)
+	MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled = range(10, 14)
 
 class EventCategory(Enum):
 	Default 			= 0
@@ -61,6 +61,10 @@ class WindowMovedEvent(Event):
 		self.X = posX
 		self.Y = posY
 		self.Position = (posX, posY)
+
+class WindowIconifiedEvent(Event):
+	def __init__(self):
+		super().__init__(EventType.WindowIconified, EventCategory.CategoryWindow)
 #endregion
 #region KeyEvents
 class KeyPressedEvent(Event):
