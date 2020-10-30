@@ -31,6 +31,7 @@ class GlfwWindow(object):
 			glfw.window_hint(glfw.SAMPLES, specification.Samples)
 		
 		if self.specs.Fullscreen:
+			Log("Window started in fulscreen mode.", LogLevel.Info)
 			mon = glfw.get_primary_monitor()
 			mode = glfw.get_video_mode(mon)
 			glfw.window_hint(glfw.RED_BITS, mode.bits.red)
@@ -65,10 +66,7 @@ class GlfwWindow(object):
 		glfw.set_key_callback(self.__handle, self.__KeyCb)
 		glfw.set_window_pos_callback(self.__handle, self.__WindowPosCallback)
 
-		if specification.Vsync:
-			glfw.swap_interval(1)
-		else:
-			glfw.swap_interval(0)
+		self.SetVsync(specification.Vsync)
 
 		self.isRunning = True
 		self.isActive = True
@@ -138,7 +136,9 @@ class GlfwWindow(object):
 
 	def __DefClose(self):
 		glfw.destroy_window(self.__handle)
+		Log("Window destroyed.", LogLevel.Info)
 		glfw.terminate()
+		Log("Glfw terminated.", LogLevel.Info)
 	
 	def SetTitle(self, title: str) -> None:
 		glfw.set_window_title(self.__handle, title)
@@ -151,6 +151,8 @@ class GlfwWindow(object):
 			glfw.swap_interval(1)
 		else:
 			glfw.swap_interval(0)
+		
+		Log(f"Vsync set to: {value}.", LogLevel.Info)
 
 	def Run(self):
 		while self.isRunning:

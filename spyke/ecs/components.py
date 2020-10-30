@@ -211,18 +211,17 @@ class ParticleComponent(object):
 
 		self.Velocity = glm.vec2(0.0)
 		self.VelocityVariation = glm.vec2(0.0)
-		self.MovementSpeed = 0.08
-		self.RotationSpeed = 0.01
 		self.RotationDelta = 0.0
 		self.BasePosition = position
 		self.RandomizeMovement = False
 
-		self.Count = max(count, ParticleComponent.MaxCount)
+		self.PoolSize = max(count, ParticleComponent.MaxCount)
+		self.Count = 0
 
 		self.ParticlePool = []
 		self.ActiveParticleIndex = ParticleComponent.MaxCount - 1
 
-		for _ in range(self.Count):
+		for _ in range(self.PoolSize):
 			self.ParticlePool.append(ParticleComponent.Particle())
 	
 	def Start(self):
@@ -231,16 +230,21 @@ class ParticleComponent(object):
 	def Pause(self):
 		self.Paused = True
 	
-	def EmitParticle(self):
+	def EmitParticles(self, count: int) -> None:
+		if self.Count + count <= self.PoolSize:
+			for _ in range(count):
+				self.EmitParticle()
+
+	def EmitParticle(self) -> None:
 		particle = self.ParticlePool[self.ActiveParticleIndex]
-		
 		particle.IsActive = True
+		self.Count += 1
 
 		particle.Position = self.BasePosition
 		if self.RandomizeMovement:
-			particle.Rotation = random.random() * self.RotationDelta * glm.pi()
+			particle.RotationDelta = self.RotationDelta * (random.random() - 0.5)
 		else:
-			particle.Rotation = self.RotationDelta * glm.pi()
+			particle.RotationDelta = self.RotationDelta
 		
 		particle.Velocity = self.Velocity
 		if self.RandomizeMovement:

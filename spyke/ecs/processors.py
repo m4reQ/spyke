@@ -68,12 +68,15 @@ class WindowEventProcessor(Processor):
 				Log("Window handle not set as processing argument.", LogLevel.Warning)
 				return
 			
-			GLCommand.Scissor(0, 0, window.width, window.height)
-			GLCommand.Viewport(0, 0, window.width, window.height)
-
-			renderer = self.world.GetProcessor(RenderingProcessor)
-			if renderer:
-				renderer.Resize(window.width, window.height)
+			GLCommand.Scissor(0, 0, event.Width, event.Height)
+			GLCommand.Viewport(0, 0, event.Width, event.Height)
+			
+			try:
+				renderer = kwargs["renderer"]
+				if renderer:
+					renderer.Resize(window.width, window.height)
+			except KeyError:
+				pass
 
 class ImguiProcessor(Processor):
 	def Process(self, *args, **kwargs):
@@ -106,11 +109,12 @@ class ParticleProcessor(Processor):
 
 				if particle.LifeRemaining <= 0.0:
 					particle.IsActive = False
+					particleComponent.Count -= 1
 					continue
 				
 				particle.LifeRemaining -= dt
 				particle.Position += particle.Velocity * dt
-				particle.Rotation += particleComponent.RotationSpeed * dt
+				particle.Rotation += particle.RotationDelta * dt
 
 				life = particle.LifeRemaining / particle.LifeTime
 

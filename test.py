@@ -27,9 +27,13 @@ from spyke.input import *
 
 class KeyProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		if InputHandler.IsKeyPressed(Keys.KeyA.Glfw):
-			self.world.GetComponent(ParticleComponent)
-			part.EmitParticle()
+		e = EventHandler.PickEventByType(EventType.KeyPressed)
+
+		if e and not e.Handled and e.KeyCode == Keys.KeyA.Glfw:
+			ent = kwargs["ent"]
+			part = self.world.ComponentForEntity(ent, ParticleComponent)
+			part.EmitParticles(4)
+			e.Handled = True
 
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
@@ -56,11 +60,11 @@ class Window(GlfwWindow):
 
 		TextureManager.CreateBlankArray()
 		self.texarray = TextureManager.CreateTextureArray(1920, 1080, 3)
-		self.tex = TextureManager.LoadTexture("textures/test3.png", self.texarray)
+		self.tex = TextureManager.LoadTexture("tests/test1.jpg", self.texarray)
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
 
-		#self.font = Font("tests/ArialNative.fnt", "tests/ArialNative.png")
+		self.font = Font("tests/ArialNative.fnt", "tests/ArialNative.png")
 
 		self.ent1 = EntityManager.CreateEntity(self.scene, "TestText")
 		self.scene.AddComponent(self.ent1, ColorComponent(0.0, 1.0, 1.0, 0.7))
@@ -69,7 +73,7 @@ class Window(GlfwWindow):
 
 		self.ent2 = EntityManager.CreateEntity(self.scene, "FOO")
 		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.01, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
-		#self.scene.AddComponent(self.ent2, TextComponent("TEST", 30, self.font))
+		self.scene.AddComponent(self.ent2, TextComponent("TEST", 30, self.font))
 		self.scene.AddComponent(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
 
 		self.ent3 = EntityManager.CreateEntity(self.scene, "Line")
@@ -83,8 +87,8 @@ class Window(GlfwWindow):
 		self.particleSystem1.SizeEnd = Vector2(0.05, 0.05)
 		self.particleSystem1.ColorEnd = Color(1.0, 0.7, 0.1, 1.0)
 		self.particleSystem1.Velocity = Vector2(0.0, 0.03)
-		self.particleSystem1.VelocityVariation = Vector2(0.01, 0.01)
-		self.particleSystem1.RotationDelta = 13.0
+		self.particleSystem1.VelocityVariation = Vector2(0.05, 0.02)
+		self.particleSystem1.RotationDelta = 3.0
 		self.particleSystem1.RandomizeMovement = True
 		self.particleSystem1.Looping = True
 		self.particleSystem1.Start()

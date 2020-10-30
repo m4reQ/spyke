@@ -18,7 +18,7 @@ class ImGui:
 	__StatsTextTemplate = """Draws count: {0}
 Vertices count: {1}
 Memory used: {2:.2f}kB
-Video memory used: {3}GB
+Video memory used: {3}
 Window size: {4}x{5}"""
 
 	MainWindow = tkinter.Tk()
@@ -106,7 +106,7 @@ Window size: {4}x{5}"""
 		if not IS_NVIDIA:
 			vidMemUsed = "unavailable"
 		else:
-			vidMemUsed = (GLInfo.MemoryAvailable - GetVideoMemoryCurrent()) / 1000000.0
+			vidMemUsed = f"{((GLInfo.MemoryAvailable - GetVideoMemoryCurrent()) / 1000000.0):.3f} GB"
 		
 		memUsed = GetMemoryUsed() / 1000.0
 

@@ -25,3 +25,4 @@ def LerpVec4(factor: float, a: glm.vec4, b: glm.vec4) -> glm.vec4:
     
     return glm.vec4(_x, _y, _z, _w)
 #endregion
+# %%
