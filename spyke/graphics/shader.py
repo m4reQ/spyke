@@ -1,8 +1,8 @@
 #region Import
-from ...enums import ShaderType
-from ...debug import Log, LogLevel
-from ...utils import ObjectManager
-from ...transform import Matrix4
+from ..enums import ShaderType
+from ..debug import Log, LogLevel
+from ..utils import ObjectManager, EnsureString
+from ..transform import Matrix4
 
 from OpenGL import GL
 import numpy
@@ -10,9 +10,29 @@ from functools import lru_cache
 #endregion
 
 class Shader(object):
-	@staticmethod
-	def __CompileShader(source: str, type: ShaderType) -> int:
-		shader = GL.glCreateShader(type)
+	def __init__(self):
+		self.__id = GL.glCreateProgram()
+
+		self.uniforms = {}
+		self.__stages = []
+
+		self.__compiled = False
+
+		ObjectManager.AddObject(self)
+	
+	def AddStage(self, stage: ShaderType, filepath: str) -> None:
+		if self.__compiled:
+			Log("Tried to add shader stage to already compiled shader.", LogLevel.Warning)
+			return
+
+		try:
+			with open(filepath, "r") as f:
+				source = f.read()
+		except FileNotFoundError as e:
+			raise RuntimeError(f"Cannot find shader file named '{e.filename}'")
+
+		shader = GL.glCreateShader(stage)
+		self.__stages.append(shader)
 
 		GL.glShaderSource(shader, source)
 		GL.glCompileShader(shader)
@@ -20,55 +40,40 @@ class Shader(object):
 		infoLog = GL.glGetShaderInfoLog(shader)
 		if len(infoLog) != 0:
 			GL.glDeleteShader(shader)
-			raise RuntimeError(f"Shader compilation error: {infoLog}.")
+			raise RuntimeError(f"Shader (file: '{filepath}') compilation error: \n{EnsureString(infoLog)}.")
 
-		return shader
-
-	@classmethod
-	def FromFile(cls, vertFile: str, fragFile: str):
-		try:
-			with open(vertFile, "r") as f:
-				vertSource = f.read()
-			with open(fragFile, "r") as f:
-				fragSource = f.read()
-		except FileNotFoundError as e:
-			raise RuntimeError(f"Cannot find shader file named '{e.filename}'")
-
-		return cls(vertSource, fragSource)
+		GL.glAttachShader(self.__id, shader)
 	
-	def __init__(self, vertSource: str, fragSource: str):
-		vertShader = Shader.__CompileShader(vertSource, GL.GL_VERTEX_SHADER)
-		fragShader = Shader.__CompileShader(fragSource, GL.GL_FRAGMENT_SHADER)
+	def Compile(self) -> None:
+		if self.__compiled:
+			LogLevel("Shader already compiled.", LogLevel.Warning)
+			return
 
-		self.__id = GL.glCreateProgram()
-		GL.glAttachShader(self.__id, vertShader)
-		GL.glAttachShader(self.__id, fragShader)
-		
 		GL.glLinkProgram(self.__id)
 		GL.glValidateProgram(self.__id)
 
-		GL.glDetachShader(self.__id, vertShader)
-		GL.glDetachShader(self.__id, fragShader)
-
-		GL.glDeleteShader(vertShader)
-		GL.glDeleteShader(fragShader)
+		for stage in self.__stages:
+			GL.glDetachShader(self.__id, stage)
+			GL.glDeleteShader(stage)
 
 		infoLog = GL.glGetProgramInfoLog(self.__id)
 		if len(infoLog) != 0:
 			raise RuntimeError(f"Shader program compilation error: {infoLog}.")
+		else:
+			Log(f"Shader program with id: {self.__id} compiled succesfully.", LogLevel.Info)
 
-		self.uniforms = {}
-
-		ObjectManager.AddObject(self)
+		self.__stages.clear()
+		self.__compiled = True
 	
 	def Use(self) -> None:
 		GL.glUseProgram(self.__id)
-	
+
 	def Delete(self) -> None:
 		GL.glDeleteProgram(self.__id)
 
 	@lru_cache
 	def GetAttribLocation(self, name: str) -> int:
+		raise RuntimeError
 		loc = GL.glGetAttribLocation(self.__id, name)
 		if loc == -1:
 			Log(f"Cannot find attribute named '{name}'", LogLevel.Warning)
@@ -89,6 +94,7 @@ class Shader(object):
 		
 		return loc
 	
+	#region Setters
 	def SetUniform1i(self, name: str, value: int) -> None:
 		GL.glUniform1i(self.GetUniformLocation(name), value)
 
@@ -97,6 +103,7 @@ class Shader(object):
 	
 	def SetUniformMat4(self, name: str, value: Matrix4, transpose: bool) -> None:
 		GL.glUniformMatrix4fv(self.GetUniformLocation(name), 1, transpose, numpy.asarray(value, dtype="float32"))
+	#endregion
 	
 	@property
 	def ID(self) -> int:

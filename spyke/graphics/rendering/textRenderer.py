@@ -2,14 +2,14 @@
 from .renderStats import RenderStats
 from .renderBatch import RenderBatch
 from .rendererComponent import RendererComponent
-from ..shading.shader import Shader
+from ..shader import Shader
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..text.fontManager import FontManager
 from ..text.font import Font
 from ...transform import GetQuadIndexData, Matrix4, Vector3
 from ...utils import GL_FLOAT_SIZE
-from ...enums import GLType, VertexAttribType
+from ...enums import GLType, VertexAttribType, ShaderType
 from ...debug import Log, LogLevel, Timer
 
 import glm
@@ -23,7 +23,10 @@ class TextRenderer(RendererComponent):
 	__VertexSize = (3 + 4 + 1 + 2) * GL_FLOAT_SIZE
 	
 	def __init__(self):
-		self.shader = Shader.FromFile("spyke/shaderSources/textVertex.glsl", "spyke/shaderSources/textFragment.glsl")
+		self.shader = Shader()
+		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/textVertex.glsl")
+		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/textFragment.glsl")
+		self.shader.Compile()
 
 		self.vao = VertexArray(TextRenderer.__VertexSize)
 		self.vbo = DynamicVertexBuffer(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)

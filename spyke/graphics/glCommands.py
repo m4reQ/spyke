@@ -33,3 +33,6 @@ class GLCommand(Static):
 	
 	def BlendFunctionSeparate(srcRgb: BlendFactor, dstRgb: BlendFactor, srcAlpha: BlendFactor, dstAlpha: BlendFactor):
 		GL.glBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha)
+	
+	def DepthMask(value: bool):
+		GL.glDepthMask(value)

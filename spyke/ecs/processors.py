@@ -6,9 +6,8 @@ from ..enums import ClearMask, AudioState
 from ..debug import Log, LogLevel
 from ..imgui import ImGui
 from ..input import *
-from ..utils import LerpVec2, LerpVec4
-
-import numpy
+from ..utils import LerpVec2, LerpVec4, LerpFloat
+from ..transform import Vector3
 #endregion
 
 def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
@@ -43,12 +42,12 @@ class RenderingProcessor(Processor):
 		for _, (line, color) in self.world.GetComponents(LineComponent, ColorComponent):
 			self.renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
 		
-		for _, (particleComponent) in self.world.GetComponent(ParticleComponent):
-			for particle in particleComponent.ParticlePool:
-				if not particle.IsActive:
+		for _, particleComponent in self.world.GetComponent(ParticleComponent):
+			for particle in particleComponent.particlePool:
+				if not particle.isAlive:
 					continue
 
-				self.renderer.RenderParticle(particle.Transform, particle.Color.to_tuple(), particle.TexHandle)
+				self.renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
 		
 		self.renderer.EndScene()
 
@@ -88,42 +87,29 @@ class AudioProcessor(Processor):
 			state = audio.Handle.GetState()
 
 class ParticleProcessor(Processor):
+	Gravity = 0.0
+
 	def Process(self, *args, **kwargs):
 		dt = self.world.GetFrameTime()
 
-		for _, (particleComponent) in self.world.GetComponent(ParticleComponent):
-			if not particleComponent.Started or particleComponent.Ended:
-				for particle in particleComponent.ParticlePool:
-					particle.IsActive = False
-				continue
-
-			if particleComponent.TimeElapsed >= particleComponent.Duration:
-				if not particleComponent.Looping:
-					particleComponent.Ended = True
-				else:
-					particleComponent.TimeElapsed -= particleComponent.Duration
-
-			for particle in particleComponent.ParticlePool:
-				if not particle.IsActive:
+		for _, particleComponent in self.world.GetComponent(ParticleComponent):
+			for particle in particleComponent.particlePool:
+				if not particle.isAlive:
 					continue
 
-				if particle.LifeRemaining <= 0.0:
-					particle.IsActive = False
-					particleComponent.Count -= 1
-					continue
+				particle.velocity.y -= ParticleProcessor.Gravity * particle.gravity * dt
+				particle.position += particle.velocity * dt
+				particle.rotation += particle.rotationVelocity * dt
+				particle.life -= dt
+
+				if particleComponent.colorChange:
+					particle.color = LerpVec4(particle.life, particleComponent.colorBegin, particleComponent.colorEnd)
 				
-				particle.LifeRemaining -= dt
-				particle.Position += particle.Velocity * dt
-				particle.Rotation += particle.RotationDelta * dt
+				if particleComponent.fadeOut:
+					particle.color.w = LerpFloat(particle.life, 1.0, 0.0)
+				
+				if particleComponent.sizeChange:
+					particle.size = LerpVec2(particle.life, particleComponent.sizeBegin, particleComponent.sizeEnd)
 
-				life = particle.LifeRemaining / particle.LifeTime
-
-				particle.Color = LerpVec4(life, particle.ColorBegin, particle.ColorEnd)
-				if particleComponent.FadeAway:
-					particle.Color.w = particle.Color.w * life
-
-				size = LerpVec2(life, particle.SizeBegin, particle.SizeEnd)
-
-				particle.Transform = CreateTransform(glm.vec3(particle.Position.x, particle.Position.y, 0.0), size, particle.Rotation)
-
-			particleComponent.TimeElapsed += dt
+				if particle.life < 0.0:
+					particle.isAlive = False

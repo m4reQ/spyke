@@ -6,7 +6,7 @@ from .rendering.lineRenderer import LineRenderer
 from .rendering.basicRenderer import BasicRenderer
 from .rendering.postRenderer import PostRenderer
 from .rendering.particleRenderer import ParticleRenderer
-from .shading.shader import Shader
+from .shader import Shader
 from .text.font import Font
 from .glCommands import GLCommand
 from .cameras import *

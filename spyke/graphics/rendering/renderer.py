@@ -7,12 +7,12 @@ from .particleRenderer import ParticleRenderer
 from .renderTarget import RenderTarget
 from ..buffers import Framebuffer
 from ..texturing.textureUtils import TextureHandle
-from ..shading.shader import Shader
+from ..shader import Shader
 from ..text.font import Font
 from ..glCommands import GLCommand
 from ...enums import UniformTarget, EnableCap, Hint, HintMode
 from ...debug import Log, LogLevel
-from ...transform import Vector3, Matrix4
+from ...transform import Vector3, Matrix4, Vector2
 from ... import USE_FAST_NV_MULTISAMPLE, IS_NVIDIA
 #endregion
 
@@ -95,9 +95,9 @@ class Renderer(object):
 		except (AttributeError, KeyError):
 			pass
 	
-	def RenderParticle(self, transform: Matrix4, color: tuple, texHandle: TextureHandle) -> None:
+	def RenderParticle(self, pos: Vector2, size: Vector2, rot: float, color: tuple, texHandle: TextureHandle) -> None:
 		try:
-			self.__renderers["part"].RenderParticle(transform, color, texHandle)
+			self.__renderers["part"].RenderParticle(pos, size, rot, color, texHandle)
 		except (AttributeError, KeyError):
 			pass
 	

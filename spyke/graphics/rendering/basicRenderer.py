@@ -2,12 +2,12 @@
 from .renderBatch import RenderBatch
 from .renderStats import RenderStats
 from .rendererComponent import RendererComponent
-from ..shading.shader import Shader
+from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..texturing.textureUtils import TextureHandle
 from ..texturing.textureManager import TextureManager
-from ...enums import VertexAttribType, GLType
+from ...enums import VertexAttribType, GLType, ShaderType
 from ...transform import TransformQuadVertices, GetQuadIndexData
 from ...debug import Log, LogLevel, Timer
 from ...utils import GL_FLOAT_SIZE
@@ -23,7 +23,11 @@ class BasicRenderer(RendererComponent):
 	__VertexSize = (3 + 4 + 2 + 1 + 2) * GL_FLOAT_SIZE
 
 	def __init__(self):
-		self.shader = Shader.FromFile("spyke/shaderSources/basicVertex.glsl", "spyke/shaderSources/basicFragment.glsl")
+		self.shader = Shader()
+		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/basicVertex.glsl")
+		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/basicFragment.glsl")
+		self.shader.Compile()
+		
 		self.vao = VertexArray(BasicRenderer.__VertexSize)
 		self.vbo = DynamicVertexBuffer(BasicRenderer.MaxVertexCount * BasicRenderer.__VertexSize)
 		self.ibo = StaticIndexBuffer(GetQuadIndexData(BasicRenderer.MaxQuadCount))

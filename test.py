@@ -32,7 +32,7 @@ class KeyProcessor(Processor):
 		if e and not e.Handled and e.KeyCode == Keys.KeyA.Glfw:
 			ent = kwargs["ent"]
 			part = self.world.ComponentForEntity(ent, ParticleComponent)
-			part.EmitParticles(4)
+			part.EmitParticle()
 			e.Handled = True
 
 class Window(GlfwWindow):
@@ -45,7 +45,7 @@ class Window(GlfwWindow):
 
 		GLCommand.Scissor(0, 0, self.width, self.height)
 		GLCommand.Viewport(0, 0, self.width, self.height)
-		GLCommand.SetClearcolor(1.0, 1.0, 1.0)
+		GLCommand.SetClearcolor(0.7, 0.2, 0.5)
 
 		GLCommand.Enable(EnableCap.Blend)
 		GLCommand.BlendFunction(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha)
@@ -55,7 +55,7 @@ class Window(GlfwWindow):
 		self.renderer = Renderer()
 		self.renderer.AddComponent(BasicRenderer())
 		self.renderer.AddComponent(LineRenderer())
-		#self.renderer.AddComponent(TextRenderer())
+		self.renderer.AddComponent(TextRenderer())
 		self.renderer.AddComponent(ParticleRenderer())
 
 		TextureManager.CreateBlankArray()
@@ -81,17 +81,10 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent3, ColorComponent(0.3, 0.7, 0.5, 0.7))
 
 		self.ent4 = EntityManager.CreateEntity(self.scene, "Particles")
-		self.particleSystem1 = ParticleComponent(Vector2(0.3, 0.3), 3.0, NoTexture, 10)
+		self.particleSystem1 = ParticleComponent(Vector2(0.2, 0.2), 3.0, 10)
+		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
+		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
-		self.particleSystem1.SizeBegin = Vector2(0.007, 0.007)
-		self.particleSystem1.SizeEnd = Vector2(0.05, 0.05)
-		self.particleSystem1.ColorEnd = Color(1.0, 0.7, 0.1, 1.0)
-		self.particleSystem1.Velocity = Vector2(0.0, 0.03)
-		self.particleSystem1.VelocityVariation = Vector2(0.05, 0.02)
-		self.particleSystem1.RotationDelta = 3.0
-		self.particleSystem1.RandomizeMovement = True
-		self.particleSystem1.Looping = True
-		self.particleSystem1.Start()
 
 		ImGui.BindScene(self.scene)
 		ImGui.BindRenderer(self.renderer)
