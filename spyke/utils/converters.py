@@ -1,16 +1,3 @@
-import glm
-
-def Mat4ToList(matrix: glm.mat4) -> list:
-	matList = matrix.to_list()
-	arr = []
-
-	arr.extend(matList[0])
-	arr.extend(matList[1])
-	arr.extend(matList[2])
-	arr.extend(matList[3])
-
-	return arr
-
 def KwargParse(kwargs: dict, keywords: list, usage: str, copy = True) -> dict:
 	if not usage.lower() in ["n", "r", "l"]:
 		raise RuntimeError(f"Invalid usage mode: {usage}")

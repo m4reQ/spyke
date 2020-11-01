@@ -16,8 +16,8 @@ class PostRenderer(object):
 
 	def __init__(self):
 		self.shader = Shader()
-		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/postVertex.glsl")
-		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/postFragment.glsl")
+		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/post.vert")
+		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/post.frag")
 		self.shader.Compile()
 
 		self.__vbo = DynamicVertexBuffer(6 * PostRenderer.__VertexSize)

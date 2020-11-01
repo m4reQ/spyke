@@ -8,12 +8,11 @@ from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..texturing.textureUtils import TextureHandle
 from ..texturing.textureManager import TextureManager
 from ...enums import VertexAttribType, GLType, ShaderType
-from ...transform import TransformQuadVertices, GetQuadIndexData
+from ...transform import TransformQuadVertices, GetQuadIndexData, Matrix4
 from ...debug import Log, LogLevel, Timer
 from ...utils import GL_FLOAT_SIZE
 
 from OpenGL import GL
-import glm
 #endregion
 
 class BasicRenderer(RendererComponent):
@@ -24,8 +23,8 @@ class BasicRenderer(RendererComponent):
 
 	def __init__(self):
 		self.shader = Shader()
-		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/basicVertex.glsl")
-		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/basicFragment.glsl")
+		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/basic.vert")
+		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/basic.frag")
 		self.shader.Compile()
 		
 		self.vao = VertexArray(BasicRenderer.__VertexSize)
@@ -42,14 +41,12 @@ class BasicRenderer(RendererComponent):
 			VertexArrayLayout(self.shader.GetAttribLocation("aTilingFactor"), 	2, VertexAttribType.Float, False)])
 
 		self.__batches = []
-
-		self.__viewProjection = glm.mat4(1.0)
-
+		self.__viewProjection = Matrix4(1.0)
 		self.renderStats = RenderStats()
 
 		Log("2D renderer initialized", LogLevel.Info)
 	
-	def BeginScene(self, viewProjection: glm.mat4) -> None:
+	def BeginScene(self, viewProjection: Matrix4) -> None:
 		self.__viewProjection = viewProjection
 
 		self.renderStats.Clear()
@@ -87,7 +84,7 @@ class BasicRenderer(RendererComponent):
 		
 		self.renderStats.DrawTime = Timer.Stop()
 	
-	def RenderQuad(self, transform: glm.mat4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
+	def RenderQuad(self, transform: Matrix4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
 		transformedVerts = TransformQuadVertices(transform.to_tuple())
 
 		

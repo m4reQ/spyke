@@ -12,7 +12,6 @@ from ...utils import GL_FLOAT_SIZE
 from ...enums import GLType, VertexAttribType, ShaderType
 from ...debug import Log, LogLevel, Timer
 
-import glm
 from OpenGL import GL
 #endregion
 
@@ -24,8 +23,8 @@ class TextRenderer(RendererComponent):
 	
 	def __init__(self):
 		self.shader = Shader()
-		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/textVertex.glsl")
-		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/textFragment.glsl")
+		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/text.vert")
+		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/text.frag")
 		self.shader.Compile()
 
 		self.vao = VertexArray(TextRenderer.__VertexSize)
@@ -44,7 +43,7 @@ class TextRenderer(RendererComponent):
 
 		self.__batches = []
 
-		self.__viewProjection = glm.mat4(1.0)
+		self.__viewProjection = Matrix4(1.0)
 
 		self.renderStats = RenderStats()
 

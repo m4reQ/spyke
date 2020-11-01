@@ -21,8 +21,8 @@ class LineRenderer(RendererComponent):
 
 	def __init__(self):
 		self.shader = Shader()
-		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/lineVertex.glsl")
-		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/lineFragment.glsl")
+		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/line.vert")
+		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/line.frag")
 		self.shader.Compile()
 
 		self.vao = VertexArray(LineRenderer.__VertexSize)

@@ -67,4 +67,5 @@ void main()
 	mat2 rotScale = createRotation(gsIn[0].rot) * createScale(gsIn[0].size);
 
 	EmitVertices(rotScale);
+	EndPrimitive();
 }

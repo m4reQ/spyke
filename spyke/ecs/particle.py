@@ -11,7 +11,7 @@ class Particle(object):
 		self.transform = Matrix4(1.0)
 
 		self.life = 0.0
-		self.isAlive = True
+		self.isAlive = False
 		
 		self.gravity = 0.0
 

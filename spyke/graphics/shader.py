@@ -40,7 +40,7 @@ class Shader(object):
 		infoLog = GL.glGetShaderInfoLog(shader)
 		if len(infoLog) != 0:
 			GL.glDeleteShader(shader)
-			raise RuntimeError(f"Shader (file: '{filepath}') compilation error: \n{EnsureString(infoLog)}.")
+			raise RuntimeError(f"Shader (file: '{filepath}') compilation error:\n{EnsureString(infoLog)}.")
 
 		GL.glAttachShader(self.__id, shader)
 	
@@ -58,9 +58,9 @@ class Shader(object):
 
 		infoLog = GL.glGetProgramInfoLog(self.__id)
 		if len(infoLog) != 0:
-			raise RuntimeError(f"Shader program compilation error: {infoLog}.")
+			raise RuntimeError(f"Shader program (id: {self.__id}) compilation error:\n{EnsureString(infoLog)}.")
 		else:
-			Log(f"Shader program with id: {self.__id} compiled succesfully.", LogLevel.Info)
+			Log(f"Shader program (id: {self.__id}) compiled succesfully.", LogLevel.Info)
 
 		self.__stages.clear()
 		self.__compiled = True
@@ -73,7 +73,6 @@ class Shader(object):
 
 	@lru_cache
 	def GetAttribLocation(self, name: str) -> int:
-		raise RuntimeError
 		loc = GL.glGetAttribLocation(self.__id, name)
 		if loc == -1:
 			Log(f"Cannot find attribute named '{name}'", LogLevel.Warning)

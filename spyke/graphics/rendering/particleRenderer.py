@@ -22,12 +22,11 @@ class ParticleRenderer(RendererComponent):
 
 	def __init__(self):
 		self.shader = Shader()
-		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/particleVertex.glsl")
-		self.shader.AddStage(ShaderType.GeometryShader, "spyke/graphics/shaderSources/particleGeometry.glsl")
-		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/particleFragment.glsl")
+		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/particle.vert")
+		self.shader.AddStage(ShaderType.GeometryShader, "spyke/graphics/shaderSources/particle.geom")
+		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/particle.frag")
 		self.shader.Compile()
 		
-		self.ibo = StaticIndexBuffer(GetQuadIndexData(ParticleRenderer.MaxParticleCount * 6))
 		self.vbo = DynamicVertexBuffer(ParticleRenderer.MaxVertexCount * ParticleRenderer.__VertexSize)
 		self.vao = VertexArray(ParticleRenderer.__VertexSize)
 
@@ -41,7 +40,7 @@ class ParticleRenderer(RendererComponent):
 			VertexArrayLayout(self.shader.GetAttribLocation("aTexCoord"), 2, VertexAttribType.Float, False),
 			VertexArrayLayout(self.shader.GetAttribLocation("aTexIdx"), 1, VertexAttribType.Float, False)])
 		
-		self.batches = []
+		self.__batches = []
 		self.__viewProjection = Matrix4(1.0)
 		self.renderStats = RenderStats()
 
@@ -51,16 +50,15 @@ class ParticleRenderer(RendererComponent):
 		data = [pos.x, pos.y, size.x, size.y, rot, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V, texHandle.Index]
 
 		try:
-			batch = next(x for x in self.batches if x.texarrayID == texHandle.TexarrayID and x.WouldAccept(len(data) * GL_FLOAT_SIZE))
+			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.WouldAccept(len(data) * GL_FLOAT_SIZE))
 		except StopIteration:
 			batch = RenderBatch(ParticleRenderer.MaxVertexCount * ParticleRenderer.__VertexSize)
 			batch.texarrayID = texHandle.TexarrayID
-			self.batches.append(batch)
+			self.__batches.append(batch)
 		
 		batch.AddData(data)
 
 		self.renderStats.VertexCount += 1
-		batch.indexCount += 1
 
 	def BeginScene(self, viewProjection: Matrix4) -> None:
 		self.__viewProjection = viewProjection
@@ -68,11 +66,11 @@ class ParticleRenderer(RendererComponent):
 
 	def EndScene(self) -> None:
 		needsDraw = False
-		for batch in self.batches:
+		for batch in self.__batches:
 			needsDraw |= batch.dataSize != 0
 			if needsDraw:
 				self.__Flush()
-				return
+				break
 	
 	def __Flush(self):
 		Timer.Start()
@@ -84,9 +82,8 @@ class ParticleRenderer(RendererComponent):
 
 		self.vbo.Bind()
 		self.vao.Bind()
-		self.ibo.Bind()
 
-		for batch in self.batches:
+		for batch in self.__batches:
 			if batch.texarrayID != -1:
 				GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, batch.texarrayID)
 			else:
@@ -94,7 +91,7 @@ class ParticleRenderer(RendererComponent):
 
 			self.vbo.AddData(batch.data, batch.dataSize)
 
-			GL.glDrawElements(GL.GL_POINTS, batch.indexCount, GLType.UnsignedInt, None)
+			GL.glDrawArrays(GL.GL_POINTS, 0, self.renderStats.VertexCount)
 			self.renderStats.DrawsCount += 1
 
 			batch.Clear()

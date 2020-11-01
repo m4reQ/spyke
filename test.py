@@ -84,6 +84,8 @@ class Window(GlfwWindow):
 		self.particleSystem1 = ParticleComponent(Vector2(0.2, 0.2), 3.0, 10)
 		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
 		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
+		self.particleSystem1.sizeBegin = Vector2(0.2, 0.2)
+		self.particleSystem1.sizeEnd = Vector2(0.2, 0.2)
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 
 		ImGui.BindScene(self.scene)
@@ -96,6 +98,7 @@ class Window(GlfwWindow):
 		self.renderTarget = RenderTarget(self.camera)
 
 		CollectGarbage()
+
 	def OnFrame(self):
 		self.scene.Process(renderTarget = self.renderTarget, window = self, ent = self.ent4)
 		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(self.scene.GetFrameTime(), 5)) + "s")
