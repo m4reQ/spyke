@@ -75,7 +75,7 @@ class Shader(object):
 	def GetAttribLocation(self, name: str) -> int:
 		loc = GL.glGetAttribLocation(self.__id, name)
 		if loc == -1:
-			Log(f"Cannot find attribute named '{name}'", LogLevel.Warning)
+			Log(f"Cannot find attribute named '{name}'.", LogLevel.Warning)
 
 		return loc
 	
@@ -87,7 +87,7 @@ class Shader(object):
 		loc = GL.glGetUniformLocation(self.__id, name)
 
 		if loc == -1:
-			Log(f"cannot find uniform named '{name}'", LogLevel.Warning)
+			Log(f"cannot find uniform named '{name}'.", LogLevel.Warning)
 		else:
 			self.uniforms[name] = loc
 		

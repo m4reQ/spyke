@@ -216,7 +216,7 @@ class ParticleComponent(object):
 		particle.texHandle = self.texHandle
 
 		oldIndex = self.activeParticleIdx
-		self.activeParticleIdx = (oldIndex - 1) % len(self.particlePool)
+		self.activeParticleIdx = (oldIndex - 1) % self.maxCount
 	
 	#region Setters
 	@property

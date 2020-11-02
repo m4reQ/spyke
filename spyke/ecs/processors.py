@@ -47,6 +47,8 @@ class RenderingProcessor(Processor):
 				if not particle.isAlive:
 					continue
 
+				print(len([x for x in particleComponent.particlePool if x.isAlive]))
+
 				self.renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
 		
 		self.renderer.EndScene()
@@ -60,7 +62,7 @@ class TransformProcessor(Processor):
 class WindowEventProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		event = EventHandler.PickEventByType(EventType.WindowResize)
-		if event and not event.Handled:
+		if event:
 			try:
 				window = kwargs["window"]
 			except KeyError:
@@ -87,8 +89,6 @@ class AudioProcessor(Processor):
 			state = audio.Handle.GetState()
 
 class ParticleProcessor(Processor):
-	Gravity = 0.0
-
 	def Process(self, *args, **kwargs):
 		dt = self.world.GetFrameTime()
 
@@ -97,7 +97,6 @@ class ParticleProcessor(Processor):
 				if not particle.isAlive:
 					continue
 
-				particle.velocity.y -= ParticleProcessor.Gravity * particle.gravity * dt
 				particle.position += particle.velocity * dt
 				particle.rotation += particle.rotationVelocity * dt
 				particle.life -= dt

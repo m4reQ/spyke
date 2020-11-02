@@ -60,7 +60,7 @@ if AUTO_LOG_EXCEPTIONS:
 def GetGLError():
 	err = glGetError()
 	if err != ErrorCode.NoError:
-		Log(err, LogLevel.Error)
+		Log(f"GLError: {err}", LogLevel.Error)
 
 def GetVideoMemoryCurrent():
 	if IS_NVIDIA:

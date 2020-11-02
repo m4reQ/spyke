@@ -6,20 +6,24 @@ layout(triangle_strip, max_vertices = 4) out;
 uniform mat4 uViewProjection;
 
 const vec2 QuadVertices[4] = vec2[4](
-	vec2(0.0f, 0.0f),
-	vec2(1.0f, 0.0f),
 	vec2(1.0f, 1.0f),
-	vec2(0.0f, 1.0f));
+	vec2(1.0f, 0.0f),
+	vec2(0.0f, 1.0f),
+	vec2(0.0f, 0.0f));
 
-out VS_OUT
+in VS_OUT
 {
 	vec2 pos;
 	vec2 size;
 	float rot;
+	vec4 color;
 	vec2 texCoord;
+	float texIdx;
 } gsIn[];
 
 out vec2 vTexCoord;
+out vec4 vColor;
+out float vTexIdx;
 
 mat2 createRotation(float rotation)
 {
@@ -42,23 +46,27 @@ mat2 createScale(vec2 scale)
 void EmitVertices(mat2 rotScale)
 {
 	gl_Position = uViewProjection * vec4(translate(QuadVertices[0], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
-	//vColor = color;
+	vColor = gsIn[0].color;
 	vTexCoord = vec2(0.0f, gsIn[0].texCoord.y);
+	vTexIdx = gsIn[0].texIdx;
 	EmitVertex();
 
 	gl_Position = uViewProjection * vec4(translate(QuadVertices[1], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
-	//vColor = color;
+	vColor = gsIn[0].color;
 	vTexCoord = gsIn[0].texCoord;
+	vTexIdx = gsIn[0].texIdx;
 	EmitVertex();
 
 	gl_Position = uViewProjection * vec4(translate(QuadVertices[2], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
-	//vColor = color;
+	vColor = gsIn[0].color;
 	vTexCoord = vec2(gsIn[0].texCoord.x, 0.0f);
+	vTexIdx = gsIn[0].texIdx;
 	EmitVertex();
 
 	gl_Position = uViewProjection * vec4(translate(QuadVertices[3], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
-	//vColor = color;
+	vColor = gsIn[0].color;
 	vTexCoord = vec2(0.0f);
+	vTexIdx = gsIn[0].texIdx;
 	EmitVertex();
 }
 

@@ -12,8 +12,6 @@ class Particle(object):
 
 		self.life = 0.0
 		self.isAlive = False
-		
-		self.gravity = 0.0
 
 		self.color = Vector4(1.0)
 

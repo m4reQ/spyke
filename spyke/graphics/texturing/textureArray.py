@@ -74,6 +74,10 @@ class TextureArray(object):
 
 		return handle
 	
+	@staticmethod
+	def UnbindAll():
+		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, 0)
+	
 	def Bind(self):
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)
 	

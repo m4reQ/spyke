@@ -10,7 +10,7 @@ from ..texturing.textureManager import TextureManager
 from ...transform import Matrix4, GetQuadIndexData, TransformQuadVertices, Vector2
 from ...enums import VertexAttribType, GLType, ShaderType
 from ...utils import GL_FLOAT_SIZE
-from ...debug import Log, LogLevel, Timer
+from ...debug import Log, LogLevel, Timer, GetGLError
 
 from OpenGL import GL
 #endregion
@@ -27,8 +27,8 @@ class ParticleRenderer(RendererComponent):
 		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/particle.frag")
 		self.shader.Compile()
 		
-		self.vbo = DynamicVertexBuffer(ParticleRenderer.MaxVertexCount * ParticleRenderer.__VertexSize)
 		self.vao = VertexArray(ParticleRenderer.__VertexSize)
+		self.vbo = DynamicVertexBuffer(ParticleRenderer.MaxVertexCount * ParticleRenderer.__VertexSize)
 
 		self.vbo.Bind()
 		self.vao.Bind()
@@ -44,7 +44,7 @@ class ParticleRenderer(RendererComponent):
 		self.__viewProjection = Matrix4(1.0)
 		self.renderStats = RenderStats()
 
-		Log("Particle renderer initialized", LogLevel.Info)
+		Log("Particle renderer initialized.", LogLevel.Info)
 	
 	def RenderParticle(self, pos: Vector2, size: Vector2, rot: float, color: tuple, texHandle: TextureHandle):
 		data = [pos.x, pos.y, size.x, size.y, rot, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V, texHandle.Index]

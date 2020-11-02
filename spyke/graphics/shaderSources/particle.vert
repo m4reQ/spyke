@@ -7,15 +7,14 @@ layout(location = 3) in vec4 aColor;
 layout(location = 4) in vec2 aTexCoord;
 layout(location = 5) in float aTexIdx;
 
-layout(location = 10) out vec4 vColor;
-layout(location = 11) out float vTexIdx;
-
 out VS_OUT
 {
 	vec2 pos;
 	vec2 size;
 	float rot;
+	vec4 color;
 	vec2 texCoord;
+	float texIdx;
 } vsOut;
 
 void main()
@@ -24,7 +23,6 @@ void main()
 	vsOut.size = aSize;
 	vsOut.rot = aRotation;
 	vsOut.texCoord = aTexCoord;
-
-	vTexIdx = aTexIdx;
-	vColor = aColor;
+	vsOut.color = aColor;
+	vsOut.texIdx = aTexIdx;
 }

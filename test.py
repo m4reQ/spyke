@@ -29,7 +29,7 @@ class KeyProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		e = EventHandler.PickEventByType(EventType.KeyPressed)
 
-		if e and not e.Handled and e.KeyCode == Keys.KeyA.Glfw:
+		if e and e.KeyCode == Keys.KeyA.Glfw:
 			ent = kwargs["ent"]
 			part = self.world.ComponentForEntity(ent, ParticleComponent)
 			part.EmitParticle()
@@ -60,11 +60,11 @@ class Window(GlfwWindow):
 
 		TextureManager.CreateBlankArray()
 		self.texarray = TextureManager.CreateTextureArray(1920, 1080, 3)
-		self.tex = TextureManager.LoadTexture("tests/test1.jpg", self.texarray)
+		self.tex = TextureManager.LoadTexture("textures/test2.jpg", self.texarray)
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
 
-		self.font = Font("tests/ArialNative.fnt", "tests/ArialNative.png")
+		self.font = Font("textures/test.fnt", "textures/test.png")
 
 		self.ent1 = EntityManager.CreateEntity(self.scene, "TestText")
 		self.scene.AddComponent(self.ent1, ColorComponent(0.0, 1.0, 1.0, 0.7))
@@ -86,6 +86,9 @@ class Window(GlfwWindow):
 		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
 		self.particleSystem1.sizeBegin = Vector2(0.2, 0.2)
 		self.particleSystem1.sizeEnd = Vector2(0.2, 0.2)
+		self.particleSystem1.velocity = Vector2(0.3, 0.2)
+		self.particleSystem1.rotationVelocity = 30.0
+		self.particleSystem1.randomizeMovement = True
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 
 		ImGui.BindScene(self.scene)

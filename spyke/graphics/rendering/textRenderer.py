@@ -10,7 +10,7 @@ from ..text.font import Font
 from ...transform import GetQuadIndexData, Matrix4, Vector3
 from ...utils import GL_FLOAT_SIZE
 from ...enums import GLType, VertexAttribType, ShaderType
-from ...debug import Log, LogLevel, Timer
+from ...debug import Log, LogLevel, Timer, GetGLError
 
 from OpenGL import GL
 #endregion
