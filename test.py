@@ -32,8 +32,7 @@ class KeyProcessor(Processor):
 		if e and e.KeyCode == Keys.KeyA.Glfw:
 			ent = kwargs["ent"]
 			part = self.world.ComponentForEntity(ent, ParticleComponent)
-			part.EmitParticle()
-			e.Handled = True
+			part.EmitParticles(5)
 
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
@@ -57,6 +56,7 @@ class Window(GlfwWindow):
 		self.renderer.AddComponent(LineRenderer())
 		self.renderer.AddComponent(TextRenderer())
 		self.renderer.AddComponent(ParticleRenderer())
+		self.renderer.AddComponent(PostRenderer())
 
 		TextureManager.CreateBlankArray()
 		self.texarray = TextureManager.CreateTextureArray(1920, 1080, 3)
@@ -72,7 +72,7 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent1, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector2(0.5, 0.5), 0.0))
 
 		self.ent2 = EntityManager.CreateEntity(self.scene, "FOO")
-		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.01, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
+		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.6, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
 		self.scene.AddComponent(self.ent2, TextComponent("TEST", 30, self.font))
 		self.scene.AddComponent(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
 
@@ -81,14 +81,16 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent3, ColorComponent(0.3, 0.7, 0.5, 0.7))
 
 		self.ent4 = EntityManager.CreateEntity(self.scene, "Particles")
-		self.particleSystem1 = ParticleComponent(Vector2(0.2, 0.2), 3.0, 10)
+		self.particleSystem1 = ParticleComponent(Vector2(0.5, 0.5), 3.0, 50)
 		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
 		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
-		self.particleSystem1.sizeBegin = Vector2(0.2, 0.2)
-		self.particleSystem1.sizeEnd = Vector2(0.2, 0.2)
+		self.particleSystem1.sizeBegin = Vector2(0.1, 0.1)
+		self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
 		self.particleSystem1.velocity = Vector2(0.3, 0.2)
-		self.particleSystem1.rotationVelocity = 30.0
+		self.particleSystem1.rotationVelocity = 0.5
 		self.particleSystem1.randomizeMovement = True
+		self.particleSystem1.fadeOut = True
+		self.particleSystem1.texHandle = self.tex
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 
 		ImGui.BindScene(self.scene)
@@ -98,12 +100,16 @@ class Window(GlfwWindow):
 		InitializeDefaultProcessors(self.scene, self.renderer)
 		self.scene.AddProcessor(KeyProcessor())
 
-		self.renderTarget = RenderTarget(self.camera)
+		fbSpec = FramebufferSpecs(self.width, self.height)
+		fbSpec.Samples = 4
+		fbSpec.HasDepthAttachment = False
+		self.renderTarget = RenderTarget(self.camera, Framebuffer(fbSpec))
 
 		CollectGarbage()
 
 	def OnFrame(self):
-		self.scene.Process(renderTarget = self.renderTarget, window = self, ent = self.ent4)
+		self.scene.Process(renderTarget = self.renderTarget, window = self, ent = self.ent4, renderer = self.renderer)
+		self.renderer.RenderFramebuffer(self.scene.ComponentForEntity(self.ent2, TransformComponent).Matrix, self.renderTarget.Framebuffer, self.renderTarget.Camera.viewProjectionMatrix)
 		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(self.scene.GetFrameTime(), 5)) + "s")
 
 	def OnClose(self):

@@ -164,7 +164,7 @@ class ScriptComponent(object):
 		self.OnProcess(*args, **kwargs)
 
 class ParticleComponent(object):
-	MaxCount = 50
+	MaxCount = 150
 
 	def __init__(self, basePos: glm.vec2, duration: float, maxCount: int):
 		self.basePos = basePos
@@ -194,11 +194,16 @@ class ParticleComponent(object):
 			self.particlePool.append(Particle())
 		self.activeParticleIdx = self.maxCount - 1
 	
-	def EmitParticle(self):
+	def EmitParticles(self, count: int) -> None:
+		for _ in range(count):
+			self.EmitParticle()
+
+	def EmitParticle(self) -> None:
 		particle = self.particlePool[self.activeParticleIdx]
 		particle.isAlive = True
 
-		particle.position = self.basePos
+		particle.position = self.basePos.__copy__()
+		particle.rotation = self.baseRot
 		
 		if self.randomizeMovement:
 			randomChange = random.random() - 0.5
@@ -206,10 +211,10 @@ class ParticleComponent(object):
 			randomChange = 1.0
 		
 		particle.velocity = self.velocity * randomChange
-		particle.rotation = self.baseRot * randomChange
+		particle.rotationVelocity = self.rotationVelocity * randomChange
 
-		particle.color = self._colorBegin
-		particle.size = self._sizeBegin
+		particle.color = self._colorBegin#.__copy__()
+		particle.size = self._sizeBegin#.__copy__()
 
 		particle.life = self.duration
 		

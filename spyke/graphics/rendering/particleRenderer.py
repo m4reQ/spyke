@@ -16,7 +16,7 @@ from OpenGL import GL
 #endregion
 
 class ParticleRenderer(RendererComponent):
-	MaxParticleCount = 100
+	MaxParticleCount = 150
 	MaxVertexCount = MaxParticleCount * 1
 	__VertexSize = (2 + 2 + 1 + 4 + 2 + 1) * GL_FLOAT_SIZE
 

@@ -47,8 +47,6 @@ class RenderingProcessor(Processor):
 				if not particle.isAlive:
 					continue
 
-				print(len([x for x in particleComponent.particlePool if x.isAlive]))
-
 				self.renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
 		
 		self.renderer.EndScene()
@@ -102,13 +100,13 @@ class ParticleProcessor(Processor):
 				particle.life -= dt
 
 				if particleComponent.colorChange:
-					particle.color = LerpVec4(particle.life, particleComponent.colorBegin, particleComponent.colorEnd)
+					particle.color = LerpVec4(particle.life / particleComponent.duration, particleComponent.colorEnd, particleComponent.colorBegin)
 				
 				if particleComponent.fadeOut:
-					particle.color.w = LerpFloat(particle.life, 1.0, 0.0)
+					particle.color.w = LerpFloat(particle.life / particleComponent.duration, 0.0, 1.0)
 				
 				if particleComponent.sizeChange:
-					particle.size = LerpVec2(particle.life, particleComponent.sizeBegin, particleComponent.sizeEnd)
+					particle.size = LerpVec2(particle.life / particleComponent.duration, particleComponent.sizeEnd, particleComponent.sizeBegin)
 
 				if particle.life < 0.0:
 					particle.isAlive = False

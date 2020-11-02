@@ -153,7 +153,7 @@ class Framebuffer(object):
 
 	def Delete(self) -> None:
 		GL.glDeleteTextures([self.__colorAttachmentId])
-		GL.glDeleteFramebuffers([self.__id])
+		GL.glDeleteFramebuffers(1, [self.__id])
 	
 	@staticmethod
 	def UnbindAll() -> None:

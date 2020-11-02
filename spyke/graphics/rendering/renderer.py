@@ -101,9 +101,9 @@ class Renderer(object):
 		except (AttributeError, KeyError):
 			pass
 	
-	def RenderFramebuffer(self, pos: Vector3, framebuffer: Framebuffer) -> None:
+	def RenderFramebuffer(self, transform: Matrix4, framebuffer: Framebuffer, viewProjectionMatrix: Matrix4) -> None:
 		try:
-			self.__renderers["post"].RenderFramebuffer(pos, framebuffer)
+			self.__renderers["post"].RenderFramebuffer(transform, framebuffer, viewProjectionMatrix)
 		except (AttributeError, KeyError):
 			pass
 	
