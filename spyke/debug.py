@@ -71,21 +71,6 @@ def GetVideoMemoryCurrent():
 def GetMemoryUsed():
 	return _PROCESS.memory_info().rss
 
-class Timer:
-	__Start = 0.0
-	
-	@staticmethod
-	def Start() -> None:
-		Timer.__Start = time.perf_counter()
-	
-	@staticmethod
-	def Stop() -> float:
-		return time.perf_counter() - Timer.__Start
-	
-	@staticmethod
-	def GetCurrent() -> float:
-		return time.perf_counter()
-
 class GLInfo:
 	Renderer = ""
 	Vendor = ""

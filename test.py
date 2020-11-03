@@ -19,19 +19,19 @@ from spyke.ecs.processors import *
 from spyke.graphics import *
 from spyke.enums import *
 
-from spyke.utils import CollectGarbage
+from spyke.utils import *
 
 from spyke.transform import *
 from spyke.keys import *
 from spyke.input import *
 
-class KeyProcessor(Processor):
+class UserProcessor(Processor):
+	def __init__(self):
+		self.timer = Delayer(2.0)
+	
 	def Process(self, *args, **kwargs):
-		e = EventHandler.PickEventByType(EventType.KeyPressed)
-
-		if e and e.KeyCode == Keys.KeyA.Glfw:
-			ent = kwargs["ent"]
-			part = self.world.ComponentForEntity(ent, ParticleComponent)
+		if not self.timer.IsWaiting():
+			part = self.world.ComponentForEntity(kwargs["ent"], ParticleComponent)
 			part.EmitParticles(5)
 
 class Window(GlfwWindow):
@@ -73,7 +73,7 @@ class Window(GlfwWindow):
 
 		self.ent2 = EntityManager.CreateEntity(self.scene, "FOO")
 		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.6, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
-		self.scene.AddComponent(self.ent2, TextComponent("TEST", 30, self.font))
+		self.scene.AddComponent(self.ent2, TextComponent("TEST", 120, self.font))
 		self.scene.AddComponent(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
 
 		self.ent3 = EntityManager.CreateEntity(self.scene, "Line")
@@ -98,18 +98,18 @@ class Window(GlfwWindow):
 		ImGui.Initialize(self)
 
 		InitializeDefaultProcessors(self.scene, self.renderer)
-		self.scene.AddProcessor(KeyProcessor())
+		self.scene.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpecs(self.width, self.height)
 		fbSpec.Samples = 4
 		fbSpec.HasDepthAttachment = False
-		self.renderTarget = RenderTarget(self.camera, Framebuffer(fbSpec))
+		self.renderTarget = RenderTarget(self.camera)#, Framebuffer(fbSpec))
 
 		CollectGarbage()
 
 	def OnFrame(self):
 		self.scene.Process(renderTarget = self.renderTarget, window = self, ent = self.ent4, renderer = self.renderer)
-		self.renderer.RenderFramebuffer(self.scene.ComponentForEntity(self.ent2, TransformComponent).Matrix, self.renderTarget.Framebuffer, self.renderTarget.Camera.viewProjectionMatrix)
+		#self.renderer.RenderFramebuffer(self.scene.ComponentForEntity(self.ent2, TransformComponent).Matrix, self.renderTarget.Framebuffer, self.renderTarget.Camera.viewProjectionMatrix)
 		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(self.scene.GetFrameTime(), 5)) + "s")
 
 	def OnClose(self):
