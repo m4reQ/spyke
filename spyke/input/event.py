@@ -1,6 +1,6 @@
 #region Import
 from ..utils.functional import Enum, Abstract
-from ..debug import Timer
+from ..utils.time import Timer
 #endregion
 
 BIT = lambda x: 1 << x

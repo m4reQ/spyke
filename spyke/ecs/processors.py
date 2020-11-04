@@ -8,54 +8,56 @@ from ..imgui import ImGui
 from ..input import *
 from ..utils import LerpVec2, LerpVec4, LerpFloat
 from ..transform import Vector3
+from ..graphics import Renderer
 #endregion
 
-def InitializeDefaultProcessors(scene: Scene, renderer: Renderer):
+def InitializeDefaultProcessors(scene: Scene):
 	scene.AddProcessor(WindowEventProcessor(), priority = 1)
 	scene.AddProcessor(TransformProcessor())
 	scene.AddProcessor(ParticleProcessor())
+	scene.AddProcessor(ScriptProcessor())
 	if ImGui.IsInitialized():
 		scene.AddProcessor(ImguiProcessor())
-	scene.AddProcessor(RenderingProcessor(renderer), priority = 99)
+	scene.AddProcessor(RenderingProcessor(), priority = 99)
 
 class RenderingProcessor(Processor):
-	def __init__(self, renderer: Renderer):
-		self.renderer = renderer
-
 	def Process(self, *args, **kwargs):
-		try:
-			renderTarget = kwargs["renderTarget"]
-		except KeyError:
-			Log("Renderer target not set.", LogLevel.Warning)
-			return
-
 		GLCommand.Clear(ClearMask.ColorBufferBit | ClearMask.DepthBufferBit)
 		
-		self.renderer.BeginScene(renderTarget)
+		Renderer.BeginScene()
 
 		for _, (sprite, transform, color) in self.world.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
-			self.renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
+			Renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
 		
 		for _, (text, transform, color) in self.world.GetComponents(TextComponent, TransformComponent, ColorComponent):
-			self.renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
+			Renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
 		
 		for _, (line, color) in self.world.GetComponents(LineComponent, ColorComponent):
-			self.renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
+			Renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
 		
 		for _, particleComponent in self.world.GetComponent(ParticleComponent):
 			for particle in particleComponent.particlePool:
 				if not particle.isAlive:
 					continue
 
-				self.renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
+				Renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
 		
-		self.renderer.EndScene()
+		Renderer.EndScene()
 
 class TransformProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		for _, transform in self.world.GetComponent(TransformComponent):
 			if transform.ShouldRecalculate:
 				transform.Recalculate()
+
+		for renderTarget in Renderer.RenderTargets:
+			if renderTarget.Camera.shouldRecalculate:
+				renderTarget.Camera.RecalculateMatrices()
+
+class ScriptProcessor(Processor):
+	def Process(self, *args, **kwargs):
+		for _, script in self.world.GetComponent(ScriptComponent):
+			script.Process()
 
 class WindowEventProcessor(Processor):
 	def Process(self, *args, **kwargs):

@@ -1,7 +1,8 @@
 from .glyph import Glyph
 from .fontManager import FontManager
 from ..texturing.textureManager import TextureManager
-from ...debug import Log, LogLevel, Timer
+from ...debug import Log, LogLevel
+from ...utils import Timer
 
 class Font(object):
 	@staticmethod

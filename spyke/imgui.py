@@ -2,6 +2,7 @@
 from . import IS_NVIDIA
 from .debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
 from .ecs.entityManager import EntityManager
+from .graphics import Renderer
 
 import tkinter
 from tkinter import ttk
@@ -12,7 +13,6 @@ class ImGui:
 	__SceneUpdate = False
 
 	__ParentWindow = None
-	__Renderer = None
 	__Scene = None
 
 	__StatsTextTemplate = """Draws count: {0}
@@ -44,9 +44,6 @@ Window size: {4}x{5}"""
 	EntitiesLabel.grid(row = 0, column = 1, sticky = "n")
 	EntitiesTree.grid(row = 1, column = 1, sticky = "news", padx = 1)
 	InspectorFrame.grid(row = 2, column = 1, sticky = "news")
-
-	def BindRenderer(renderer) -> None:
-		ImGui.__Renderer = renderer
 	
 	def BindScene(scene) -> None:
 		ImGui.__Scene = scene
@@ -96,13 +93,6 @@ Window size: {4}x{5}"""
 		ImGui.__SceneUpdate = False
 
 	def __HandleRenderStats() -> None:
-		if not ImGui.__Renderer:
-			drawsCount = 0
-			vertexCount = 0
-		else:
-			drawsCount = ImGui.__Renderer.drawsCount
-			vertexCount = ImGui.__Renderer.vertexCount
-		
 		if not IS_NVIDIA:
 			vidMemUsed = "unavailable"
 		else:
@@ -110,7 +100,7 @@ Window size: {4}x{5}"""
 		
 		memUsed = GetMemoryUsed() / 1000.0
 
-		text = ImGui.__StatsTextTemplate.format(drawsCount, vertexCount, memUsed, vidMemUsed, ImGui.__ParentWindow.width, ImGui.__ParentWindow.height)
+		text = ImGui.__StatsTextTemplate.format(Renderer.DrawsCount, Renderer.VertexCount, memUsed, vidMemUsed, ImGui.__ParentWindow.width, ImGui.__ParentWindow.height)
 
 		try:
 			ImGui.RenderStatsText.delete(1.0, "end")

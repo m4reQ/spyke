@@ -9,8 +9,8 @@ from ..texturing.textureUtils import TextureHandle
 from ..texturing.textureManager import TextureManager
 from ...transform import Matrix4, GetQuadIndexData, TransformQuadVertices, Vector2
 from ...enums import VertexAttribType, GLType, ShaderType
-from ...utils import GL_FLOAT_SIZE
-from ...debug import Log, LogLevel, Timer, GetGLError
+from ...utils import GL_FLOAT_SIZE, Timer
+from ...debug import Log, LogLevel
 
 from OpenGL import GL
 #endregion

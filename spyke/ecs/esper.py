@@ -3,6 +3,7 @@ Changes made by m4reQ:
 - changed time measurement function from time.process_time to time.perf_counter
 - changed names of public functions to use PascalCase naming convention
 - added World.GetFrameTime function that returns sum of all processing times from previous frame
+- changed World.AddComponent function ability to set component's reference to a parent entity and scene if component type is ScriptComponent
 """
 
 import time as _time
@@ -15,6 +16,7 @@ from typing import Any as _Any
 from typing import Tuple as _Tuple
 from typing import Iterable as _Iterable
 
+from .components import ScriptComponent
 
 version = '1.3'
 
@@ -119,7 +121,7 @@ class World:
         """
         self._next_entity_id += 1
 
-        # TODO: duplicate add_component code here for performance
+        # TODO: duplicate AddComponent code here for performance
         for component in components:
             self.AddComponent(self._next_entity_id, component)
 
@@ -222,6 +224,10 @@ class World:
         :param component_instance: A Component instance.
         """
         component_type = type(component_instance)
+
+        if component_type == ScriptComponent:
+            component_instance.entity = entity
+            component_instance.world = self
 
         if component_type not in self._components:
             self._components[component_type] = set()

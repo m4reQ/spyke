@@ -3,10 +3,9 @@ from .renderStats import RenderStats
 from ..shader import Shader
 from ..buffers import DynamicVertexBuffer, Framebuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
-from ...utils.memory import GL_FLOAT_SIZE
+from ...utils import GL_FLOAT_SIZE, Timer
 from ...transform import Matrix4, TransformQuadVertices
 from ...enums import VertexAttribType, ShaderType
-from ...debug import Timer
 
 from OpenGL import GL
 #endregion
@@ -28,6 +27,9 @@ class PostRenderer(object):
 		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aTexCoord"), 2, VertexAttribType.Float, False))
 
 		self.__renderStats = RenderStats()
+
+		self.BeginScene = lambda *_, **__: None
+		self.EndScene = lambda *_, **__: None
 	
 	def Render(self, transform: Matrix4, framebuffer: Framebuffer, viewProjection: Matrix4) -> None:
 		self.__renderStats.Clear()

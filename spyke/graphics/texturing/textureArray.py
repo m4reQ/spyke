@@ -1,8 +1,8 @@
 from .textureUtils import GenRawTextureData, TextureData, TextureHandle
 from ... import USE_FAST_MIN_FILTER
-from ...utils import ObjectManager
+from ...utils import ObjectManager, Timer
 from ...enums import TextureType
-from ...debug import Log, LogLevel, Timer
+from ...debug import Log, LogLevel
 
 import numpy
 from OpenGL import GL

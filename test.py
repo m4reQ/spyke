@@ -22,7 +22,6 @@ from spyke.enums import *
 from spyke.utils import *
 
 from spyke.transform import *
-from spyke.keys import *
 from spyke.input import *
 
 class UserProcessor(Processor):
@@ -51,20 +50,15 @@ class Window(GlfwWindow):
 
 		self.scene = EntityManager.CreateScene("Test", True)
 
-		self.renderer = Renderer()
-		self.renderer.AddComponent(BasicRenderer())
-		self.renderer.AddComponent(LineRenderer())
-		self.renderer.AddComponent(TextRenderer())
-		self.renderer.AddComponent(ParticleRenderer())
-		self.renderer.AddComponent(PostRenderer())
+		Renderer.Initialize(self.specs.Multisample)
 
 		TextureManager.CreateBlankArray()
 		self.texarray = TextureManager.CreateTextureArray(1920, 1080, 3)
-		self.tex = TextureManager.LoadTexture("textures/test2.jpg", self.texarray)
+		self.tex = TextureManager.LoadTexture("tests/test1.jpg", self.texarray)
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
 
-		self.font = Font("textures/test.fnt", "textures/test.png")
+		self.font = Font("tests/ArialNative.fnt", "tests/ArialNative.png")
 
 		self.ent1 = EntityManager.CreateEntity(self.scene, "TestText")
 		self.scene.AddComponent(self.ent1, ColorComponent(0.0, 1.0, 1.0, 0.7))
@@ -93,22 +87,27 @@ class Window(GlfwWindow):
 		self.particleSystem1.texHandle = self.tex
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 
+		self.ent5 = EntityManager.CreateEntity(self.scene, "Script")
+		self.scene.AddComponent(self.ent5, ColorComponent(0.5, 0.5, 0.5, 0.5))
+		self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
+
 		ImGui.BindScene(self.scene)
-		ImGui.BindRenderer(self.renderer)
 		ImGui.Initialize(self)
 
-		InitializeDefaultProcessors(self.scene, self.renderer)
+		InitializeDefaultProcessors(self.scene)
 		self.scene.AddProcessor(UserProcessor())
 
-		fbSpec = FramebufferSpecs(self.width, self.height)
-		fbSpec.Samples = 4
-		fbSpec.HasDepthAttachment = False
-		self.renderTarget = RenderTarget(self.camera)#, Framebuffer(fbSpec))
+		#fbSpec = FramebufferSpecs(self.width, self.height)
+		#fbSpec.Samples = 4
+		#fbSpec.HasDepthAttachment = False
+		renderTarget = RenderTarget(self.camera)#, Framebuffer(fbSpec))
+		self.renderTargetId = Renderer.AddRenderTarget(renderTarget)
+		Renderer.BindRenderTarget(self.renderTargetId)
 
 		CollectGarbage()
 
 	def OnFrame(self):
-		self.scene.Process(renderTarget = self.renderTarget, window = self, ent = self.ent4, renderer = self.renderer)
+		self.scene.Process(window = self, ent = self.ent4)
 		#self.renderer.RenderFramebuffer(self.scene.ComponentForEntity(self.ent2, TransformComponent).Matrix, self.renderTarget.Framebuffer, self.renderTarget.Camera.viewProjectionMatrix)
 		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(self.scene.GetFrameTime(), 5)) + "s")
 

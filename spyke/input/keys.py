@@ -1,4 +1,4 @@
-from .utils import Enum
+from ..utils import Enum
 
 import pygame
 import glfw

@@ -8,9 +8,9 @@ from ..vertexArray import VertexArray, VertexArrayLayout
 from ..text.fontManager import FontManager
 from ..text.font import Font
 from ...transform import GetQuadIndexData, Matrix4, Vector3
-from ...utils import GL_FLOAT_SIZE
+from ...utils import GL_FLOAT_SIZE, Timer
 from ...enums import GLType, VertexAttribType, ShaderType
-from ...debug import Log, LogLevel, Timer, GetGLError
+from ...debug import Log, LogLevel, GetGLError
 
 from OpenGL import GL
 #endregion

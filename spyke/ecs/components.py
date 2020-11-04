@@ -125,6 +125,8 @@ class ScriptComponent(object):
 
 	def __init__(self, file):
 		self.file = file
+		self.entity = 0
+		self.world = None
 
 		ext = __import__(self.file[:-3], globals(), locals())
 		
@@ -156,12 +158,12 @@ class ScriptComponent(object):
 				onProcessFound = True
 		
 		if onProcessFound:
-			self.Process = self.__Process
+			self.Process = self.OnProcess
 		else:
 			Log("OnProcess function not found. Process function won't be called.", LogLevel.Warning)
-		
-	def __Process(self, *args, **kwargs):
-		self.OnProcess(*args, **kwargs)
+	
+	def GetComponent(self, componentType):
+		return self.world.ComponentForEntity(self.entity, componentType)
 
 class ParticleComponent(object):
 	MaxCount = 150
@@ -213,8 +215,8 @@ class ParticleComponent(object):
 		particle.velocity = self.velocity * randomChange
 		particle.rotationVelocity = self.rotationVelocity * randomChange
 
-		particle.color = self._colorBegin#.__copy__()
-		particle.size = self._sizeBegin#.__copy__()
+		particle.color = self._colorBegin
+		particle.size = self._sizeBegin
 
 		particle.life = self.duration
 		

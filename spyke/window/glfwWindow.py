@@ -2,7 +2,8 @@
 from .windowSpecs import WindowSpecs
 from ..input.event import *
 from ..input.eventHandler import EventHandler
-from ..debug import Log, LogLevel, Timer
+from ..debug import Log, LogLevel
+from ..utils import Timer
 
 import glfw
 #endregion

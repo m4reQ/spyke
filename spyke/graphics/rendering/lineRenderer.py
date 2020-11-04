@@ -5,9 +5,9 @@ from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer
-from ...utils import GL_FLOAT_SIZE
+from ...utils import GL_FLOAT_SIZE, Timer
 from ...enums import VertexAttribType, ShaderType
-from ...debug import Log, LogLevel, Timer
+from ...debug import Log, LogLevel
 from ...transform import Matrix4, Vector3
 
 from OpenGL import GL
