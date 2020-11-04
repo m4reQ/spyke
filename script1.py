@@ -1,4 +1,4 @@
-from spyke.ecs.components import ColorComponent
+from spyke.ecs.components import ColorComponent, TextComponent
 from spyke.input import InputHandler, EventHandler, EventType, Keys
 from spyke.utils import Delayer
 
@@ -7,9 +7,17 @@ def OnInit(self):
 	self.delayer = Delayer(2.0)
 
 def OnProcess(self, *args, **kwargs):
-	if self.delayer.IsWaiting():
-		return
-		
-	if InputHandler.IsKeyPressed(Keys.KeyA.Glfw):
-		color = self.GetComponent(ColorComponent)
-		print(f"{self.name}'s alpha: {color.A}")
+	textComp = self.GetComponent(TextComponent)
+	colorComp = self.GetComponent(ColorComponent)
+	fps = 1.0 / self.world.GetFrameTime()
+
+	textComp.Text = f"FPS: {fps}"
+
+	if fps < 60:
+		colorComp.G = 0.0
+		colorComp.B = 0.0
+	elif fps < 240:
+		colorComp.B = 0.0
+	else:
+		colorComp.G = 1.0
+		colorComp.B = 1.0

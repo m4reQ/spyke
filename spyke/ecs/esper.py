@@ -4,6 +4,7 @@ Changes made by m4reQ:
 - changed names of public functions to use PascalCase naming convention
 - added World.GetFrameTime function that returns sum of all processing times from previous frame
 - changed World.AddComponent function ability to set component's reference to a parent entity and scene if component type is ScriptComponent
+- using ints casted to str as ids for entities (this is mainly because an internal CPython optimization for string dictionary keys)
 """
 
 import time as _time
@@ -108,7 +109,7 @@ class World:
             if type(processor) == processor_type:
                 return processor
 
-    def CreateEntity(self, *components) -> int:
+    def CreateEntity(self, *components) -> str:
         """Create a new Entity.
 
         This method returns an Entity ID, which is just a plain integer.
@@ -121,14 +122,16 @@ class World:
         """
         self._next_entity_id += 1
 
+        entId = str(self._next_entity_id)
+
         # TODO: duplicate AddComponent code here for performance
         for component in components:
-            self.AddComponent(self._next_entity_id, component)
+            self.AddComponent(entId, component)
 
         # self.clear_cache()
-        return self._next_entity_id
+        return entId
 
-    def DeleteEntity(self, entity: int, immediate=False) -> None:
+    def DeleteEntity(self, entity: str, immediate=False) -> None:
         """Delete an Entity from the World.
 
         Delete an Entity and all of it's assigned Component instances from
@@ -154,7 +157,7 @@ class World:
         else:
             self._dead_entities.add(entity)
 
-    def EntityExists(self, entity: int) -> bool:
+    def EntityExists(self, entity: str) -> bool:
         """Check if a specific entity exists.
 
         Empty entities(with no components) and dead entities(destroyed
@@ -164,7 +167,7 @@ class World:
         """
         return entity in self._entities and entity not in self._dead_entities
 
-    def ComponentForEntity(self, entity: int, component_type: _Type[C]) -> C:
+    def ComponentForEntity(self, entity: str, component_type: _Type[C]) -> C:
         """Retrieve a Component instance for a specific Entity.
 
         Retrieve a Component instance for a specific Entity. In some cases,
@@ -178,7 +181,7 @@ class World:
         """
         return self._entities[entity][component_type]
 
-    def ComponentsForEntity(self, entity: int) -> _Tuple[C, ...]:
+    def ComponentsForEntity(self, entity: str) -> _Tuple[C, ...]:
         """Retrieve all Components for a specific Entity, as a Tuple.
 
         Retrieve all Components for a specific Entity. The method is probably
@@ -194,7 +197,7 @@ class World:
         """
         return tuple(self._entities[entity].values())
 
-    def HasComponent(self, entity: int, component_type: _Any) -> bool:
+    def HasComponent(self, entity: str, component_type: _Any) -> bool:
         """Check if a specific Entity has a Component of a certain type.
 
         :param entity: The Entity you are querying.
@@ -204,7 +207,7 @@ class World:
         """
         return component_type in self._entities[entity]
 
-    def HasComponents(self, entity: int, *component_types: _Any) -> bool:
+    def HasComponents(self, entity: str, *component_types: _Any) -> bool:
         """Check if an Entity has all of the specified Component types.
 
         :param entity: The Entity you are querying.
@@ -214,7 +217,7 @@ class World:
         """
         return all(comp_type in self._entities[entity] for comp_type in component_types)
 
-    def AddComponent(self, entity: int, component_instance: _Any) -> None:
+    def AddComponent(self, entity: str, component_instance: _Any) -> None:
         """Add a new Component instance to an Entity.
 
         Add a Component instance to an Entiy. If a Component of the same type
@@ -240,7 +243,7 @@ class World:
         self._entities[entity][component_type] = component_instance
         self.clear_cache()
 
-    def RemoveComponent(self, entity: int, component_type: _Any) -> int:
+    def RemoveComponent(self, entity: str, component_type: _Any) -> int:
         """Remove a Component instance from an Entity, by type.
 
         A Component instance can be removed by providing it's type.
@@ -300,7 +303,7 @@ class World:
     def GetComponents(self, *component_types: _Type):
         return [query for query in self._get_components(*component_types)]
 
-    def TryComponent(self, entity: int, component_type: _Type):
+    def TryComponent(self, entity: str, component_type: _Type):
         """Try to get a single component type for an Entity.
 
         This method will return the requested Component if it exists, but
@@ -318,7 +321,7 @@ class World:
         else:
             return None
 
-    def TryComponents(self, entity: int, *component_types: _Type):
+    def TryComponents(self, entity: str, *component_types: _Type):
         """Try to get a multiple component types for an Entity.
 
         This method will return the requested Components if they exist, but

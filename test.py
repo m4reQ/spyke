@@ -66,7 +66,7 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent1, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector2(0.5, 0.5), 0.0))
 
 		self.ent2 = EntityManager.CreateEntity(self.scene, "FOO")
-		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.6, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
+		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.3, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
 		self.scene.AddComponent(self.ent2, TextComponent("TEST", 120, self.font))
 		self.scene.AddComponent(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
 
@@ -88,8 +88,10 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 
 		self.ent5 = EntityManager.CreateEntity(self.scene, "Script")
-		self.scene.AddComponent(self.ent5, ColorComponent(0.5, 0.5, 0.5, 0.5))
-		self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
+		self.scene.AddComponent(self.ent5, ColorComponent(0.0, 1.0, 0.0, 0.8))
+		self.scene.AddComponent(self.ent5, TextComponent("FPS: 0.0", 50, self.font))
+		self.scene.AddComponent(self.ent5, TransformComponent(Vector3(0.2, 0.02, 0.0), Vector2(0.3, 0.3), 0.0))
+		#self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
 
 		ImGui.BindScene(self.scene)
 		ImGui.Initialize(self)

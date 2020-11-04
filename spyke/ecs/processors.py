@@ -72,12 +72,7 @@ class WindowEventProcessor(Processor):
 			GLCommand.Scissor(0, 0, event.Width, event.Height)
 			GLCommand.Viewport(0, 0, event.Width, event.Height)
 			
-			try:
-				renderer = kwargs["renderer"]
-				if renderer:
-					renderer.Resize(window.width, window.height)
-			except KeyError:
-				pass
+			Renderer.Resize(window.width, window.height)
 
 class ImguiProcessor(Processor):
 	def Process(self, *args, **kwargs):
