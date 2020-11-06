@@ -63,16 +63,10 @@ class WindowEventProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		event = EventHandler.PickEventByType(EventType.WindowResize)
 		if event:
-			try:
-				window = kwargs["window"]
-			except KeyError:
-				Log("Window handle not set as processing argument.", LogLevel.Warning)
-				return
-			
 			GLCommand.Scissor(0, 0, event.Width, event.Height)
 			GLCommand.Viewport(0, 0, event.Width, event.Height)
 			
-			Renderer.Resize(window.width, window.height)
+			Renderer.Resize(event.Width, event.Height)
 
 class ImguiProcessor(Processor):
 	def Process(self, *args, **kwargs):

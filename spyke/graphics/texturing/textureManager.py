@@ -3,6 +3,7 @@ from .textureArray import TextureArray
 from .textureUtils import TextureData, GetWhiteTexture, TextureHandle, IMAGE_FORMAT_MAP
 from ...debug import Log, LogLevel
 from ...utils import Static, Timer
+from ...enums import TextureMagFilter
 
 from functools import lru_cache
 from PIL import Image
@@ -44,7 +45,7 @@ class TextureManager(Static):
 		if TextureManager.__HasBlankArray:
 			Log("Blank texture array already created.", LogLevel)
 		
-		ta = TextureArray(1, 1, 1)
+		ta = TextureArray(1, 1, 1, 1, TextureMagFilter.Nearest)
 		TextureManager.__TextureArrays.append(ta)
 		ta.UploadTexture(GetWhiteTexture())
 
@@ -53,8 +54,8 @@ class TextureManager(Static):
 
 		TextureManager.BlankArray = _id
 
-	def CreateTextureArray(width: int, height: int, layers: int) -> int:
-		TextureManager.__TextureArrays.append(TextureArray(width, height, layers))
+	def CreateTextureArray(width: int, height: int, layers: int, levels: int = 2, magFilter: TextureMagFilter = TextureMagFilter.Linear) -> int:
+		TextureManager.__TextureArrays.append(TextureArray(width, height, layers, levels, magFilter))
 
 		_id = TextureManager.__LastId
 		TextureManager.__LastId += 1

@@ -43,7 +43,7 @@ class Window(GlfwWindow):
 
 		GLCommand.Scissor(0, 0, self.width, self.height)
 		GLCommand.Viewport(0, 0, self.width, self.height)
-		GLCommand.SetClearcolor(0.7, 0.2, 0.5)
+		GLCommand.SetClearcolor(0.4, 0.2, 0.3)
 
 		GLCommand.Enable(EnableCap.Blend)
 		GLCommand.BlendFunction(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha)
@@ -91,7 +91,7 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent5, ColorComponent(0.0, 1.0, 0.0, 0.8))
 		self.scene.AddComponent(self.ent5, TextComponent("FPS: 0.0", 50, self.font))
 		self.scene.AddComponent(self.ent5, TransformComponent(Vector3(0.2, 0.02, 0.0), Vector2(0.3, 0.3), 0.0))
-		#self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
+		self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
 
 		ImGui.BindScene(self.scene)
 		ImGui.Initialize(self)
@@ -119,7 +119,7 @@ class Window(GlfwWindow):
 		CollectGarbage()
 
 if __name__ == "__main__":
-	specs = WindowSpecs(512, 512, "TestWindow", 4, 5)
+	specs = WindowSpecs(512, 512, "TestWindow", 4, 6)
 	specs.Multisample = True
 	specs.Samples = 4
 	specs.Vsync = False

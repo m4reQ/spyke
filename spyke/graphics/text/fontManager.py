@@ -1,7 +1,10 @@
+#region Import
 from ..texturing.textureArray import TextureArray
 from ..texturing.textureUtils import TextureData, TextureHandle
 from ..texturing.textureManager import TextureManager
 from ...debug import Log, LogLevel
+from ...enums import TextureMagFilter
+#endregion
 
 class FontManager:
     __TextureWidth = 512
@@ -17,7 +20,7 @@ class FontManager:
             Log("Font manager already initialized.", LogLevel.Warning)
             return
         
-        FontManager.TextureArray = TextureManager.CreateTextureArray(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures)
+        FontManager.TextureArray = TextureManager.CreateTextureArray(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures, 1)
 
         FontManager.Initialized = True
     

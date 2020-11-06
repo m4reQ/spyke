@@ -1,8 +1,12 @@
+#region Import
 from .glyph import Glyph
 from .fontManager import FontManager
 from ..texturing.textureManager import TextureManager
 from ...debug import Log, LogLevel
 from ...utils import Timer
+
+from functools import lru_cache
+#endregion
 
 class Font(object):
 	@staticmethod
@@ -57,6 +61,7 @@ class Font(object):
 		self.__texId = handle.Index
 		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (handle.Width, handle.Height))
 
+	@lru_cache
 	def GetGlyph(self, charId: int) -> Glyph:
 		try:
 			return self.characters[charId]

@@ -18,6 +18,10 @@ class UniformTarget:
 	DeltaTime = "DELTA_TIME"
 #endregion
 #region OpenGL
+class TextureMagFilter:
+	Linear = GL.GL_LINEAR
+	Nearest = GL.GL_NEAREST
+	
 class TextureType:
 	Rgb = GL.GL_RGB
 	Rgba = GL.GL_RGBA

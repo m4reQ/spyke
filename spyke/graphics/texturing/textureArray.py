@@ -1,26 +1,27 @@
-from .textureUtils import GenRawTextureData, TextureData, TextureHandle
+#region Import
+from .textureUtils import TextureData, TextureHandle
 from ... import USE_FAST_MIN_FILTER
 from ...utils import ObjectManager, Timer
-from ...enums import TextureType
+from ...enums import TextureType, TextureMagFilter
 from ...debug import Log, LogLevel
 
 import numpy
 from OpenGL import GL
+#endregion
 
 class TextureArray(object):
 	__MaxLayersCount = 0
 
 	__TextureType = TextureType.Rgba
-	__MipmapLevels = 2
 	__InternalFormat = GL.GL_RGBA8
 	__Pixeltype = GL.GL_UNSIGNED_BYTE
 
 	if USE_FAST_MIN_FILTER:
 		__MinFilter = GL.GL_NEAREST_MIPMAP_LINEAR
 	else:
-		__MinFilter = GL.GL_LINEAR_MIPMAP_NEAREST
+		__MinFilter = GL.GL_LINEAR_MIPMAP_LINEAR
 
-	def __init__(self, maxWidth: int, maxHeight: int, layersCount: int):
+	def __init__(self, maxWidth: int, maxHeight: int, layersCount: int, mipmapLevels: int = 2, magFilter: TextureMagFilter = TextureMagFilter.Linear):
 		Timer.Start()
 
 		if not TextureArray.__MaxLayersCount:
@@ -32,16 +33,17 @@ class TextureArray(object):
 		self.__maxWidth = maxWidth
 		self.__maxHeight = maxHeight
 		self.__layers = layersCount
+		self.__mipmapLevels = mipmapLevels
 
 		self.__currentLayer = 0
 
 		self.__id = GL.glGenTextures(1)
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)
-		GL.glTexStorage3D(GL.GL_TEXTURE_2D_ARRAY, TextureArray.__MipmapLevels, TextureArray.__InternalFormat, self.__maxWidth, self.__maxHeight, self.__layers)
+		GL.glTexStorage3D(GL.GL_TEXTURE_2D_ARRAY, self.__mipmapLevels, TextureArray.__InternalFormat, self.__maxWidth, self.__maxHeight, self.__layers)
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT)
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT)
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MIN_FILTER, TextureArray.__MinFilter)
-		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MAG_FILTER, magFilter)
 
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, 0)
 
@@ -60,8 +62,8 @@ class TextureArray(object):
 			raise RuntimeError("Texture size is higher than maximum.")
 		
 		if texData.Width != self.__maxWidth or texData.Height != self.__maxHeight:
-			GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, self.__maxWidth, self.__maxHeight, 1, TextureArray.__TextureType, TextureArray.__Pixeltype, GenRawTextureData(self.__maxWidth, self.__maxHeight, TextureArray.__TextureType))
-		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, texData.Width, texData.Height, 1, texData.TextureType, TextureArray.__Pixeltype, numpy.asarray(texData.Data, dtype = "uint8"))
+			GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, self.__maxWidth, self.__maxHeight, 1, TextureArray.__TextureType, TextureArray.__Pixeltype, numpy.empty(self.__maxWidth * self.__maxHeight * 3 if TextureArray.__TextureType == TextureType.Rgb else 4, dtype = numpy.uint8))
+		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, texData.Width, texData.Height, 1, texData.TextureType, TextureArray.__Pixeltype, numpy.asarray(texData.Data, dtype = numpy.uint8))
 		GL.glGenerateMipmap(GL.GL_TEXTURE_2D_ARRAY)
 
 		handle = TextureHandle((texData.Width - 0.5) / self.__maxWidth, (texData.Height - 0.5) / self.__maxHeight, self.__currentLayer, self.__id)

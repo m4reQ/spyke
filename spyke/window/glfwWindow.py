@@ -78,7 +78,7 @@ class GlfwWindow(object):
 
 		self.positionX, self.positionY = glfw.get_window_pos(self.__handle)
 
-		EventHandler.DispatchEvent(WindowResizeEvent(self.width, self.height))
+		self.__justStarted = True
 
 		Log(f"GLFW window initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 	
@@ -160,6 +160,9 @@ class GlfwWindow(object):
 			Timer.Start()
 			
 			self.__DefUpdate()
+			if self.__justStarted:
+				EventHandler.DispatchEvent(WindowResizeEvent(self.width, self.height))
+				self.__justStarted = False
 			if self.isActive:
 				self.OnFrame()
 				self.SwapBuffers()

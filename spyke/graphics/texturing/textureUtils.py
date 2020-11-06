@@ -28,16 +28,6 @@ def GetWhiteTexture():
 
 	return data
 
-def GenRawTextureData(width: int, height: int, textureType: TextureType):
-	if textureType == TextureType.Rgb:
-		extData = [255, 255, 255]
-	elif textureType == TextureType.Rgba:
-		extData = [255, 255, 255, 255]
-	else:
-		raise RuntimeError(f"Invalid texture type: {textureType}.")
-	
-	return numpy.asarray(extData * width * height, dtype = "uint8")
-
 IMAGE_FORMAT_MAP = {
 	"JPEG": TextureType.Rgb,
 	"RGB": TextureType.Rgb,
