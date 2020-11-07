@@ -7,4 +7,4 @@ An OpenGL - based 2D game engine. Spyke contains:
 * Imgui (based on tkinter)
 * Audio library (based on OpenAL)
 
-### _This library is not finished yet and probably doesn't work for now!_
+### _This library is not finished yet and some of its functions may not work as they should!_
