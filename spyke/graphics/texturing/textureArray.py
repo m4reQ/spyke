@@ -62,7 +62,7 @@ class TextureArray(object):
 			raise RuntimeError("Texture size is higher than maximum.")
 		
 		if texData.Width != self.__maxWidth or texData.Height != self.__maxHeight:
-			GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, self.__maxWidth, self.__maxHeight, 1, TextureArray.__TextureType, TextureArray.__Pixeltype, numpy.empty(self.__maxWidth * self.__maxHeight * 3 if TextureArray.__TextureType == TextureType.Rgb else 4, dtype = numpy.uint8))
+			GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, self.__maxWidth, self.__maxHeight, 1, TextureArray.__TextureType, TextureArray.__Pixeltype, numpy.empty(self.__maxWidth * self.__maxHeight * (3 if TextureArray.__TextureType == TextureType.Rgb else 4), dtype = numpy.uint8))
 		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, texData.Width, texData.Height, 1, texData.TextureType, TextureArray.__Pixeltype, numpy.asarray(texData.Data, dtype = numpy.uint8))
 		GL.glGenerateMipmap(GL.GL_TEXTURE_2D_ARRAY)
 

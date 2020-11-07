@@ -1,6 +1,8 @@
+#region Import
 import glm
 from glm import vec2 as Vector2, vec3 as Vector3, mat4 as Matrix4, vec4 as Vector4
 from functools import lru_cache
+#endregion
 
 IdentityMatrix4 = glm.mat4(1.0)
 
