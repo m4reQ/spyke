@@ -9,4 +9,3 @@ colorama
 numpy
 psutil
 glfw
-Cython

@@ -4,7 +4,7 @@ from ...utils import Abstract
 import glm
 
 class RendererComponent(Abstract):
-    def BeginScene(self, viewProjection: glm.mat4, uniformName: str) -> None:
+    def BeginScene(self, viewProjection: glm.mat4) -> None:
         pass
 
     def EndScene(self) -> None:

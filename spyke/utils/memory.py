@@ -4,12 +4,24 @@ from ..debug import Log, LogLevel
 import ctypes
 from OpenGL import GL
 import gc
+import threading
 
 FLOAT_SIZE = ctypes.sizeof(ctypes.c_float)
 INT_SIZE = ctypes.sizeof(ctypes.c_int)
 
 GL_FLOAT_SIZE = 4
 GL_INT_SIZE = 4
+
+def __ThreadedGC():
+	__GC_FLAG.wait()
+	gc.collect()
+
+__GC_FLAG = threading.Event()
+__GC_THREAD = threading.Thread(target = __ThreadedGC, name = "spyke.gc")
+__GC_THREAD.start()
+
+def RequestGC():
+	__GC_FLAG.set()
 
 def GetGLTypeSize(_type: int) -> int:
 	if _type == GL.GL_FLOAT:

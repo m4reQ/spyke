@@ -1,9 +1,11 @@
 #region Import
-from . import IS_NVIDIA
-from .debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
-from .ecs.entityManager import EntityManager
-from .ecs.components import *
-from .graphics import Renderer
+from .editors import *
+from .. import IS_NVIDIA
+from ..debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
+from ..ecs.entityManager import EntityManager
+from ..ecs.components import *
+from ..graphics import Renderer
+from ..utils import RequestGC
 
 import tkinter
 from tkinter import ttk
@@ -14,78 +16,19 @@ from tkinter import ttk
 #that should be able to resize as grid_configure "weight" parameter.
 DONT_RESIZE_OTHERS = 450
 
-class TextEditor(tkinter.Frame):
-	def __init__(self, master):
-		super().__init__(master)
-
-		self.var = tkinter.StringVar()
-		self.entry = tkinter.Entry(master, textvariable = self.var)
-
-		self.var.trace_add("write", self.EditText)
-		self.comp = None
-
-	def EditText(self, *args):
-		self.comp.Text = self.var.get()
-	
-	def SetComp(self, comp):
-		self.comp = comp
-		self.var.set(comp.Text)
-
-	def Use(self):
-		self.entry.pack(fill = "x", expand = True)
-
-	def Forget(self):
-		self.entry.forget()
-
-class ColorEditor(tkinter.Frame):
-	def __init__(self, master):
-		super().__init__(master)
-
-		self.redSlider = tkinter.Scale(master, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.ChangeValues)
-		self.blueSlider = tkinter.Scale(master, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.ChangeValues)
-		self.greenSlider = tkinter.Scale(master, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.ChangeValues)
-		self.alphaSlider = tkinter.Scale(master, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.ChangeValues)
-
-		self.comp = None
-	
-	def ChangeValues(self, _):
-		if not self.comp:
-			return
-
-		self.comp.R = self.redSlider.get()
-		self.comp.G = self.greenSlider.get()
-		self.comp.B = self.blueSlider.get()
-		self.comp.A = self.alphaSlider.get()
-
-	def Use(self):
-		self.redSlider.pack(fill = "x", expand = True)
-		self.blueSlider.pack(fill = "x", expand = True)
-		self.greenSlider.pack(fill = "x", expand = True)
-		self.alphaSlider.pack(fill = "x", expand = True)
-	
-	def Forget(self):
-		self.redSlider.forget()
-		self.blueSlider.forget()
-		self.greenSlider.forget()
-		self.alphaSlider.forget()
-	
-	def SetComp(self, comp):
-		self.comp = comp
-
-		self.redSlider.set(comp.R)
-		self.greenSlider.set(comp.G)
-		self.blueSlider.set(comp.B)
-		self.alphaSlider.set(comp.A)
-
 class ImGui:
 	__Initialized = False
 	__SceneUpdate = False
+	__InspectorUpdate = False
 
 	__ParentWindow = None
 	__Scene = None
 
 	__SelectedEntity = None
+	__LastSelectedEntity = None
 	__SelectedComponent = None
+
+	__Font = ("Helvetica", 9)
 
 	__StatsTextTemplate = """Draws count: {0}
 Vertices count: {1}
@@ -103,6 +46,8 @@ Window size: {4}x{5}"""
 	MainWindow.grid_columnconfigure(1, weight = 5)
 	MainWindow.grid_columnconfigure(2, weight = 5)
 
+	MainWindow.geometry("850x280")
+
 	#widgets
 	RenderStatsLabel = tkinter.Label(MainWindow, text = "Render stats", bd = 0)
 	EntitiesLabel = tkinter.Label(MainWindow, text = "Entities", bd = 0)
@@ -112,11 +57,12 @@ Window size: {4}x{5}"""
 	InspectorLabel = tkinter.Label(MainWindow, text = "Inspector", bd = 0)
 	InspectorFrame = tkinter.Frame(MainWindow, bd = 1, relief = "solid", bg = "white")
 	EntityName = tkinter.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", fg = "white")
-	ComponentName = tkinter.Label(InspectorFrame, text = "\n", bd = 0, bg = "white")
+	ComponentName = tkinter.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", font = (*__Font, "bold"), anchor = "w")
 
 	#inspector widgets
-	ColorEditor = ColorEditor(InspectorFrame)
-	TextEditor = TextEditor(InspectorFrame)
+	Inspectors = {
+		"Color": ColorEditor(InspectorFrame),
+		"Text": TextEditor(InspectorFrame)}
 
 	#grid
 	RenderStatsLabel.grid(row = 0, column = 0, sticky = "ew")
@@ -127,8 +73,8 @@ Window size: {4}x{5}"""
 	InspectorFrame.grid(row = 1, column = 2, sticky = "news")
 
 	#inspector grid
-	EntityName.pack(fill = "x", expand = True)
-	ComponentName.pack(fill = "x", expand = True)
+	EntityName.pack(fill = "x", expand = False)
+	ComponentName.pack(fill = "x", expand = False)
 
 	#region EventHandling
 	def __SelectTreeview(event):
@@ -138,7 +84,12 @@ Window size: {4}x{5}"""
 		parent = ImGui.EntitiesTree.parent(sel)
 
 		if not parent:
-			ImGui.__SelectedEntity = str(item["values"][0])
+			ent = str(item["values"][0])
+			if ent != ImGui.__SelectedEntity:
+				ImGui.ComponentName.configure(text = "\n")
+				ImGui.__UnbindEditors()
+
+			ImGui.__SelectedEntity = ent
 			ImGui.__SelectedComponent = None
 		else:
 			_item = ImGui.EntitiesTree.item(parent)
@@ -147,13 +98,15 @@ Window size: {4}x{5}"""
 			typeName = item["values"][0]
 			compType = eval(typeName.replace("<class 'spyke.ecs.components.", '')[:-2])
 			ImGui.__SelectedComponent = ImGui.__Scene.ComponentForEntity(ImGui.__SelectedEntity, compType)
+		
+		ImGui.__InspectorUpdate = True
 
 	EntitiesTree.bind('<<TreeviewSelect>>', __SelectTreeview)
 	#endregion
 
 	def __UnbindEditors():
-		ImGui.ColorEditor.Forget()
-		ImGui.TextEditor.Forget()
+		for e in ImGui.Inspectors.values():
+			e.Forget()
 	
 	def BindScene(scene) -> None:
 		ImGui.__Scene = scene
@@ -175,6 +128,8 @@ Window size: {4}x{5}"""
 			ImGui.MainWindow.destroy()
 		except tkinter.TclError:
 			pass
+
+		RequestGC()
 
 	def OnFrame() -> None:
 		if not ImGui.__Initialized:
@@ -219,29 +174,30 @@ Window size: {4}x{5}"""
 			pass
 	
 	def __HandleInspector() -> None:
-		if not ImGui.__SelectedComponent:
+		if not ImGui.__InspectorUpdate:
 			return
 		
 		if ImGui.__SelectedEntity:
 			ImGui.EntityName.configure(text = EntityManager.GetEntityName(ImGui.__SelectedEntity), bg = "#545659")
 		else:
 			ImGui.EntityName.configure(text = "\n", bg = "white")
+		
+		if not ImGui.__SelectedComponent:
+			ImGui.__InspectorUpdate = False
+			return
 
 		if type(ImGui.__SelectedComponent) == ColorComponent:
 			ImGui.ComponentName.configure(text = "Color")
-			ImGui.ColorEditor.SetComp(ImGui.__SelectedComponent)
+			ImGui.Inspectors["Color"].SetComp(ImGui.__SelectedComponent)
 			ImGui.__UnbindEditors()
-			ImGui.ColorEditor.Use()
+			ImGui.Inspectors["Color"].Use()
 		elif type(ImGui.__SelectedComponent) == TextComponent:
 			ImGui.ComponentName.configure(text = "Text")
-			ImGui.TextEditor.SetComp(ImGui.__SelectedComponent)
+			ImGui.Inspectors["Text"].SetComp(ImGui.__SelectedComponent)
 			ImGui.__UnbindEditors()
-			ImGui.TextEditor.Use()
+			ImGui.Inspectors["Text"].Use()
 		else:
 			ImGui.ComponentName.configure(text = "\n")
-			ImGui.ColorEditor.Forget()
-
-if __name__ == "__main__":
-	ImGui.Initialize(None)
-	while True:
-		ImGui.OnFrame()
+			ImGui.__UnbindEditors()
+		
+		ImGui.__InspectorUpdate = False
