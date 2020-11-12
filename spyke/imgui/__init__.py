@@ -62,7 +62,8 @@ Window size: {4}x{5}"""
 	#inspector widgets
 	Inspectors = {
 		"Color": ColorEditor(InspectorFrame),
-		"Text": TextEditor(InspectorFrame)}
+		"Text": TextEditor(InspectorFrame),
+		"Transform": TransformEditor(InspectorFrame)}
 
 	#grid
 	RenderStatsLabel.grid(row = 0, column = 0, sticky = "ew")
@@ -140,8 +141,8 @@ Window size: {4}x{5}"""
 			ImGui.__HandleEntities()
 			ImGui.__HandleInspector()
 			ImGui.MainWindow.update()
-		except tkinter.TclError:
-			pass
+		except tkinter.TclError as e:
+			Log(f"Tcl error: {e}.", LogLevel.Error)
 	
 	def __HandleEntities() -> None:
 		if not ImGui.__Scene or not ImGui.__SceneUpdate:
@@ -196,6 +197,11 @@ Window size: {4}x{5}"""
 			ImGui.Inspectors["Text"].SetComp(ImGui.__SelectedComponent)
 			ImGui.__UnbindEditors()
 			ImGui.Inspectors["Text"].Use()
+		elif type(ImGui.__SelectedComponent) == TransformComponent:
+			ImGui.Inspectors["Transform"].SetComp(ImGui.__SelectedComponent)
+			ImGui.ComponentName.configure(text = "Transform")
+			ImGui.__UnbindEditors()
+			ImGui.Inspectors["Transform"].Use()
 		else:
 			ImGui.ComponentName.configure(text = "\n")
 			ImGui.__UnbindEditors()

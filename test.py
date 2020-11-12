@@ -30,7 +30,7 @@ class UserProcessor(Processor):
 	
 	def Process(self, *args, **kwargs):
 		if not self.timer.IsWaiting():
-			part = self.world.ComponentForEntity(kwargs["ent"], ParticleComponent)
+			part = self.world.ComponentForEntity(kwargs["ent"], ParticleSystemComponent)
 			part.EmitParticles(5)
 
 class Window(GlfwWindow):
@@ -75,7 +75,7 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent3, ColorComponent(0.3, 0.7, 0.5, 0.7))
 
 		self.ent4 = EntityManager.CreateEntity(self.scene, "Particles")
-		self.particleSystem1 = ParticleComponent(Vector2(0.5, 0.5), 3.0, 50)
+		self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
 		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
 		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
 		self.particleSystem1.sizeBegin = Vector2(0.1, 0.1)

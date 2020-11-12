@@ -9,42 +9,56 @@ class TransformEditor(tkinter.Frame):
 		self.__rotMin = -360.0
 		self.__rotMax = 360.0
 
-		self.rotVar = tkinter.StringVar()
-		self.xPosVar = tkinter.StringVar()
-		self.yPosVar = tkinter.StringVar()
+		self.rotVar = tkinter.StringVar(name = "rot")
+		self.xPosVar = tkinter.StringVar(name = "xPos")
+		self.yPosVar = tkinter.StringVar(name = "yPos")
+		self.xScaleVar = tkinter.StringVar(name = "xScale")
+		self.yScaleVar = tkinter.StringVar(name = "yScale")
 
-		self.posLabel = tkinter.Label(master, text = "Position: ")
-		self.scaleLabel = tkinter.Label(master, text = "Scale: ")
-		self.rotLabel = tkinter.Label(master, text = "Rotation: ")
+		self.posLabel = tkinter.Label(master, text = "Position: ", bg = "white")
+		self.scaleLabel = tkinter.Label(master, text = "Scale: ", bg = "white")
+		self.rotLabel = tkinter.Label(master, text = "Rotation: ", bg = "white")
 
-		self.xLabel = tkinter.Label(master, text = "X: ")
-		self.yLabel = tkinter.Label(master, text = "Y: ")
+		self.xLabel = tkinter.Label(master, text = "X: ", bg = "white")
+		self.yLabel = tkinter.Label(master, text = "Y: ", bg = "white")
 
-		self.xPosEntry = tkinter.Spinbox(master)
-		self.yPosEntry = tkinter.Spinbox(master)
+		self.xPosEntry = tkinter.Spinbox(master, increment = 0.1, textvariable = self.xPosVar)
+		self.yPosEntry = tkinter.Spinbox(master, increment = 0.1, textvariable = self.yPosVar)
 
-		self.xScaleEntry = tkinter.Spinbox(master)
-		self.yScaleEntry = tkinter.Spinbox(master)
+		self.xScaleEntry = tkinter.Spinbox(master, increment = 0.1, textvariable = self.xScaleVar)
+		self.yScaleEntry = tkinter.Spinbox(master, increment = 0.1, textvariable = self.xScaleVar)
 
-		self.rotEntry = tkinter.Spinbox(master, from_ = self.__rotMin, to = self.__rotMax, resolution = 0.1, textvariable = self.rotVar)
+		self.rotEntry = tkinter.Spinbox(master, from_ = self.__rotMin, to = self.__rotMax, increment = 0.1, textvariable = self.rotVar)
 	
-		self.rotVar.trace_add("write", self.__EditRot)
+		self.rotVar.trace_add("write", self.__EntryCallback)
+		self.xPosVar.trace_add("write", self.__EntryCallback)
+		self.yPosVar.trace_add("write", self.__EntryCallback)
+		self.xScaleVar.trace_add("write", self.__EntryCallback)
+		self.yScaleVar.trace_add("write", self.__EntryCallback)
 
 		self.comp = None
 	
 	def Use(self):
-		self.posLabel.pack(fill = "x", expand = False)
-		self.xLabel.pack(side = "left", expand = False)
-		self.xPosEntry.pack(fill = "x", expand = False)
-		self.yLabel.pack(side = "left", expand = False)
-		self.yPosEntry.pack(fill = "x", expand = False)
+		self.posLabel.grid(row = 0, column = 0)
+		self.xLabel.grid(row = 1, column = 0)
+		self.xPosEntry.grid(row = 1, column = 1)
+		self.yLabel.grid(row = 2, column = 0)
+		self.yPosEntry.grid(row = 2, column = 1)
+
+		# self.scaleLabel.pack(expand = False, fill = "x")
+		# self.xLabel.pack(expand = False, side = "left")
+		# self.xScaleEntry.pack(expand = False, side = "right", fill = "x")
+		# self.yLabel.pack(expand = False, side = "left")
+		# self.yScaleEntry.pack(expand = False, side = "right", fill = "x")
+		# self.rotLabel.pack(expand = False, side = "left")
+		# self.rotEntry.pack(expand = False, side = "left")
 	
 	def Forget(self):
-		self.xPosEntry.forget()
-		self.yPosEntry.forget()
-		self.xScaleEntry.forget()
-		self.yScaleEntry.forget()
-		self.rotEntry.forget()
+		self.xPosEntry.grid_forget()
+		self.yPosEntry.grid_forget()
+		self.xScaleEntry.grid_forget()
+		self.yScaleEntry.grid_forget()
+		self.rotEntry.grid_forget()
 	
 	def SetComp(self, comp):
 		self.comp = comp
@@ -61,7 +75,7 @@ class TransformEditor(tkinter.Frame):
 		self.rotEntry.delete(0, "end")
 		self.rotEntry.insert(0, comp.Rotation)
 	
-	def __EditRot(self, *args):
+	def __EntryCallback(self, name, *args):
 		valid = False
 		text = self.rotVar.get()
 
@@ -70,8 +84,19 @@ class TransformEditor(tkinter.Frame):
 			if (n >= self.__rotMin and n <= self.__rotMax):
 				valid = True
 		
-		if valid:
+		if not valid:
+			return
+		
+		if name == "rot":
 			self.comp.Rotation = n
+		elif name == "xPos":
+			self.comp.Position.x = n
+		elif name == "yPos":
+			self.comp.Position.y = n
+		elif name == "xScale":
+			self.comp.Size.x = n
+		elif name == "yScale":
+			self.comp.Size.y = n
 
 class TextEditor(tkinter.Frame):
 	def __init__(self, master):
@@ -113,9 +138,9 @@ class TextEditor(tkinter.Frame):
 		self.size.insert(0, comp.Size)
 
 	def Use(self):
-		self.entry.pack(fill = "x", expand = False)
-		self.sizeLabel.pack(expand = False, anchor = "top")#, side = "left")
-		self.size.pack(expand = False, anchor = "top", fill = "x")#, side = "right", fill = "x")
+		self.entry.pack(expand = False, fill = "x", anchor = "n")
+		self.sizeLabel.pack(expand = False, anchor = "n", side = "left")
+		self.size.pack(expand = False, anchor = "n", side = "right", fill = "x")
 
 	def Forget(self):
 		self.entry.forget()
@@ -143,10 +168,10 @@ class ColorEditor(tkinter.Frame):
 		self.comp.A = self.alphaSlider.get()
 
 	def Use(self):
-		self.redSlider.pack(fill = "x", expand = False)
-		self.greenSlider.pack(fill = "x", expand = False)
-		self.blueSlider.pack(fill = "x", expand = False)
-		self.alphaSlider.pack(fill = "x", expand = False)
+		self.redSlider.pack(fill = "x", expand = False, anchor = "n")
+		self.greenSlider.pack(fill = "x", expand = False, anchor = "n")
+		self.blueSlider.pack(fill = "x", expand = False, anchor = "n")
+		self.alphaSlider.pack(fill = "x", expand = False, anchor = "n")
 	
 	def Forget(self):
 		self.redSlider.forget()

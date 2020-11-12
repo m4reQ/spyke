@@ -35,7 +35,7 @@ class RenderingProcessor(Processor):
 		for _, (line, color) in self.world.GetComponents(LineComponent, ColorComponent):
 			Renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
 		
-		for _, particleComponent in self.world.GetComponent(ParticleComponent):
+		for _, particleComponent in self.world.GetComponent(ParticleSystemComponent):
 			for particle in particleComponent.particlePool:
 				if not particle.isAlive:
 					continue
@@ -81,7 +81,7 @@ class ParticleProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		dt = self.world.GetFrameTime()
 
-		for _, particleComponent in self.world.GetComponent(ParticleComponent):
+		for _, particleComponent in self.world.GetComponent(ParticleSystemComponent):
 			for particle in particleComponent.particlePool:
 				if not particle.isAlive:
 					continue
