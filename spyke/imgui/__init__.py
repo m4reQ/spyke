@@ -47,6 +47,17 @@ Window size: {4}x{5}"""
 	MainWindow.grid_columnconfigure(2, weight = 5)
 
 	MainWindow.geometry("850x280")
+	
+	def Close() -> None:
+		ImGui.__Initialized = False
+		try:
+			ImGui.MainWindow.destroy()
+		except tkinter.TclError:
+			pass
+
+		RequestGC()
+		Log("ImGui window closed.", LogLevel.Info)
+	MainWindow.protocol("WM_DELETE_WINDOW", Close)
 
 	#widgets
 	RenderStatsLabel = tkinter.Label(MainWindow, text = "Render stats", bd = 0)
@@ -122,15 +133,6 @@ Window size: {4}x{5}"""
 	
 	def IsInitialized() -> bool:
 		return ImGui.__Initialized
-	
-	def Close() -> None:
-		ImGui.__Initialized = False
-		try:
-			ImGui.MainWindow.destroy()
-		except tkinter.TclError:
-			pass
-
-		RequestGC()
 
 	def OnFrame() -> None:
 		if not ImGui.__Initialized:
@@ -142,7 +144,7 @@ Window size: {4}x{5}"""
 			ImGui.__HandleInspector()
 			ImGui.MainWindow.update()
 		except tkinter.TclError as e:
-			Log(f"Tcl error: {e}.", LogLevel.Error)
+			Log(f"TclError: {e}", LogLevel.Error)
 	
 	def __HandleEntities() -> None:
 		if not ImGui.__Scene or not ImGui.__SceneUpdate:

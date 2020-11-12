@@ -39,11 +39,11 @@ class TransformEditor(tkinter.Frame):
 		self.comp = None
 	
 	def Use(self):
-		self.posLabel.grid(row = 0, column = 0)
-		self.xLabel.grid(row = 1, column = 0)
-		self.xPosEntry.grid(row = 1, column = 1)
-		self.yLabel.grid(row = 2, column = 0)
-		self.yPosEntry.grid(row = 2, column = 1)
+		self.posLabel.pack()
+		self.xLabel.pack()
+		self.xPosEntry.pack()
+		self.yLabel.pack()
+		self.yPosEntry.pack()
 
 		# self.scaleLabel.pack(expand = False, fill = "x")
 		# self.xLabel.pack(expand = False, side = "left")
@@ -54,11 +54,14 @@ class TransformEditor(tkinter.Frame):
 		# self.rotEntry.pack(expand = False, side = "left")
 	
 	def Forget(self):
-		self.xPosEntry.grid_forget()
-		self.yPosEntry.grid_forget()
-		self.xScaleEntry.grid_forget()
-		self.yScaleEntry.grid_forget()
-		self.rotEntry.grid_forget()
+		self.posLabel.forget()
+		self.xLabel.forget()
+		self.yLabel.forget()
+		self.xPosEntry.forget()
+		self.yPosEntry.forget()
+		self.xScaleEntry.forget()
+		self.yScaleEntry.forget()
+		self.rotEntry.forget()
 	
 	def SetComp(self, comp):
 		self.comp = comp
@@ -75,16 +78,26 @@ class TransformEditor(tkinter.Frame):
 		self.rotEntry.delete(0, "end")
 		self.rotEntry.insert(0, comp.Rotation)
 	
-	def __EntryCallback(self, name, *args):
-		valid = False
-		text = self.rotVar.get()
+	def __EntryCallback(self, name, _, mode):
+		if name == "rot":
+			var = self.rotVar
+		elif name == "xPos":
+			var = self.xPosVar
+		elif name == "yPos":
+			var = self.yPosVar
+		elif name == "xScale":
+			var = self.xScaleVar
+		elif name == "yScale":
+			var = self.yScaleVar
 
-		if text.isdigit():
-			n = int(text)
-			if (n >= self.__rotMin and n <= self.__rotMax):
-				valid = True
-		
-		if not valid:
+		text = var.get()
+
+		try:
+			n = float(text)
+			if name == "rot":
+				if not (n >= self.__rotMin and n <= self.__rotMax):
+					return
+		except ValueError:
 			return
 		
 		if name == "rot":
@@ -118,15 +131,16 @@ class TextEditor(tkinter.Frame):
 		self.comp = None
 
 	def EditSize(self, *args):
-		valid = False
 		text = self.sizeVar.get()
-		if text.isdigit():
+
+		try:
 			n = int(text)
-			if (n >= self.__sizeMin and n <= self.__sizeMax):
-				valid = True
+			if not (n >= self.__sizeMin and n <= self.__sizeMax):
+				return
+		except ValueError:
+			return
 		
-		if valid:
-			self.comp.Size = n
+		self.comp.Size = n
 
 	def EditText(self, *args):
 		self.comp.Text = self.var.get()

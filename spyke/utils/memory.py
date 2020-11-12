@@ -14,7 +14,11 @@ GL_INT_SIZE = 4
 
 def __ThreadedGC():
 	__GC_FLAG.wait()
+
+	objCount = gc.get_count()[0]
 	gc.collect()
+	Log(f"Garbage collection freed {objCount - gc.get_count()[0]} objects.", LogLevel.Info)
+	__GC_FLAG.clear()
 
 __GC_FLAG = threading.Event()
 __GC_THREAD = threading.Thread(target = __ThreadedGC, name = "spyke.gc")
@@ -43,11 +47,6 @@ def GetGLTypeSize(_type: int) -> int:
 
 def GetPointer(value: int) -> ctypes.c_void_p:
 	return ctypes.c_void_p(value)
-
-def CollectGarbage() -> None:
-	objCount = gc.get_count()[0]
-	gc.collect()
-	Log(f"Garbage collection freed {objCount - gc.get_count()[0]} objects.", LogLevel.Info)
 
 class ObjectManager(Static):
 	Objects = []

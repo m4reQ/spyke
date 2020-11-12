@@ -3,7 +3,7 @@ from .windowSpecs import WindowSpecs
 from ..input.event import *
 from ..input.eventHandler import EventHandler
 from ..debug import Log, LogLevel
-from ..utils import Timer
+from ..utils import Timer, RequestGC
 
 import glfw
 #endregion
@@ -140,6 +140,8 @@ class GlfwWindow(object):
 		Log("Window destroyed.", LogLevel.Info)
 		glfw.terminate()
 		Log("Glfw terminated.", LogLevel.Info)
+
+		RequestGC()
 	
 	def SetTitle(self, title: str) -> None:
 		glfw.set_window_title(self.__handle, title)

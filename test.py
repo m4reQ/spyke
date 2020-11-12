@@ -106,7 +106,7 @@ class Window(GlfwWindow):
 		self.renderTargetId = Renderer.AddRenderTarget(renderTarget)
 		Renderer.BindRenderTarget(self.renderTargetId)
 
-		CollectGarbage()
+		RequestGC()
 
 	def OnFrame(self):
 		self.scene.Process(window = self, ent = self.ent4)
@@ -116,7 +116,6 @@ class Window(GlfwWindow):
 	def OnClose(self):
 		ObjectManager.DeleteAll()
 		ImGui.Close()
-		CollectGarbage()
 
 if __name__ == "__main__":
 	specs = WindowSpecs(512, 512, "TestWindow", 4, 6)
