@@ -126,4 +126,4 @@ if __name__ == "__main__":
 	win = Window(specs)
 	win.Run()
 
-	input()
+	#input()

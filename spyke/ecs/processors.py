@@ -29,9 +29,6 @@ class RenderingProcessor(Processor):
 		for _, (sprite, transform, color) in self.world.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
 			Renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
 		
-		for _, (text, transform, color) in self.world.GetComponents(TextComponent, TransformComponent, ColorComponent):
-			Renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
-		
 		for _, (line, color) in self.world.GetComponents(LineComponent, ColorComponent):
 			Renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
 		
@@ -41,6 +38,9 @@ class RenderingProcessor(Processor):
 					continue
 
 				Renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
+		
+		for _, (text, transform, color) in self.world.GetComponents(TextComponent, TransformComponent, ColorComponent):
+			Renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
 		
 		Renderer.EndScene()
 

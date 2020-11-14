@@ -85,8 +85,9 @@ Window size: {4}x{5}"""
 	InspectorFrame.grid(row = 1, column = 2, sticky = "news")
 
 	#inspector grid
-	EntityName.pack(fill = "x", expand = False)
-	ComponentName.pack(fill = "x", expand = False)
+	InspectorFrame.grid_columnconfigure(0, weight = 1)
+	EntityName.grid(row = 0, column = 0, sticky = "news")
+	ComponentName.grid(row = 1, column = 0, sticky = "news")
 
 	#region EventHandling
 	def __SelectTreeview(event):
@@ -115,10 +116,6 @@ Window size: {4}x{5}"""
 
 	EntitiesTree.bind('<<TreeviewSelect>>', __SelectTreeview)
 	#endregion
-
-	def __UnbindEditors():
-		for e in ImGui.Inspectors.values():
-			e.Forget()
 	
 	def BindScene(scene) -> None:
 		ImGui.__Scene = scene
@@ -144,8 +141,14 @@ Window size: {4}x{5}"""
 			ImGui.__HandleInspector()
 			ImGui.MainWindow.update()
 		except tkinter.TclError as e:
-			Log(f"TclError: {e}", LogLevel.Error)
+			Log(f"TclError: {e}.", LogLevel.Error)
+		except Exception as _e:
+			Log(f"ImGui error: {e}.", LogLevel.Error)
 	
+	def __UnbindEditors():
+		for e in ImGui.Inspectors.values():
+			e.grid_forget()
+
 	def __HandleEntities() -> None:
 		if not ImGui.__Scene or not ImGui.__SceneUpdate:
 			return
@@ -189,23 +192,20 @@ Window size: {4}x{5}"""
 			ImGui.__InspectorUpdate = False
 			return
 
+		ImGui.__UnbindEditors()
 		if type(ImGui.__SelectedComponent) == ColorComponent:
 			ImGui.ComponentName.configure(text = "Color")
 			ImGui.Inspectors["Color"].SetComp(ImGui.__SelectedComponent)
-			ImGui.__UnbindEditors()
-			ImGui.Inspectors["Color"].Use()
+			ImGui.Inspectors["Color"].grid(row = 2, column = 0, sticky = "news")
 		elif type(ImGui.__SelectedComponent) == TextComponent:
 			ImGui.ComponentName.configure(text = "Text")
 			ImGui.Inspectors["Text"].SetComp(ImGui.__SelectedComponent)
-			ImGui.__UnbindEditors()
-			ImGui.Inspectors["Text"].Use()
+			ImGui.Inspectors["Text"].grid(row = 2, column = 0, sticky = "news")
 		elif type(ImGui.__SelectedComponent) == TransformComponent:
-			ImGui.Inspectors["Transform"].SetComp(ImGui.__SelectedComponent)
 			ImGui.ComponentName.configure(text = "Transform")
-			ImGui.__UnbindEditors()
-			ImGui.Inspectors["Transform"].Use()
+			ImGui.Inspectors["Transform"].SetComp(ImGui.__SelectedComponent)
+			ImGui.Inspectors["Transform"].grid(row = 2, column = 0, sticky = "news")
 		else:
 			ImGui.ComponentName.configure(text = "\n")
-			ImGui.__UnbindEditors()
 		
 		ImGui.__InspectorUpdate = False
