@@ -7,20 +7,16 @@ if __debug__:
 	from spyke import debug
 	debug.Log("Debugging enabled.", debug.LogLevel.Info)
 
-from spyke.imgui import ImGui
-
-from spyke.graphics import *
-from spyke.window import GlfwWindow, WindowSpecs
-
 from spyke.ecs import EntityManager
 from spyke.ecs.components import *
 from spyke.ecs.processors import *
 
+from spyke.imgui import ImGui
+from spyke.window import GlfwWindow, WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
-
+from spyke.managers import *
 from spyke.utils import *
-
 from spyke.transform import *
 from spyke.input import *
 
@@ -52,22 +48,27 @@ class Window(GlfwWindow):
 
 		Renderer.Initialize(self.specs.Multisample)
 
+		#resources
 		TextureManager.CreateBlankArray()
 		self.texarray = TextureManager.CreateTextureArray(1920, 1080, 3)
-		self.tex = TextureManager.LoadTexture("tests/test1.jpg", self.texarray)
+		TextureManager.LoadTexture("tests/test1.jpg", self.texarray)
 
-		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
+		FontManager.CreateFont("tests/ArialNative.fnt", "tests/ArialNative.png", "Arial")
 
-		self.font = Font("tests/ArialNative.fnt", "tests/ArialNative.png")
-
+		#entity & components
 		self.ent1 = EntityManager.CreateEntity(self.scene, "TestText")
 		self.scene.AddComponent(self.ent1, ColorComponent(0.0, 1.0, 1.0, 0.7))
-		self.scene.AddComponent(self.ent1, SpriteComponent(self.tex, (1.0, 1.0)))
+		self.scene.AddComponent(self.ent1, SpriteComponent("tests/test1.jpg", (1.0, 1.0)))
 		self.scene.AddComponent(self.ent1, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector2(0.5, 0.5), 0.0))
+
+		self.ent = EntityManager.CreateEntity(self.scene, "FontView")
+		self.scene.AddComponent(self.ent, SpriteComponent("tests/ArialNative.png", (1.0, 1.0)))
+		self.scene.AddComponent(self.ent, ColorComponent(1.0, 1.0, 1.0, 1.0))
+		self.scene.AddComponent(self.ent, TransformComponent(Vector3(0.2, 0.2, 0.0), Vector2(0.3, 0.3), 0.0))
 
 		self.ent2 = EntityManager.CreateEntity(self.scene, "FOO")
 		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.3, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
-		self.scene.AddComponent(self.ent2, TextComponent("TEST", 120, self.font))
+		self.scene.AddComponent(self.ent2, TextComponent("TEST", 120, "Arial"))
 		self.scene.AddComponent(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
 
 		self.ent3 = EntityManager.CreateEntity(self.scene, "Line")
@@ -84,12 +85,12 @@ class Window(GlfwWindow):
 		self.particleSystem1.rotationVelocity = 0.5
 		self.particleSystem1.randomizeMovement = True
 		self.particleSystem1.fadeOut = True
-		self.particleSystem1.texHandle = self.tex
+		self.particleSystem1.texHandle = "tests/test1.jpg"
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 
 		self.ent5 = EntityManager.CreateEntity(self.scene, "Script")
 		self.scene.AddComponent(self.ent5, ColorComponent(0.0, 1.0, 0.0, 0.8))
-		self.scene.AddComponent(self.ent5, TextComponent("FPS: 0.0", 50, self.font))
+		self.scene.AddComponent(self.ent5, TextComponent("FPS: 0.0", 50, "Arial"))
 		self.scene.AddComponent(self.ent5, TransformComponent(Vector3(0.2, 0.02, 0.0), Vector2(0.3, 0.3), 0.0))
 		self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
 
@@ -102,6 +103,7 @@ class Window(GlfwWindow):
 		#fbSpec = FramebufferSpecs(self.width, self.height)
 		#fbSpec.Samples = 4
 		#fbSpec.HasDepthAttachment = False
+		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
 		renderTarget = RenderTarget(self.camera)#, Framebuffer(fbSpec))
 		self.renderTargetId = Renderer.AddRenderTarget(renderTarget)
 		Renderer.BindRenderTarget(self.renderTargetId)

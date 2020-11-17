@@ -26,12 +26,15 @@ class TransformComponent(object):
 			
 		if self.__posChanged:
 			self.__transMatrix = glm.translate(glm.mat4(1.0), self.__pos)
+			self.__posChanged = False
 		
 		if self.__rotChanged:
-			self.__rotMatrix = glm.rotate(glm.mat4(1.0), self.__rot, glm.vec3(0.0, 0.0, 1.0))
+			self.__rotMatrix = glm.rotate(glm.mat4(1.0), glm.radians(self.__rot), glm.vec3(0.0, 0.0, 1.0))
+			self.__rotChanged = False
 		
 		if self.__sizeChanged:
 			self.__scaleMatrix = glm.scale(glm.mat4(1.0), glm.vec3(self.__size.x, self.__size.y, 0.0))
+			self.__sizeChanged = False
 		
 		self.Matrix = self.__transMatrix * self.__rotMatrix * self.__scaleMatrix
 	

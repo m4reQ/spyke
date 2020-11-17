@@ -1,7 +1,6 @@
 #region Import
 from .glyph import Glyph
-from .fontManager import FontManager
-from ..texturing.textureManager import TextureManager
+from ...managers import TextureManager
 from ...debug import Log, LogLevel
 from ...utils import Timer
 
@@ -54,10 +53,8 @@ class Font(object):
 		return (characters, base)
 
 	def __init__(self, fontFilepath: str, bitmapFilepath: str):
-		if not FontManager.Initialized:
-			FontManager.Initialize()
+		handle = TextureManager.GetTexture(bitmapFilepath)
 
-		handle = TextureManager.LoadTexture(bitmapFilepath, FontManager.TextureArray)
 		self.__texId = handle.Index
 		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (handle.Width, handle.Height))
 

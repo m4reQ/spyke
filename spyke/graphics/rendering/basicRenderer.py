@@ -6,7 +6,7 @@ from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..texturing.textureUtils import TextureHandle
-from ..texturing.textureManager import TextureManager
+from ...managers import TextureManager
 from ...enums import VertexAttribType, GLType, ShaderType
 from ...transform import TransformQuadVertices, GetQuadIndexData, Matrix4
 from ...debug import Log, LogLevel

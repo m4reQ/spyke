@@ -9,6 +9,8 @@ from ..utils import RequestGC
 
 import tkinter
 from tkinter import ttk
+
+import random
 #endregion
 
 #This is just a large weight which forces other widgets with
@@ -70,11 +72,21 @@ Window size: {4}x{5}"""
 	EntityName = tkinter.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", fg = "white")
 	ComponentName = tkinter.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", font = (*__Font, "bold"), anchor = "w")
 
+	#popup menu
+	def __AddEntity():
+		EntityManager.CreateEntity(ImGui.__Scene, str(random.randint(0, 10)))
+		ImGui.__SceneUpdate = True
+
+	TreeviewPopupMenu = tkinter.Menu(MainWindow, tearoff = 0)
+	TreeviewPopupMenu.add_command(label = "AddEntity", command = __AddEntity)
+
 	#inspector widgets
 	Inspectors = {
 		"Color": ColorEditor(InspectorFrame),
 		"Text": TextEditor(InspectorFrame),
-		"Transform": TransformEditor(InspectorFrame)}
+		"Transform": TransformEditor(InspectorFrame),
+		"Script": ScriptEditor(InspectorFrame),
+		"Line": LineEditor(InspectorFrame)}
 
 	#grid
 	RenderStatsLabel.grid(row = 0, column = 0, sticky = "ew")
@@ -113,8 +125,18 @@ Window size: {4}x{5}"""
 			ImGui.__SelectedComponent = ImGui.__Scene.ComponentForEntity(ImGui.__SelectedEntity, compType)
 		
 		ImGui.__InspectorUpdate = True
+	
+	def __TreeviewPopMenu(event):
+		if ImGui.EntitiesTree.identify("region", event.x, event.y) != "nothing":
+			return
+
+		try:
+			ImGui.TreeviewPopupMenu.tk_popup(event.x_root, event.y_root)
+		finally:
+			ImGui.TreeviewPopupMenu.grab_release()
 
 	EntitiesTree.bind('<<TreeviewSelect>>', __SelectTreeview)
+	EntitiesTree.bind('<Button-3>', __TreeviewPopMenu)
 	#endregion
 	
 	def BindScene(scene) -> None:
@@ -143,7 +165,7 @@ Window size: {4}x{5}"""
 		except tkinter.TclError as e:
 			Log(f"TclError: {e}.", LogLevel.Error)
 		except Exception as _e:
-			Log(f"ImGui error: {e}.", LogLevel.Error)
+			Log(f"ImGui error: {_e}.", LogLevel.Error)
 	
 	def __UnbindEditors():
 		for e in ImGui.Inspectors.values():
@@ -156,10 +178,12 @@ Window size: {4}x{5}"""
 		for child in ImGui.EntitiesTree.get_children():
 			ImGui.EntitiesTree.delete(child)
 		
+		_id = 0
 		for ent in ImGui.__Scene._entities:
 			entView = ImGui.EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
 			for comp in ImGui.__Scene.ComponentsForEntity(ent):
-				ImGui.EntitiesTree.insert(entView, "end", text = type(comp).__name__.replace("Component", ""), values = (type(comp),))
+				ImGui.EntitiesTree.insert(entView, "end", tags = str(_id), text = type(comp).__name__.replace("Component", ""), values = (type(comp),))
+				_id += 1
 		
 		ImGui.__SceneUpdate = False
 
@@ -173,11 +197,10 @@ Window size: {4}x{5}"""
 
 		text = ImGui.__StatsTextTemplate.format(Renderer.DrawsCount, Renderer.VertexCount, memUsed, vidMemUsed, ImGui.__ParentWindow.width, ImGui.__ParentWindow.height)
 
-		try:
-			ImGui.RenderStatsText.delete(1.0, "end")
-			ImGui.RenderStatsText.insert("end", text)
-		except tkinter.TclError:
-			pass
+		ImGui.RenderStatsText.configure(state = "normal")
+		ImGui.RenderStatsText.delete(1.0, "end")
+		ImGui.RenderStatsText.insert("end", text)
+		ImGui.RenderStatsText.configure(state = "disabled")
 	
 	def __HandleInspector() -> None:
 		if not ImGui.__InspectorUpdate:
@@ -205,6 +228,14 @@ Window size: {4}x{5}"""
 			ImGui.ComponentName.configure(text = "Transform")
 			ImGui.Inspectors["Transform"].SetComp(ImGui.__SelectedComponent)
 			ImGui.Inspectors["Transform"].grid(row = 2, column = 0, sticky = "news")
+		elif type(ImGui.__SelectedComponent) == ScriptComponent:
+			ImGui.ComponentName.configure(text = "Script")
+			ImGui.Inspectors["Script"].SetComp(ImGui.__SelectedComponent)
+			ImGui.Inspectors["Script"].grid(row = 2, column = 0, sticky = "news")
+		elif type(ImGui.__SelectedComponent) == LineComponent:
+			ImGui.ComponentName.configure(text = "Script")
+			ImGui.Inspectors["Line"].SetComp(ImGui.__SelectedComponent)
+			ImGui.Inspectors["Line"].grid(row = 2, column = 0, sticky = "news")
 		else:
 			ImGui.ComponentName.configure(text = "\n")
 		

@@ -1,8 +1,137 @@
 from ..utils import Abstract
 
-import tkinter
+import tkinter as tk
 
-class TransformEditor(tkinter.Frame):
+FONT = ("Helvetica", 9)
+
+class LineEditor(tk.Frame):
+	def __init__(self, master):
+		super().__init__(master)
+
+		self.__posMin = -999.0
+		self.__posMax = 999.0
+
+		#region Variables
+		self.xPosVar1 = tk.StringVar(name = "xPos1")
+		self.yPosVar1 = tk.StringVar(name = "yPos1")
+		self.xPosVar2 = tk.StringVar(name = "xPos2")
+		self.yPosVar2 = tk.StringVar(name = "yPos2")
+		#endregion
+
+		#region Labels
+		self.beginLabel = tk.Label(self, text = "Begin", bg = "white", anchor = "w", font = (*FONT, "bold"))
+		self.endLabel = tk.Label(self, text = "End", bg = "white", anchor = "w", font = (*FONT, "bold"))
+		self.xLabel1 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
+		self.yLabel1 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
+		self.xLabel2 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
+		self.yLabel2 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
+		#endregion
+
+		#region Entries
+		self.xPosEntry1 = tk.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.xPosVar1)
+		self.yPosEntry1 = tk.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.yPosVar1)
+		self.xPosEntry2 = tk.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.xPosVar2)
+		self.yPosEntry2 = tk.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.yPosVar2)
+		#endregion
+
+		#region Grid
+		self.grid_columnconfigure(0, weight = 1)
+		self.grid_columnconfigure(1, weight = 1)
+
+		self.beginLabel.grid(row = 0, column = 0, sticky = "we", columnspan = 2)
+		self.xLabel1.grid(row = 1, column = 0, sticky = "we")
+		self.xPosEntry1.grid(row = 1, column = 1, sticky = "news")
+		self.yLabel1.grid(row = 2, column = 0, sticky = "we")
+		self.yPosEntry1.grid(row = 2, column = 1, sticky = "news")
+
+		self.endLabel.grid(row = 3, column = 0, sticky = "we", columnspan = 2)
+		self.xLabel2.grid(row = 4, column = 0, sticky = "we")
+		self.xPosEntry2.grid(row = 4, column = 1, sticky = "news")
+		self.yLabel2.grid(row = 5, column = 0, sticky = "we")
+		self.yPosEntry2.grid(row = 5, column = 1, sticky = "news")
+		#endregion
+		
+		self.xPosVar1.trace_add("write", self.__EntryCallback)
+		self.yPosVar1.trace_add("write", self.__EntryCallback)
+		self.xPosVar2.trace_add("write", self.__EntryCallback)
+		self.yPosVar2.trace_add("write", self.__EntryCallback)
+
+		self.comp = None
+
+	def __EntryCallback(self, name, *args):
+		if name == "xPos1":
+			var = self.xPosVar1
+		elif name == "yPos1":
+			var = self.yPosVar1
+		elif name == "xPos2":
+			var = self.xPosVar2
+		elif name == "yPos2":
+			var = self.yPosVar2
+
+		try:
+			n = float(var.get())
+		except ValueError:
+			return
+		
+		if name == "xPos1":
+			self.comp.StartPos.x = n
+		elif name == "yPos1":
+			self.comp.StartPos.y = n
+		elif name == "xPos2":
+			self.comp.EndPos.x = n
+		elif name == "yPos2":
+			self.comp.EndPos.y = n
+		
+	def SetComp(self, comp):
+		self.comp = comp
+
+		self.xPosVar1.set(comp.StartPos.x)
+		self.yPosVar1.set(comp.StartPos.y)
+		self.xPosVar2.set(comp.EndPos.x)
+		self.yPosVar2.set(comp.EndPos.y)
+
+		self.xPosEntry1.delete(0, "end")
+		self.xPosEntry1.insert(0, comp.StartPos.x)
+		self.yPosEntry1.delete(0, "end")
+		self.yPosEntry1.insert(0, comp.StartPos.y)
+
+		self.xPosEntry2.delete(0, "end")
+		self.xPosEntry2.insert(0, comp.EndPos.x)
+		self.yPosEntry2.delete(0, "end")
+		self.yPosEntry2.insert(0, comp.EndPos.y)
+
+class ScriptEditor(tk.Frame):
+	def __init__(self, master):
+		super().__init__(master)
+
+		self.filepathNameLabel = tk.Label(self, text = "Filepath: ", anchor = "w", bg = "white", font = ("Helvetica", 9, "bold"))
+		self.filepathLabel = tk.Label(self, text = "", bg = "white", anchor = "w", font = ("Helvetica", 9, "italic"))
+		self.previewText = tk.Text(self, bg = "white", font = ("Helvetica", 7), height = 11)
+
+		self.comp = None
+
+		#region Grid
+		self.grid_columnconfigure(0, weight = 1)
+		self.grid_columnconfigure(1, weight = 1)
+		self.filepathNameLabel.grid(row = 0, column = 0, sticky = "we")
+		self.filepathLabel.grid(row = 0, column = 1, sticky = "news")
+		self.previewText.grid(row = 1, column = 0, columnspan = 2, sticky = "news")
+		#endregion
+
+	def SetComp(self, comp):
+		self.comp = comp
+
+		self.filepathLabel.configure(text = comp.Filepath)
+		self.previewText.configure(state = "normal")
+		with open(comp.Filepath, "r") as f:
+			for _ in range(10):
+				line = f.readline()
+				self.previewText.insert("end", line)
+			
+		self.previewText.insert("end", "...")
+		self.previewText.configure(state = "disabled")
+
+class TransformEditor(tk.Frame):
 	def __init__(self, master):
 		super().__init__(master)
 
@@ -14,41 +143,33 @@ class TransformEditor(tkinter.Frame):
 		self.__scaleMax = 999.0
 
 		#region Variables
-		self.rotVar = tkinter.StringVar(name = "rot")
-		self.xPosVar = tkinter.StringVar(name = "xPos")
-		self.yPosVar = tkinter.StringVar(name = "yPos")
-		self.xScaleVar = tkinter.StringVar(name = "xScale")
-		self.yScaleVar = tkinter.StringVar(name = "yScale")
+		self.rotVar = tk.StringVar(name = "rot")
+		self.xPosVar = tk.StringVar(name = "xPos")
+		self.yPosVar = tk.StringVar(name = "yPos")
+		self.xScaleVar = tk.StringVar(name = "xScale")
+		self.yScaleVar = tk.StringVar(name = "yScale")
 		#endregion
 
 		#region Labels
-		self.posLabel = tkinter.Label(self, text = "Position: ", bg = "white", anchor = "w")
-		self.scaleLabel = tkinter.Label(self, text = "Scale: ", bg = "white", anchor = "w")
-		self.rotLabel = tkinter.Label(self, text = "Rotation: ", bg = "white", anchor = "w")
+		self.posLabel = tk.Label(self, text = "Position: ", bg = "white", anchor = "w")
+		self.scaleLabel = tk.Label(self, text = "Scale: ", bg = "white", anchor = "w")
+		self.rotLabel = tk.Label(self, text = "Rotation: ", bg = "white", anchor = "w")
 
-		self.xLabel1 = tkinter.Label(self, text = "X: ", bg = "white", anchor = "w")
-		self.yLabel1 = tkinter.Label(self, text = "Y: ", bg = "white", anchor = "w")
-		self.xLabel2 = tkinter.Label(self, text = "X: ", bg = "white", anchor = "w")
-		self.yLabel2 = tkinter.Label(self, text = "Y: ", bg = "white", anchor = "w")
+		self.xLabel1 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
+		self.yLabel1 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
+		self.xLabel2 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
+		self.yLabel2 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
 		#endregion
 
 		#region Entries
-		self.xPosEntry = tkinter.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.xPosVar)
-		self.yPosEntry = tkinter.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.yPosVar)
+		self.xPosEntry = tk.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.xPosVar)
+		self.yPosEntry = tk.Spinbox(self, from_ = self.__posMin, to = self.__posMax, increment = 0.01, textvariable = self.yPosVar)
 
-		self.xScaleEntry = tkinter.Spinbox(self, from_ = self.__scaleMin, to = self.__scaleMax, increment = 0.01, textvariable = self.xScaleVar)
-		self.yScaleEntry = tkinter.Spinbox(self, from_ = self.__scaleMin, to = self.__scaleMax, increment = 0.01, textvariable = self.yScaleVar)
+		self.xScaleEntry = tk.Spinbox(self, from_ = self.__scaleMin, to = self.__scaleMax, increment = 0.01, textvariable = self.xScaleVar)
+		self.yScaleEntry = tk.Spinbox(self, from_ = self.__scaleMin, to = self.__scaleMax, increment = 0.01, textvariable = self.yScaleVar)
 
-		self.rotEntry = tkinter.Spinbox(self, from_ = self.__rotMin, to = self.__rotMax, increment = 0.1, textvariable = self.rotVar)
+		self.rotEntry = tk.Spinbox(self, from_ = self.__rotMin, to = self.__rotMax, increment = 0.1, textvariable = self.rotVar)
 		#endregion
-	
-		self.rotVar.trace_add("write", self.__EntryCallback)
-		self.xPosVar.trace_add("write", self.__EntryCallback)
-		self.yPosVar.trace_add("write", self.__EntryCallback)
-		self.xScaleVar.trace_add("write", self.__EntryCallback)
-		self.yScaleVar.trace_add("write", self.__EntryCallback)
-
-		self.comp = None
 
 		#region Grid
 		self.grid_columnconfigure(0, weight = 1)
@@ -69,7 +190,15 @@ class TransformEditor(tkinter.Frame):
 		self.rotLabel.grid(row = 6, column = 0, sticky = "we", columnspan = 2)
 		self.rotEntry.grid(row = 7, column = 0, sticky = "we", columnspan = 2)
 		#endregion
-	
+
+		self.rotVar.trace_add("write", self.__EntryCallback)
+		self.xPosVar.trace_add("write", self.__EntryCallback)
+		self.yPosVar.trace_add("write", self.__EntryCallback)
+		self.xScaleVar.trace_add("write", self.__EntryCallback)
+		self.yScaleVar.trace_add("write", self.__EntryCallback)
+
+		self.comp = None
+
 	def SetComp(self, comp):
 		self.comp = comp
 
@@ -104,10 +233,8 @@ class TransformEditor(tkinter.Frame):
 		elif name == "yScale":
 			var = self.yScaleVar
 
-		text = var.get()
-
 		try:
-			n = float(text)
+			n = float(var.get())
 			if name == "rot":
 				if not (n >= self.__rotMin and n <= self.__rotMax):
 					return
@@ -125,19 +252,19 @@ class TransformEditor(tkinter.Frame):
 		elif name == "yScale":
 			self.comp.Size.y = n
 
-class TextEditor(tkinter.Frame):
+class TextEditor(tk.Frame):
 	def __init__(self, master):
 		super().__init__(master)
 
-		self.textVar = tkinter.StringVar(name = "text")
-		self.sizeVar = tkinter.StringVar(name = "size")
+		self.textVar = tk.StringVar(name = "text")
+		self.sizeVar = tk.StringVar(name = "size")
 
 		self.__sizeMin = 1
 		self.__sizeMax = 999
 
-		self.sizeLabel = tkinter.Label(self, text = "Size: ", bg = "white", anchor = "w")
-		self.textEntry = tkinter.Entry(self, textvariable = self.textVar)
-		self.sizeEntry = tkinter.Spinbox(self, from_ = self.__sizeMin, to = self.__sizeMax, textvariable = self.sizeVar)
+		self.sizeLabel = tk.Label(self, text = "Size: ", bg = "white", anchor = "w")
+		self.textEntry = tk.Entry(self, textvariable = self.textVar)
+		self.sizeEntry = tk.Spinbox(self, from_ = self.__sizeMin, to = self.__sizeMax, textvariable = self.sizeVar)
 
 		self.textVar.trace_add("write", self.__EntryCallback)
 		self.sizeVar.trace_add("write", self.__EntryCallback)
@@ -176,14 +303,14 @@ class TextEditor(tkinter.Frame):
 		self.sizeEntry.delete(0, "end")
 		self.sizeEntry.insert(0, oldSize)
 
-class ColorEditor(tkinter.Frame):
+class ColorEditor(tk.Frame):
 	def __init__(self, master):
 		super().__init__(master)
 
-		self.redSlider = tkinter.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "red")
-		self.greenSlider = tkinter.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "green")
-		self.blueSlider = tkinter.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "blue")
-		self.alphaSlider = tkinter.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "#e8eaed")
+		self.redSlider = tk.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "red")
+		self.greenSlider = tk.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "green")
+		self.blueSlider = tk.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "blue")
+		self.alphaSlider = tk.Scale(self, from_ = 0.0, to = 1.0, resolution = 0.01, orient = "horizontal", command = self.__SliderCallback, bg = "#e8eaed")
 
 		self.comp = None
 

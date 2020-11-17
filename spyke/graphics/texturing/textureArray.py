@@ -37,6 +37,8 @@ class TextureArray(object):
 
 		self.__currentLayer = 0
 
+		self.canWrite = True
+
 		self.__id = GL.glGenTextures(1)
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)
 		GL.glTexStorage3D(GL.GL_TEXTURE_2D_ARRAY, self.__mipmapLevels, TextureArray.__InternalFormat, self.__maxWidth, self.__maxHeight, self.__layers)
@@ -52,7 +54,7 @@ class TextureArray(object):
 		Log(f"Texture array of size ({self.__maxWidth}x{self.__maxHeight}x{self.__layers}) initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 	
 	def UploadTexture(self, texData: TextureData) -> TextureHandle:
-		Timer.Start()
+		self.canWrite = False
 
 		self.Bind()
 
@@ -72,7 +74,7 @@ class TextureArray(object):
 
 		self.__currentLayer += 1
 
-		Log(f"Texture '{texData.ImageName}' uploaded in {Timer.Stop()} seconds.", LogLevel.Info)
+		self.canWrite = True
 
 		return handle
 	

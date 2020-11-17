@@ -1,5 +1,6 @@
 #region Import
 from .windowSpecs import WindowSpecs
+from .window import Window
 from ..input.event import *
 from ..input.eventHandler import EventHandler
 from ..debug import Log, LogLevel
@@ -8,7 +9,7 @@ from ..utils import Timer, RequestGC
 import glfw
 #endregion
 
-class GlfwWindow(object):
+class GlfwWindow(Window):
 	def __init__(self, specification: WindowSpecs):
 		Timer.Start()
 
@@ -71,10 +72,6 @@ class GlfwWindow(object):
 
 		self.isRunning = True
 		self.isActive = True
-
-		self.updateTime = 1.0
-		self.renderTime = 1.0
-		self.frameTime = 1.0
 
 		self.positionX, self.positionY = glfw.get_window_pos(self.__handle)
 

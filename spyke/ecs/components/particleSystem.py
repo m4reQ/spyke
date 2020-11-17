@@ -1,7 +1,10 @@
+#region Import
 from ...transform import Matrix4, Vector2
 from ...graphics import NoTexture, Color
+from ...managers import TextureManager
 
 import random
+#endregion
 
 class Particle(object):
 	def __init__(self):
@@ -44,7 +47,7 @@ class ParticleSystemComponent(object):
 		self.randomizeMovement = False
 		self.fadeOut = False
 
-		self.texHandle = NoTexture
+		self.__texHandle = NoTexture
 
 		self.maxCount = max(maxCount, ParticleSystemComponent.MaxCount)
 		
@@ -52,6 +55,14 @@ class ParticleSystemComponent(object):
 		for _ in range(self.maxCount):
 			self.particlePool.append(Particle())
 		self.activeParticleIdx = self.maxCount - 1
+	
+	@property
+	def texHandle(self):
+		return self.__texHandle
+	
+	@texHandle.setter
+	def texHandle(self, value: str):
+		self.__texHandle = TextureManager.GetTexture(value)
 	
 	def EmitParticles(self, count: int) -> None:
 		for _ in range(count):

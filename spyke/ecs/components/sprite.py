@@ -1,6 +1,7 @@
 from ...graphics import TextureHandle
+from ...managers import TextureManager
 
 class SpriteComponent(object):
-	def __init__(self, textureHandle: TextureHandle, tilingFactor: tuple):
-		self.TextureHandle = textureHandle
+	def __init__(self, textureName: str, tilingFactor: tuple):
+		self.TextureHandle = TextureManager.GetTexture(textureName)
 		self.TilingFactor = tilingFactor

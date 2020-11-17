@@ -44,7 +44,7 @@ def CreateRotationZ(angle: float) -> glm.mat4:
 def CreateTransform3D(pos: glm.vec3, size: glm.vec2, angle: float) -> glm.mat4:
 	transform = glm.translate(glm.mat4(1.0), pos)
 	transform = glm.scale(transform, glm.vec3(size, 0.0))
-	return glm.rotate(transform, angle, glm.vec3(0.0, 0.0, 1.0))
+	return glm.rotate(transform, glm.radians(angle), glm.vec3(0.0, 0.0, 1.0))
 
 @lru_cache
 def TransformQuadVertices(transformTuple: tuple) -> list:

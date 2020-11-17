@@ -1,5 +1,7 @@
 from ...debug import Log, LogLevel
 
+import os
+
 class ScriptComponent(object):
 	@staticmethod
 	def __defaultcaller(func, _object):
@@ -9,11 +11,11 @@ class ScriptComponent(object):
 		return inner
 
 	def __init__(self, file):
-		self.file = file
+		self.Filepath = os.path.abspath(file)
 		self.entity = 0
 		self.world = None
 
-		ext = __import__(self.file[:-3], globals(), locals())
+		ext = __import__(file[:-3], globals(), locals())
 		
 		func = None
 		for attr in dir(ext):
