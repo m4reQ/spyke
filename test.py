@@ -10,7 +10,7 @@ if __debug__:
 from spyke.ecs.components import *
 from spyke.ecs.processors import *
 
-from spyke.imgui import ImGui
+#from spyke.imgui import ImGui
 from spyke.window import GlfwWindow, WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *

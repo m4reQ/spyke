@@ -2,7 +2,6 @@
 from .components import *
 from .. import IS_NVIDIA
 from ..debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
-from ..ecs.entityManager import EntityManager
 from ..ecs.components import *
 from ..graphics import Renderer
 from ..utils import RequestGC

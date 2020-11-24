@@ -119,8 +119,13 @@ def SaveScene(scene: Scene, filepath: str):
 	f.write(f"/c timed {timed}\n")
 
 	f.write("#resources\n")
+	i = 0
 	for array in TextureManager.GetTextureArrays():
+		if i == 0:
+			i += 1
+			continue
 		f.write(f"r arr {array.Width} {array.Height} {array.Layers} {'L' if array.MagFilter == TextureMagFilter.Linear else 'N'}\n")
+		i += 1
 	for (name, tex) in TextureManager.GetTextureNames().items():
 		f.write(f"r tex {name} {tex.TexarrayID}\n")
 	for (name, fnt) in FontManager.GetFonts().items():
@@ -152,3 +157,5 @@ def SaveScene(scene: Scene, filepath: str):
 			f.write(line + "\n")
 
 	f.close()
+
+	Log("Scene saved in {Timer.Stop()} seconds.", LogLevel.Info)
