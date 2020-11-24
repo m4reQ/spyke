@@ -5,6 +5,8 @@ Changes made by m4reQ:
 - added World.GetFrameTime function that returns sum of all processing times from previous frame
 - changed World.AddComponent function ability to set component's reference to a parent entity and scene if component type is ScriptComponent
 - using ints casted to str as ids for entities (this is mainly because an internal CPython optimization for string dictionary keys)
+- added type hint to 'world' member in Processor class
+- moved Processor class below World class
 """
 
 import time as _time
@@ -24,21 +26,8 @@ version = '1.3'
 C = _TypeVar('C')
 P = _TypeVar('P')
 
-
 class Processor:
-	"""Base class for all Processors to inherit from.
-
-	Processor instances must contain a `process` method. Other than that,
-	you are free to add any additional methods that are necessary. The process
-	method will be called by each call to `World.process`, so you will
-	generally want to iterate over entities with one (or more) calls to the
-	appropriate world methods there, such as
-	`for ent, (rend, vel) in self.world.get_components(Renderable, Velocity):`
-	"""
-	world = None
-
-	def Process(self, *args, **kwargs):
-		raise NotImplementedError
+	pass
 
 class World:
 	"""A World object keeps track of all Entities, Components, and Processors.
@@ -385,3 +374,18 @@ class World:
 		"""
 		self._clear_dead_entities()
 		self._process(*args, **kwargs)
+
+class Processor:
+	"""Base class for all Processors to inherit from.
+
+	Processor instances must contain a `process` method. Other than that,
+	you are free to add any additional methods that are necessary. The process
+	method will be called by each call to `World.process`, so you will
+	generally want to iterate over entities with one (or more) calls to the
+	appropriate world methods there, such as
+	`for ent, (rend, vel) in self.world.get_components(Renderable, Velocity):`
+	"""
+	world: World = None
+
+	def Process(self, *args, **kwargs):
+		raise NotImplementedError

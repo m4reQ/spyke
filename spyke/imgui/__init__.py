@@ -7,10 +7,10 @@ from ..ecs.components import *
 from ..graphics import Renderer
 from ..utils import RequestGC
 
-import tkinter
+import tkinter as tk
 from tkinter import ttk
-
 import random
+from pydoc import locate
 #endregion
 
 #This is just a large weight which forces other widgets with
@@ -38,7 +38,7 @@ Memory used: {2:.2f}kB
 Video memory used: {3}
 Window size: {4}x{5}"""
 
-	MainWindow = tkinter.Tk()
+	MainWindow = tk.Tk()
 	MainWindow.title("Imgui")
 	MainWindow.grid_rowconfigure(0, weight = 1)
 	MainWindow.grid_rowconfigure(1, weight = DONT_RESIZE_OTHERS)
@@ -54,7 +54,7 @@ Window size: {4}x{5}"""
 		ImGui.__Initialized = False
 		try:
 			ImGui.MainWindow.destroy()
-		except tkinter.TclError:
+		except tk.TclError:
 			pass
 
 		RequestGC()
@@ -62,23 +62,37 @@ Window size: {4}x{5}"""
 	MainWindow.protocol("WM_DELETE_WINDOW", Close)
 
 	#widgets
-	RenderStatsLabel = tkinter.Label(MainWindow, text = "Render stats", bd = 0)
-	EntitiesLabel = tkinter.Label(MainWindow, text = "Entities", bd = 0)
-	RenderStatsText = tkinter.Text(MainWindow, width = 35, height = 5, relief = "solid", bd = 1)
+	RenderStatsLabel = tk.Label(MainWindow, text = "Render stats", bd = 0)
+	EntitiesLabel = tk.Label(MainWindow, text = "Entities", bd = 0)
+	RenderStatsText = tk.Text(MainWindow, width = 35, height = 5, relief = "solid", bd = 1)
 	ttk.Style().configure("Treeview", bd = 1, relief = "solid")
 	EntitiesTree = ttk.Treeview(MainWindow, show = "tree", style = "Treeview")
-	InspectorLabel = tkinter.Label(MainWindow, text = "Inspector", bd = 0)
-	InspectorFrame = tkinter.Frame(MainWindow, bd = 1, relief = "solid", bg = "white")
-	EntityName = tkinter.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", fg = "white")
-	ComponentName = tkinter.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", font = (*__Font, "bold"), anchor = "w")
+	InspectorLabel = tk.Label(MainWindow, text = "Inspector", bd = 0)
+	InspectorFrame = tk.Frame(MainWindow, bd = 1, relief = "solid", bg = "white")
+	EntityName = tk.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", fg = "white")
+	ComponentName = tk.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", font = (*__Font, "bold"), anchor = "w")
 
 	#popup menu
 	def __AddEntity():
 		EntityManager.CreateEntity(ImGui.__Scene, str(random.randint(0, 10)))
 		ImGui.__SceneUpdate = True
 
-	TreeviewPopupMenu = tkinter.Menu(MainWindow, tearoff = 0)
+	TreeviewPopupMenu = tk.Menu(MainWindow, tearoff = 0)
 	TreeviewPopupMenu.add_command(label = "AddEntity", command = __AddEntity)
+
+	#main menu
+	MainMenu = tk.Menu(MainWindow)
+
+	FileMenu = tk.Menu(MainMenu, tearoff = 0)
+	FileMenu.add_command(label = "New Scene")
+	FileMenu.add_command(label = "Open Scene...")
+	FileMenu.add_command(label = "Save Scene...")
+	FileMenu.add_separator()
+	FileMenu.add_command(label = "Exit", command = Close)
+
+	MainMenu.add_cascade(label = "File", menu = FileMenu)
+
+	MainWindow.config(menu = MainMenu)
 
 	#inspector widgets
 	Inspectors = {
@@ -121,7 +135,10 @@ Window size: {4}x{5}"""
 			ImGui.__SelectedEntity = str(_item["values"][0])
 
 			typeName = item["values"][0]
-			compType = eval(typeName.replace("<class 'spyke.ecs.components.", '')[:-2])
+			typeName = typeName.replace("<class '", "")
+			typeName = typeName.replace("'>", "")
+			
+			compType = locate(typeName)
 			ImGui.__SelectedComponent = ImGui.__Scene.ComponentForEntity(ImGui.__SelectedEntity, compType)
 		
 		ImGui.__InspectorUpdate = True
@@ -162,7 +179,7 @@ Window size: {4}x{5}"""
 			ImGui.__HandleEntities()
 			ImGui.__HandleInspector()
 			ImGui.MainWindow.update()
-		except tkinter.TclError as e:
+		except tk.TclError as e:
 			Log(f"TclError: {e}.", LogLevel.Error)
 		except Exception as _e:
 			Log(f"ImGui error: {_e}.", LogLevel.Error)
@@ -202,6 +219,11 @@ Window size: {4}x{5}"""
 		ImGui.RenderStatsText.insert("end", text)
 		ImGui.RenderStatsText.configure(state = "disabled")
 	
+	def __SelectEditor(name: str):
+		ImGui.ComponentName.configure(text = name)
+		ImGui.Inspectors[name].SetComp(ImGui.__SelectedComponent)
+		ImGui.Inspectors[name].grid(row = 2, column = 0, sticky = "news")
+
 	def __HandleInspector() -> None:
 		if not ImGui.__InspectorUpdate:
 			return
@@ -217,25 +239,15 @@ Window size: {4}x{5}"""
 
 		ImGui.__UnbindEditors()
 		if type(ImGui.__SelectedComponent) == ColorComponent:
-			ImGui.ComponentName.configure(text = "Color")
-			ImGui.Inspectors["Color"].SetComp(ImGui.__SelectedComponent)
-			ImGui.Inspectors["Color"].grid(row = 2, column = 0, sticky = "news")
+			ImGui.__SelectEditor("Color")
 		elif type(ImGui.__SelectedComponent) == TextComponent:
-			ImGui.ComponentName.configure(text = "Text")
-			ImGui.Inspectors["Text"].SetComp(ImGui.__SelectedComponent)
-			ImGui.Inspectors["Text"].grid(row = 2, column = 0, sticky = "news")
+			ImGui.__SelectEditor("Text")
 		elif type(ImGui.__SelectedComponent) == TransformComponent:
-			ImGui.ComponentName.configure(text = "Transform")
-			ImGui.Inspectors["Transform"].SetComp(ImGui.__SelectedComponent)
-			ImGui.Inspectors["Transform"].grid(row = 2, column = 0, sticky = "news")
+			ImGui.__SelectEditor("Transform")
 		elif type(ImGui.__SelectedComponent) == ScriptComponent:
-			ImGui.ComponentName.configure(text = "Script")
-			ImGui.Inspectors["Script"].SetComp(ImGui.__SelectedComponent)
-			ImGui.Inspectors["Script"].grid(row = 2, column = 0, sticky = "news")
+			ImGui.__SelectEditor("Script")
 		elif type(ImGui.__SelectedComponent) == LineComponent:
-			ImGui.ComponentName.configure(text = "Script")
-			ImGui.Inspectors["Line"].SetComp(ImGui.__SelectedComponent)
-			ImGui.Inspectors["Line"].grid(row = 2, column = 0, sticky = "news")
+			ImGui.__SelectEditor("Line")
 		else:
 			ImGui.ComponentName.configure(text = "\n")
 		

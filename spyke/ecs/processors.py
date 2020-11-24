@@ -25,7 +25,6 @@ class RenderingProcessor(Processor):
 		GLCommand.Clear(ClearMask.ColorBufferBit | ClearMask.DepthBufferBit)
 		
 		Renderer.BeginScene()
-
 		for _, (sprite, transform, color) in self.world.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
 			Renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
 		
@@ -41,7 +40,6 @@ class RenderingProcessor(Processor):
 		
 		for _, (text, transform, color) in self.world.GetComponents(TextComponent, TransformComponent, ColorComponent):
 			Renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
-		
 		Renderer.EndScene()
 
 class TransformProcessor(Processor):
