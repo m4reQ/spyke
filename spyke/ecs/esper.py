@@ -7,6 +7,7 @@ Changes made by m4reQ:
 - using ints casted to str as ids for entities (this is mainly because an internal CPython optimization for string dictionary keys)
 - added type hint to 'world' member in Processor class
 - moved Processor class below World class
+- added 'Timed' memeber in World class that indicates if it uses timed processing
 """
 
 import time as _time
@@ -19,7 +20,7 @@ from typing import Any as _Any
 from typing import Tuple as _Tuple
 from typing import Iterable as _Iterable
 
-from .components import ScriptComponent
+from .components.script import ScriptComponent
 
 version = '1.3'
 
@@ -36,7 +37,7 @@ class World:
 	is also responsible for executing all Processors assigned to it for each
 	frame of your game.
 	"""
-	def __init__(self, timed=False):
+	def __init__(self, timed = False):
 		self._processors = []
 		self._next_entity_id = 0
 		self._components = {}
@@ -45,6 +46,8 @@ class World:
 		if timed:
 			self.process_times = {}
 			self._process = self._timed_process
+		
+		self.Timed = timed
 
 	def clear_cache(self) -> None:
 		self.GetComponent.cache_clear()

@@ -1,7 +1,7 @@
 #region Import
 from ...transform import Matrix4, Vector2
 from ...graphics import NoTexture, Color
-from ...managers import TextureManager
+from ...managers.textureManager import TextureManager
 
 import random
 #endregion

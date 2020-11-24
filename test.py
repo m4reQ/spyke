@@ -7,7 +7,6 @@ if __debug__:
 	from spyke import debug
 	debug.Log("Debugging enabled.", debug.LogLevel.Info)
 
-from spyke.ecs import EntityManager
 from spyke.ecs.components import *
 from spyke.ecs.processors import *
 
@@ -19,6 +18,7 @@ from spyke.managers import *
 from spyke.utils import *
 from spyke.transform import *
 from spyke.input import *
+from spyke.sceneLoader import SaveScene
 
 class UserProcessor(Processor):
 	def __init__(self):
@@ -44,7 +44,7 @@ class Window(GlfwWindow):
 		GLCommand.Enable(EnableCap.Blend)
 		GLCommand.BlendFunction(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha)
 
-		self.scene = EntityManager.CreateScene("Test", True)
+		self.scene = SceneManager.CreateScene("Test", True)
 
 		Renderer.Initialize(self.specs.Multisample)
 
@@ -93,6 +93,8 @@ class Window(GlfwWindow):
 		self.scene.AddComponent(self.ent5, TextComponent("FPS: 0.0", 50, "Arial"))
 		self.scene.AddComponent(self.ent5, TransformComponent(Vector3(0.2, 0.02, 0.0), Vector2(0.3, 0.3), 0.0))
 		self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
+
+		SaveScene(SceneManager.Current, "tests/newScene.scn")
 
 		ImGui.BindScene(self.scene)
 		ImGui.Initialize(self)

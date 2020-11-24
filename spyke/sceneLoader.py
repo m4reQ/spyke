@@ -1,15 +1,14 @@
-from .utils import Timer
+from .utils import Timer, StrToBool
 from .debug import Log, LogLevel
-from .managers import TextureManager, FontManager
+from .managers import TextureManager, FontManager, SceneManager, EntityManager
 from .enums import TextureMagFilter
 from .ecs.components import *
 from .ecs import Scene
 from .transform import Vector3, Vector2
 
 from pydoc import locate
-from typing import List, TypeAlias
 
-def __CreateComponent(_type: TypeAlias, data: List[str]):
+def __CreateComponent(_type, data):
 	if _type == ColorComponent:
 		return ColorComponent(float(data[0]), float(data[1]), float(data[2]), float(data[3]))
 	elif _type == ScriptComponent:
@@ -46,17 +45,17 @@ def __DecodeLine(line: str, scene: Scene):
 			layers = int(lineData[4])
 			levels = int(lineData[5])
 
-			if lineData[6] == "Linear":
+			if lineData[6] == "L":
 				magFilter = TextureMagFilter.Linear
-			elif lineData[6] == "Nearest":
+			elif lineData[6] == "N":
 				magFilter = TextureMagFilter.Nearest
 
 			TextureManager.CreateTextureArray(width, height, layers, levels, magFilter)
 		elif _type == "tex":
-			filepath = lineData[2]
+			name = lineData[2]
 			arrId = int(lineData[3])
 
-			TextureManager.LoadTexture(filepath, arrId)
+			TextureManager.LoadTexture(name, arrId)
 		elif _type == "fnt":
 			fontFilepath = lineData[2]
 			bitmapFilepath = lineData[3]
@@ -81,18 +80,75 @@ def LoadScene(filepath: str):
 	except FileNotFoundError as e:
 		raise RuntimeError(f"Cannot find scene file named '{e.filename}'.")
 
-	scene = None
+	timed = None
+	name = None
 
 	for line in f:
-		if line.startswith("/n ") and not scene:
-			scene = SceneManager.CreateScene(line[1])
-			__DecodeLine(line, scene)
-	else:
-		f.close()
-		Log(f"Scene from file '{filepath}' loaded in {Timer.Stop()} seconds.", LogLevel.Info)
+		if line.startswith("/c "):
+			lineData = line.split(" ")
+			if lineData[1] == "name":
+				name = lineData[2]
+			elif lineData[1] == "timed":
+				timed = StrToBool(lineData[2])
+		
+		if timed != None and name != None:
+			break
+	
+	if timed == None:
+		timed = False
+
+	SceneManager.CreateScene(str(name), timed)
+
+	for line in f:
+		__DecodeLine(line, SceneManager.Current)
+		
+	f.close()
+	Log(f"Scene from file '{filepath}' loaded in {Timer.Stop()} seconds.", LogLevel.Info)
 
 def SaveScene(scene: Scene, filepath: str):
 	Timer.Start()
 
-	
+	timed = SceneManager.Current.Timed
+	name = SceneManager.SceneName
 
+	open(filepath, "w+").close()
+	f = open(filepath, "a")
+
+	f.write("#configuration\n")
+	f.write(f"/c name {name}\n")
+	f.write(f"/c timed {timed}\n")
+
+	f.write("#resources\n")
+	for array in TextureManager.GetTextureArrays():
+		f.write(f"r arr {array.Width} {array.Height} {array.Layers} {'L' if array.MagFilter == TextureMagFilter.Linear else 'N'}\n")
+	for (name, tex) in TextureManager.GetTextureNames().items():
+		f.write(f"r tex {name} {tex.TexarrayID}\n")
+	for (name, fnt) in FontManager.GetFonts().items():
+		f.write(f"r fnt {fnt.FontFilepath} {fnt.BitmapFilepath} {name}\n")
+
+	f.write("#entities")
+	for name in EntityManager.GetEntities():
+		f.write(f"e {name}\n")
+	
+	f.write("#components")
+	for ent in SceneManager.Current._entities():
+		for comp in SceneManager.Current.ComponentsForEntity(ent):
+			_type = type(comp)
+			line = f"c {_type} "
+			
+			if _type == ColorComponent:
+				line += f"{comp.R} {comp.G} {comp.B} {comp.A}"
+			elif _type == ScriptComponent:
+				line += f"{comp.Filepath}"
+			elif _type == TransformComponent:
+				line += f"{comp.Position.x} {comp.Position.y} {comp.Position.z} {comp.Size.x} {comp.Size.y} {comp.Rotation}"
+			elif _type == LineComponent:
+				line += f"{comp.StartPos.x} {comp.StartPos.y} {comp.EndPos.x} {comp.EndPos.y}"
+			elif _type == TextComponent:
+				line += f"{comp.Text} {comp.Size} {comp.FontName}"
+			elif _type == SpriteComponent:
+				line += f"{comp.TextureName} {comp.TilingFactor[0]} {comp.TilingFactor[1]}"
+			
+			f.write(line + "\n")
+
+	f.close()

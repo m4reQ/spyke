@@ -15,7 +15,7 @@ class FontManager(Static):
 	__TextureHeight = 512
 	__MaxFontTextures = 5
 
-	__FontNames = {}
+	__Fonts = {}
 
 	TextureArray = None
 	Initialized = False
@@ -38,8 +38,11 @@ class FontManager(Static):
 			FontManager.Initialize()
 
 		TextureManager.LoadTexture(bitmapFilepath, FontManager.TextureArray)
-		FontManager.__FontNames[fontName] = Font(fontFilepath, bitmapFilepath)
+		FontManager.__Fonts[fontName] = Font(fontFilepath, bitmapFilepath)
 	
 	@lru_cache
 	def GetFont(fontName: str) -> Font:
-		return FontManager.__FontNames[fontName]
+		return FontManager.__Fonts[fontName]
+
+	def GetFonts() -> dict:
+		return FontManager.__Fonts

@@ -1,3 +1,13 @@
+def StrToBool(string: str) -> bool:
+	_s = string.lower()
+	
+	if _s == "true":
+		return True
+	elif _s == "false":
+		return False
+	else:
+		raise ValueError(f"Invalid string for conversion '{string}'.")
+
 def KwargParse(kwargs: dict, keywords: list, usage: str, copy = True) -> dict:
 	if not usage.lower() in ["n", "r", "l"]:
 		raise RuntimeError(f"Invalid usage mode: {usage}")

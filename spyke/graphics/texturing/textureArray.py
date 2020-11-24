@@ -36,6 +36,8 @@ class TextureArray(object):
 		self.__mipmapLevels = mipmapLevels
 
 		self.__currentLayer = 0
+		
+		self.MagFilter = magFilter
 
 		self.canWrite = True
 

@@ -55,6 +55,9 @@ class Font(object):
 	def __init__(self, fontFilepath: str, bitmapFilepath: str):
 		handle = TextureManager.GetTexture(bitmapFilepath)
 
+		self.FontFilepath = fontFilepath
+		self.BitmapFilepath = bitmapFilepath
+
 		self.__texId = handle.Index
 		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (handle.Width, handle.Height))
 

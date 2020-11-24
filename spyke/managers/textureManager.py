@@ -59,3 +59,9 @@ class TextureManager(Static):
 	
 	def GetTextureNames() -> dict:
 		return TextureManager.__TextureHandles
+	
+	def GetTextureArrays() -> list:
+		return TextureManager.__TextureArrays.values()
+	
+	def GetTextureHandles() -> list:
+		return TextureManager.__TextureHandles.values()

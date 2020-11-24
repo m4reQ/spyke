@@ -10,6 +10,10 @@ class OrthographicCamera(object):
 
 		self.position = glm.vec2(0)
 
+		self.left = left
+		self.right = right
+		self.bottom = bottom
+		self.top = top
 		self.zNear = zNear
 		self.zFar = zFar
 
