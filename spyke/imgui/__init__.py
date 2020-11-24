@@ -1,5 +1,5 @@
 #region Import
-from .editors import *
+from .components import *
 from .. import IS_NVIDIA
 from ..debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
 from ..ecs.entityManager import EntityManager
