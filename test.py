@@ -18,7 +18,7 @@ from spyke.managers import *
 from spyke.utils import *
 from spyke.transform import *
 from spyke.input import *
-from spyke.sceneLoader import SaveScene
+from spyke.sceneLoader import SaveScene, LoadScene
 
 class UserProcessor(Processor):
 	def __init__(self):
@@ -56,26 +56,26 @@ class Window(GlfwWindow):
 		FontManager.CreateFont("tests/ArialNative.fnt", "tests/ArialNative.png", "Arial")
 
 		#entity & components
-		self.ent1 = EntityManager.CreateEntity(self.scene, "TestText")
+		self.ent1 = EntityManager.CreateEntity("TestText")
 		self.scene.AddComponent(self.ent1, ColorComponent(0.0, 1.0, 1.0, 0.7))
 		self.scene.AddComponent(self.ent1, SpriteComponent("tests/test1.jpg", (1.0, 1.0)))
 		self.scene.AddComponent(self.ent1, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector2(0.5, 0.5), 0.0))
 
-		self.ent = EntityManager.CreateEntity(self.scene, "FontView")
+		self.ent = EntityManager.CreateEntity("FontView")
 		self.scene.AddComponent(self.ent, SpriteComponent("tests/ArialNative.png", (1.0, 1.0)))
 		self.scene.AddComponent(self.ent, ColorComponent(1.0, 1.0, 1.0, 1.0))
 		self.scene.AddComponent(self.ent, TransformComponent(Vector3(0.2, 0.2, 0.0), Vector2(0.3, 0.3), 0.0))
 
-		self.ent2 = EntityManager.CreateEntity(self.scene, "FOO")
+		self.ent2 = EntityManager.CreateEntity("FOO")
 		self.scene.AddComponent(self.ent2, TransformComponent(Vector3(0.3, 0.01, 0.0), Vector2(0.3, 0.3), 0.0))
 		self.scene.AddComponent(self.ent2, TextComponent("TEST", 120, "Arial"))
 		self.scene.AddComponent(self.ent2, ColorComponent(1.0, 1.0, 1.0, 1.0))
 
-		self.ent3 = EntityManager.CreateEntity(self.scene, "Line")
+		self.ent3 = EntityManager.CreateEntity("Line")
 		self.scene.AddComponent(self.ent3, LineComponent(Vector3(0.2, 0.2, 0.02), Vector3(0.5, 0.5, 0.02)))
 		self.scene.AddComponent(self.ent3, ColorComponent(0.3, 0.7, 0.5, 0.7))
 
-		self.ent4 = EntityManager.CreateEntity(self.scene, "Particles")
+		self.ent4 = EntityManager.CreateEntity("Particles")
 		self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
 		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
 		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
@@ -88,13 +88,14 @@ class Window(GlfwWindow):
 		self.particleSystem1.texHandle = "tests/test1.jpg"
 		self.scene.AddComponent(self.ent4, self.particleSystem1)
 
-		self.ent5 = EntityManager.CreateEntity(self.scene, "Script")
+		self.ent5 = EntityManager.CreateEntity("Script")
 		self.scene.AddComponent(self.ent5, ColorComponent(0.0, 1.0, 0.0, 0.8))
 		self.scene.AddComponent(self.ent5, TextComponent("FPS: 0.0", 50, "Arial"))
 		self.scene.AddComponent(self.ent5, TransformComponent(Vector3(0.2, 0.02, 0.0), Vector2(0.3, 0.3), 0.0))
 		self.scene.AddComponent(self.ent5, ScriptComponent("script1.py"))
 
 		SaveScene(SceneManager.Current, "tests/newScene.scn")
+		LoadScene("tests/newScene.scn")
 
 		ImGui.BindScene(self.scene)
 		ImGui.Initialize(self)

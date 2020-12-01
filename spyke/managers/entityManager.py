@@ -7,6 +7,10 @@ class EntityManager(Static):
 	__Entities = {}
 	__EntityNames = {}
 
+	def Reload() -> None:
+		EntityManager.__Entities.clear()
+		EntityManager.__EntityNames.clear()
+
 	def CreateEntity(name: str, *components) -> str:
 		_id = SceneManager.Current.CreateEntity(*components)
 		EntityManager.__Entities[name] = _id

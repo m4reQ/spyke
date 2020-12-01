@@ -1,5 +1,5 @@
 #region Import
-from ..utils import Static, Timer
+from ..utils import Static, Timer, ObjectManager
 from ..debug import Log, LogLevel
 from ..textureLoader import TextureLoader
 from ..graphics import TextureArray, TextureHandle, TextureData
@@ -14,18 +14,25 @@ from PIL import Image
 class TextureManager(Static):
 	__TextureHandles = {}
 	__TextureArrays = []
-
 	__LastId = 0
 	BlankArray = -1
 
-	__HasBlankArray = False
+	def Reload() -> None:
+		TextureArray.UnbindAll()
+		for arr in TextureManager.__TextureArrays:
+			ObjectManager.DeleteObject(arr)
+		
+		TextureManager.__TextureHandles.clear()
+		TextureManager.__TextureArrays.clear()
+		TextureManager.__LastId = 0
+		TextureManager.BlankArray = -1
 
 	def CreateBlankArray() -> None:
-		if TextureManager.__HasBlankArray:
+		if TextureManager.BlankArray != -1:
 			Log("Blank texture array already created.", LogLevel.Warning)
 			return
 		
-		ta = TextureArray(1, 1, 1, 1, TextureMagFilter.Nearest)
+		ta = TextureArray(1, 1, 1, 1, TextureMagFilter.Nearest, isBlank = True)
 		TextureManager.__TextureArrays.append(ta)
 		ta.UploadTexture(GetWhiteTexture())
 
@@ -34,8 +41,8 @@ class TextureManager(Static):
 
 		TextureManager.BlankArray = _id
 
-	def CreateTextureArray(width: int, height: int, layers: int, levels: int = 2, magFilter: TextureMagFilter = TextureMagFilter.Linear) -> int:
-		TextureManager.__TextureArrays.append(TextureArray(width, height, layers, levels, magFilter))
+	def CreateTextureArray(width: int, height: int, layers: int, levels: int = 2, magFilter: TextureMagFilter = TextureMagFilter.Linear, isBlank = False) -> int:
+		TextureManager.__TextureArrays.append(TextureArray(width, height, layers, levels, magFilter, isBlank))
 
 		_id = TextureManager.__LastId
 		TextureManager.__LastId += 1

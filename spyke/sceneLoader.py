@@ -49,8 +49,13 @@ def __DecodeLine(line: str, scene: Scene):
 				magFilter = TextureMagFilter.Linear
 			elif lineData[6] == "N":
 				magFilter = TextureMagFilter.Nearest
+			
+			try:
+				if lineData[7] == "BLANK":
+					TextureManager.BlankArray = TextureManager.CreateTextureArray(width, height, layers, levels, magFilter, isBlank = True)
+			except IndexError:
+				TextureManager.CreateTextureArray(width, height, layers, levels, magFilter)
 
-			TextureManager.CreateTextureArray(width, height, layers, levels, magFilter)
 		elif _type == "tex":
 			name = lineData[2]
 			arrId = int(lineData[3])
@@ -65,7 +70,7 @@ def __DecodeLine(line: str, scene: Scene):
 	elif line.startswith("e "):
 		EntityManager.CreateEntity(scene, line[1])
 	elif line.startswith("c "):
-		_type = locate(lineData[1])
+		_type = locate("spyke.ecs.components." + lineData[1])
 		ent = lineData[2]
 		args = lineData[3:]
 
@@ -84,6 +89,7 @@ def LoadScene(filepath: str):
 	name = None
 
 	for line in f:
+		line = line.replace("\n", "")
 		if line.startswith("/c "):
 			lineData = line.split(" ")
 			if lineData[1] == "name":
@@ -99,7 +105,13 @@ def LoadScene(filepath: str):
 
 	SceneManager.CreateScene(str(name), timed)
 
+	Log("Reloading managers...", LogLevel.Info)
+	TextureManager.Reload()
+	FontManager.Reload()
+	EntityManager.Reload()
+
 	for line in f:
+		line = line.replace("\n", "")
 		__DecodeLine(line, SceneManager.Current)
 		
 	f.close()
@@ -119,27 +131,27 @@ def SaveScene(scene: Scene, filepath: str):
 	f.write(f"/c timed {timed}\n")
 
 	f.write("#resources\n")
-	i = 0
 	for array in TextureManager.GetTextureArrays():
-		if i == 0:
-			i += 1
-			continue
-		f.write(f"r arr {array.Width} {array.Height} {array.Layers} {'L' if array.MagFilter == TextureMagFilter.Linear else 'N'}\n")
-		i += 1
+		data = f"r arr {array.Width} {array.Height} {array.Layers} {array.Levels} {'L' if array.MagFilter == TextureMagFilter.Linear else 'N'}"
+		if array.IsBlank:
+			data += " BLANK"
+		data += "\n"
+		f.write(data)
 	for (name, tex) in TextureManager.GetTextureNames().items():
 		f.write(f"r tex {name} {tex.TexarrayID}\n")
 	for (name, fnt) in FontManager.GetFonts().items():
 		f.write(f"r fnt {fnt.FontFilepath} {fnt.BitmapFilepath} {name}\n")
 
-	f.write("#entities")
+	f.write("#entities\n")
 	for name in EntityManager.GetEntities():
 		f.write(f"e {name}\n")
 	
-	f.write("#components")
-	for ent in SceneManager.Current._entities():
+	f.write("#components\n")
+	for ent in SceneManager.Current._entities:
 		for comp in SceneManager.Current.ComponentsForEntity(ent):
 			_type = type(comp)
-			line = f"c {_type} "
+			strType = str(_type).replace("<class 'spyke.ecs.components.", "").replace("'>", "")
+			line = f"c {strType} {ent} "
 			
 			if _type == ColorComponent:
 				line += f"{comp.R} {comp.G} {comp.B} {comp.A}"
@@ -158,4 +170,4 @@ def SaveScene(scene: Scene, filepath: str):
 
 	f.close()
 
-	Log("Scene saved in {Timer.Stop()} seconds.", LogLevel.Info)
+	Log(f"Scene saved in {Timer.Stop()} seconds.", LogLevel.Info)

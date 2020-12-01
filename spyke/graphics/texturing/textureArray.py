@@ -21,7 +21,7 @@ class TextureArray(object):
 	else:
 		__MinFilter = GL.GL_LINEAR_MIPMAP_LINEAR
 
-	def __init__(self, maxWidth: int, maxHeight: int, layersCount: int, mipmapLevels: int = 2, magFilter: TextureMagFilter = TextureMagFilter.Linear):
+	def __init__(self, maxWidth: int, maxHeight: int, layersCount: int, mipmapLevels: int = 2, magFilter: TextureMagFilter = TextureMagFilter.Linear, isBlank = False):
 		Timer.Start()
 
 		if not TextureArray.__MaxLayersCount:
@@ -34,6 +34,7 @@ class TextureArray(object):
 		self.__maxHeight = maxHeight
 		self.__layers = layersCount
 		self.__mipmapLevels = mipmapLevels
+		self.__isBlank = isBlank
 
 		self.__currentLayer = 0
 		
@@ -90,6 +91,7 @@ class TextureArray(object):
 	def Delete(self):
 		GL.glDeleteTextures(1, [self.__id])
 	
+	#region Getters
 	@property
 	def CurrentLayer(self):
 		return self.__currentLayer
@@ -109,3 +111,12 @@ class TextureArray(object):
 	@property
 	def Layers(self):
 		return self.__layers
+	
+	@property
+	def Levels(self):
+		return self.__mipmapLevels
+	
+	@property
+	def IsBlank(self):
+		return self.__isBlank
+	#endregion

@@ -20,6 +20,11 @@ class FontManager(Static):
 	TextureArray = None
 	Initialized = False
 
+	def Reload() -> None:
+		FontManager.TextureArray = None
+		FontManager.__Fonts.clear()
+		FontManager.Initialized = False
+
 	def Initialize() -> None:
 		if FontManager.Initialized:
 			Log("Font manager already initialized.", LogLevel.Warning)
