@@ -8,6 +8,14 @@ from .transform import Vector3, Vector2
 
 from pydoc import locate
 
+SPACE_SUBSTITUTE = "%32"
+
+def __SecureSpaces(string: str):
+	return string.replace(" ", SPACE_SUBSTITUTE)
+
+def __RestoreSpaces(string: str):
+	return string.replace(SPACE_SUBSTITUTE, " ")
+
 def __CreateComponent(_type, data):
 	if _type == ColorComponent:
 		return ColorComponent(float(data[0]), float(data[1]), float(data[2]), float(data[3]))
@@ -29,7 +37,7 @@ def __CreateComponent(_type, data):
 
 		return CameraComponent(camType, float(data[1]), float(data[2]), float(data[3]), float(data[4]), float(data[5]), float(data[6]))
 	elif _type == TextComponent:
-		return TextComponent(data[0], int(data[1]), data[2])
+		return TextComponent(__RestoreSpaces(data[0]), int(float(data[1])), data[2])
 
 def __DecodeLine(line: str, scene: Scene):
 	if line.startswith("#"):
@@ -70,12 +78,13 @@ def __DecodeLine(line: str, scene: Scene):
 	elif line.startswith("e "):
 		EntityManager.CreateEntity(scene, line[1])
 	elif line.startswith("c "):
+		lineData = line.split(" ")
+
 		_type = locate("spyke.ecs.components." + lineData[1])
 		ent = lineData[2]
 		args = lineData[3:]
 
-		comp = _type(*args)
-		scene.AddComponent(ent, comp)
+		scene.AddComponent(ent, __CreateComponent(_type, args))
 
 def LoadScene(filepath: str):
 	Timer.Start()
@@ -160,9 +169,9 @@ def SaveScene(scene: Scene, filepath: str):
 			elif _type == TransformComponent:
 				line += f"{comp.Position.x} {comp.Position.y} {comp.Position.z} {comp.Size.x} {comp.Size.y} {comp.Rotation}"
 			elif _type == LineComponent:
-				line += f"{comp.StartPos.x} {comp.StartPos.y} {comp.EndPos.x} {comp.EndPos.y}"
+				line += f"{comp.StartPos.x} {comp.StartPos.y} {comp.StartPos.z} {comp.EndPos.x} {comp.EndPos.y} {comp.EndPos.z}"
 			elif _type == TextComponent:
-				line += f"{comp.Text} {comp.Size} {comp.FontName}"
+				line += f"{__SecureSpaces(comp.Text)} {comp.Size} {comp.FontName}"
 			elif _type == SpriteComponent:
 				line += f"{comp.TextureName} {comp.TilingFactor[0]} {comp.TilingFactor[1]}"
 			

@@ -16,6 +16,7 @@ class TextureManager(Static):
 	__TextureArrays = []
 	__LastId = 0
 	BlankArray = -1
+	FontArray = -1
 
 	def Reload() -> None:
 		TextureArray.UnbindAll()
@@ -26,6 +27,7 @@ class TextureManager(Static):
 		TextureManager.__TextureArrays.clear()
 		TextureManager.__LastId = 0
 		TextureManager.BlankArray = -1
+		TextureManager.FontArray = -1
 
 	def CreateBlankArray() -> None:
 		if TextureManager.BlankArray != -1:
@@ -48,9 +50,12 @@ class TextureManager(Static):
 		TextureManager.__LastId += 1
 
 		return _id
+	
+	def DeleteArray(_id):
+		del TextureManager.__TextureArrays[_id]
 
 	def LoadTexture(filepath: str, texArrayId: int) -> TextureHandle:
-		handle = TextureLoader.LoadTexture(filepath, TextureManager.GetArray(texArrayId))
+		handle = TextureLoader.LoadTexture(filepath, TextureManager.GetArray(texArrayId), texArrayId)
 		TextureManager.__TextureHandles[os.path.abspath(filepath)] = handle
 	
 	def UploadTexture(texData: TextureData, texArray: int) -> TextureHandle:

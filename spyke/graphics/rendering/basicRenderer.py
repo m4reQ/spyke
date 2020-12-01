@@ -70,10 +70,7 @@ class BasicRenderer(RendererComponent):
 		self.ibo.Bind()
 
 		for batch in self.__batches:
-			if batch.texarrayID != -1:
-				GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, batch.texarrayID)
-			else:
-				TextureManager.GetArray(TextureManager.BlankArray).Bind()
+			TextureManager.GetArray(batch.texarrayID).Bind()
 				
 			self.vbo.AddData(batch.data, batch.dataSize)
 
@@ -86,7 +83,6 @@ class BasicRenderer(RendererComponent):
 	
 	def RenderQuad(self, transform: Matrix4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple):
 		transformedVerts = TransformQuadVertices(transform.to_tuple())
-
 		
 		data = [
 			transformedVerts[0].x, transformedVerts[0].y, transformedVerts[0].z, color[0], color[1], color[2], color[3], 0.0, texHandle.V, 			texHandle.Index, tilingFactor[0], tilingFactor[1],

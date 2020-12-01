@@ -84,10 +84,7 @@ class ParticleRenderer(RendererComponent):
 		self.vao.Bind()
 
 		for batch in self.__batches:
-			if batch.texarrayID != -1:
-				GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, batch.texarrayID)
-			else:
-				TextureManager.GetArray(TextureManager.BlankArray).Bind()
+			TextureManager.GetArray(batch.texarrayID).Bind()
 
 			self.vbo.AddData(batch.data, batch.dataSize)
 

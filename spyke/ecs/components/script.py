@@ -1,6 +1,7 @@
 from ...debug import Log, LogLevel
 
 import os
+import importlib.util
 
 class ScriptComponent(object):
 	@staticmethod
@@ -15,7 +16,9 @@ class ScriptComponent(object):
 		self.entity = 0
 		self.world = None
 
-		ext = __import__(file[:-3], globals(), locals())
+		spec = importlib.util.spec_from_file_location(os.path.basename(file).split(".")[0], file)
+		ext = importlib.util.module_from_spec(spec)
+		spec.loader.exec_module(ext)
 		
 		func = None
 		for attr in dir(ext):

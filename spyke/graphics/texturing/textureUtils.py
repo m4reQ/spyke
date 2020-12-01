@@ -11,11 +11,11 @@ class TextureData(object):
 		self.ImageName = ""
 
 class TextureHandle(object):
-	def __init__(self, u: float, v: float, index: float, arrayId: int):
+	def __init__(self, u: float, v: float, index: float):
 		self.U = u
 		self.V = v
 		self.Index = index
-		self.TexarrayID = arrayId
+		self.TexarrayID = 0
 		self.Width = 0
 		self.Height = 0
 
@@ -34,4 +34,4 @@ IMAGE_FORMAT_MAP = {
 	"PNG": TextureType.Rgba,
 	"RGBA": TextureType.Rgba}
 
-NoTexture = TextureHandle(0.5, 0.5, 0.0, -1)
+NoTexture = TextureHandle(0.5, 0.5, 0.0)

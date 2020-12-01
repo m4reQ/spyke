@@ -71,7 +71,7 @@ class TextureArray(object):
 		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, texData.Width, texData.Height, 1, texData.TextureType, TextureArray.__Pixeltype, numpy.asarray(texData.Data, dtype = numpy.uint8))
 		GL.glGenerateMipmap(GL.GL_TEXTURE_2D_ARRAY)
 
-		handle = TextureHandle((texData.Width - 0.5) / self.__maxWidth, (texData.Height - 0.5) / self.__maxHeight, self.__currentLayer, self.__id)
+		handle = TextureHandle((texData.Width - 0.5) / self.__maxWidth, (texData.Height - 0.5) / self.__maxHeight, self.__currentLayer)
 		handle.Width = texData.Width
 		handle.Height = texData.Height
 

@@ -8,7 +8,7 @@ from PIL import Image
 #endregion
 
 class TextureLoader(Static):
-	def LoadTexture(filepath: str, texArray: TextureArray) -> TextureHandle:
+	def LoadTexture(filepath: str, texArray: TextureArray, arrayManagerId: int) -> TextureHandle:
 		Timer.Start()
 
 		try:
@@ -27,6 +27,7 @@ class TextureLoader(Static):
 
 		texData.ImageName = filepath
 		handle = texArray.UploadTexture(texData)
+		handle.TexarrayID = arrayManagerId
 
 		Log(f"Image '{filepath}' loaded in {Timer.Stop()} seconds.", LogLevel.Info)
 

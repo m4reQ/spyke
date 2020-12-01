@@ -17,32 +17,17 @@ class FontManager(Static):
 
 	__Fonts = {}
 
-	TextureArray = None
-	Initialized = False
-
 	def Reload() -> None:
-		FontManager.TextureArray = None
 		FontManager.__Fonts.clear()
-		FontManager.Initialized = False
-
-	def Initialize() -> None:
-		if FontManager.Initialized:
-			Log("Font manager already initialized.", LogLevel.Warning)
-			return
-		
-		FontManager.TextureArray = TextureManager.CreateTextureArray(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures, 1)
-
-		FontManager.Initialized = True
 	
 	def Use() -> None:
-		TextureManager.GetArray(FontManager.TextureArray).Bind()
+		TextureManager.GetArray(TextureManager.FontArray).Bind()
 	
 	def CreateFont(fontFilepath: str, bitmapFilepath: str, fontName: str) -> None:
-		if not FontManager.Initialized:
-			Log("Font manager not initialized. Initializing...", LogLevel.Warning)
-			FontManager.Initialize()
+		if TextureManager.FontArray == -1:
+			TextureManager.FontArray = TextureManager.CreateTextureArray(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures, 1)
 
-		TextureManager.LoadTexture(bitmapFilepath, FontManager.TextureArray)
+		TextureManager.LoadTexture(bitmapFilepath, TextureManager.FontArray)
 		FontManager.__Fonts[fontName] = Font(fontFilepath, bitmapFilepath)
 	
 	@lru_cache
