@@ -9,6 +9,8 @@ from ..input import *
 from ..utils import LerpVec2, LerpVec4, LerpFloat
 from ..transform import Vector3
 from ..graphics import Renderer
+
+from OpenGL.GL import glClear, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT
 #endregion
 
 def InitializeDefaultProcessors(scene: Scene):
@@ -22,7 +24,7 @@ def InitializeDefaultProcessors(scene: Scene):
 
 class RenderingProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		GLCommand.Clear(ClearMask.ColorBufferBit | ClearMask.DepthBufferBit)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		
 		Renderer.BeginScene()
 		for _, (sprite, transform, color) in self.world.GetComponents(SpriteComponent, TransformComponent, ColorComponent):

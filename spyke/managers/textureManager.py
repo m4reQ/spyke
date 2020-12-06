@@ -29,6 +29,9 @@ class TextureManager(Static):
 		TextureManager.BlankArray = -1
 		TextureManager.FontArray = -1
 
+		TextureManager.GetArray.cache_clear()
+		TextureManager.GetTexture.cache_clear()
+
 	def CreateBlankArray() -> None:
 		if TextureManager.BlankArray != -1:
 			Log("Blank texture array already created.", LogLevel.Warning)

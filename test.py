@@ -50,17 +50,17 @@ class Window(GlfwWindow):
 		self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
 		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
 		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
-		self.particleSystem1.sizeBegin = Vector2(0.1, 0.1)
+		self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
 		self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
-		self.particleSystem1.velocity = Vector2(0.3, 0.2)
-		self.particleSystem1.rotationVelocity = 0.5
+		self.particleSystem1.velocity = Vector2(0.1, 0.3)
+		self.particleSystem1.rotationVelocity = 0.0
 		self.particleSystem1.randomizeMovement = True
 		self.particleSystem1.fadeOut = True
 		self.particleSystem1.texHandle = "tests/test1.jpg"
 		SceneManager.Current.AddComponent(self.ent4, self.particleSystem1)
 
-		#ImGui.BindScene(self.scene)
-		#ImGui.Initialize(self)
+		ImGui.Initialize(self)
+		ImGui.UpdateScene()
 
 		Renderer.Initialize(self.specs.Multisample)
 

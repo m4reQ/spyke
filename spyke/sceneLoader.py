@@ -76,7 +76,8 @@ def __DecodeLine(line: str, scene: Scene):
 
 			FontManager.CreateFont(fontFilepath, bitmapFilepath, name)
 	elif line.startswith("e "):
-		EntityManager.CreateEntity(scene, line[1])
+		name = line.split(" ")[1]
+		EntityManager.CreateEntity(name)
 	elif line.startswith("c "):
 		lineData = line.split(" ")
 

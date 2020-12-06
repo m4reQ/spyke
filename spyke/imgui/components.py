@@ -169,7 +169,7 @@ class ScriptEditor(tk.Frame):
 
 		self.filepathNameLabel = tk.Label(self, text = "Filepath: ", anchor = "w", bg = "white", font = ("Helvetica", 9, "bold"))
 		self.filepathLabel = tk.Label(self, text = "", bg = "white", anchor = "w", font = ("Helvetica", 9, "italic"))
-		self.previewText = tk.Text(self, bg = "white", font = ("Helvetica", 7), height = 11)
+		self.previewText = tk.Text(self, bg = "white", font = ("Helvetica", 6), height = 11, width = 30)
 
 		self.comp = None
 
@@ -177,7 +177,7 @@ class ScriptEditor(tk.Frame):
 		self.grid_columnconfigure(0, weight = 1)
 		self.grid_columnconfigure(1, weight = 1)
 		self.filepathNameLabel.grid(row = 0, column = 0, sticky = "we")
-		self.filepathLabel.grid(row = 0, column = 1, sticky = "news")
+		self.filepathLabel.grid(row = 0, column = 1, sticky = "we")
 		self.previewText.grid(row = 1, column = 0, columnspan = 2, sticky = "news")
 		#endregion
 

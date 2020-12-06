@@ -1,13 +1,17 @@
 #region Import
 from .components import *
+from .dialogWindow import DialogWindow
 from .. import IS_NVIDIA
 from ..debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
 from ..ecs.components import *
 from ..graphics import Renderer
 from ..utils import RequestGC
+from ..managers import SceneManager, EntityManager
+from ..sceneLoader import LoadScene, SaveScene
 
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 import random
 from pydoc import locate
 #endregion
@@ -23,7 +27,6 @@ class ImGui:
 	__InspectorUpdate = False
 
 	__ParentWindow = None
-	__Scene = None
 
 	__SelectedEntity = None
 	__LastSelectedEntity = None
@@ -60,6 +63,20 @@ Window size: {4}x{5}"""
 		Log("ImGui window closed.", LogLevel.Info)
 	MainWindow.protocol("WM_DELETE_WINDOW", Close)
 
+	def Save() -> None:
+		f = filedialog.asksaveasfilename(parent = ImGui.MainWindow, initialdir = "/", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+		if f == None:
+			return
+		
+		SaveScene(SceneManager.Current, f)
+	
+	def Open() -> None:
+		f = filedialog.askopenfilename(parent = ImGui.MainWindow, initialdir = "/", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+		if f == None:
+			return
+		
+		LoadScene(f)
+
 	#widgets
 	RenderStatsLabel = tk.Label(MainWindow, text = "Render stats", bd = 0)
 	EntitiesLabel = tk.Label(MainWindow, text = "Entities", bd = 0)
@@ -73,7 +90,10 @@ Window size: {4}x{5}"""
 
 	#popup menu
 	def __AddEntity():
-		EntityManager.CreateEntity(ImGui.__Scene, str(random.randint(0, 10)))
+		popupWindow = DialogWindow(ImGui.MainWindow, "Create Enitity", "Entity name: ")
+		popupWindow.AwaitWindow()
+
+		EntityManager.CreateEntity(popupWindow.value)
 		ImGui.__SceneUpdate = True
 
 	TreeviewPopupMenu = tk.Menu(MainWindow, tearoff = 0)
@@ -84,8 +104,8 @@ Window size: {4}x{5}"""
 
 	FileMenu = tk.Menu(MainMenu, tearoff = 0)
 	FileMenu.add_command(label = "New Scene")
-	FileMenu.add_command(label = "Open Scene...")
-	FileMenu.add_command(label = "Save Scene...")
+	FileMenu.add_command(label = "Open Scene...", command = Open)
+	FileMenu.add_command(label = "Save Scene...", command = Save)
 	FileMenu.add_separator()
 	FileMenu.add_command(label = "Exit", command = Close)
 
@@ -100,6 +120,12 @@ Window size: {4}x{5}"""
 		"Transform": TransformEditor(InspectorFrame),
 		"Script": ScriptEditor(InspectorFrame),
 		"Line": LineEditor(InspectorFrame)}
+	EditorsSeparator = ttk.Separator(InspectorFrame, orient = "horizontal")
+
+	#inspector grid
+	InspectorFrame.grid_columnconfigure(0, weight = 1)
+	EntityName.grid(row = 0, column = 0, sticky = "news")
+	ComponentName.grid(row = 1, column = 0, sticky = "news")
 
 	#grid
 	RenderStatsLabel.grid(row = 0, column = 0, sticky = "ew")
@@ -108,11 +134,6 @@ Window size: {4}x{5}"""
 	EntitiesTree.grid(row = 1, column = 1, sticky = "news")
 	InspectorLabel.grid(row = 0, column = 2, sticky = "news")
 	InspectorFrame.grid(row = 1, column = 2, sticky = "news")
-
-	#inspector grid
-	InspectorFrame.grid_columnconfigure(0, weight = 1)
-	EntityName.grid(row = 0, column = 0, sticky = "news")
-	ComponentName.grid(row = 1, column = 0, sticky = "news")
 
 	#region EventHandling
 	def __SelectTreeview(event):
@@ -138,7 +159,7 @@ Window size: {4}x{5}"""
 			typeName = typeName.replace("'>", "")
 			
 			compType = locate(typeName)
-			ImGui.__SelectedComponent = ImGui.__Scene.ComponentForEntity(ImGui.__SelectedEntity, compType)
+			ImGui.__SelectedComponent = SceneManager.Current.ComponentForEntity(ImGui.__SelectedEntity, compType)
 		
 		ImGui.__InspectorUpdate = True
 	
@@ -154,10 +175,6 @@ Window size: {4}x{5}"""
 	EntitiesTree.bind('<<TreeviewSelect>>', __SelectTreeview)
 	EntitiesTree.bind('<Button-3>', __TreeviewPopMenu)
 	#endregion
-	
-	def BindScene(scene) -> None:
-		ImGui.__Scene = scene
-		ImGui.__SceneUpdate = True
 
 	def UpdateScene() -> None:
 		ImGui.__SceneUpdate = True
@@ -186,18 +203,20 @@ Window size: {4}x{5}"""
 	def __UnbindEditors():
 		for e in ImGui.Inspectors.values():
 			e.grid_forget()
+		
+		ImGui.ComponentName.configure(text = "\n")
 
 	def __HandleEntities() -> None:
-		if not ImGui.__Scene or not ImGui.__SceneUpdate:
+		if not ImGui.__SceneUpdate:
 			return
 		
 		for child in ImGui.EntitiesTree.get_children():
 			ImGui.EntitiesTree.delete(child)
 		
 		_id = 0
-		for ent in ImGui.__Scene._entities:
+		for ent in SceneManager.Current._entities:
 			entView = ImGui.EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
-			for comp in ImGui.__Scene.ComponentsForEntity(ent):
+			for comp in SceneManager.Current.ComponentsForEntity(ent):
 				ImGui.EntitiesTree.insert(entView, "end", tags = str(_id), text = type(comp).__name__.replace("Component", ""), values = (type(comp),))
 				_id += 1
 		
@@ -221,7 +240,7 @@ Window size: {4}x{5}"""
 	def __SelectEditor(name: str):
 		ImGui.ComponentName.configure(text = name)
 		ImGui.Inspectors[name].SetComp(ImGui.__SelectedComponent)
-		ImGui.Inspectors[name].grid(row = 2, column = 0, sticky = "news")
+		ImGui.Inspectors[name].grid(row = 3, column = 0, sticky = "news")
 
 	def __HandleInspector() -> None:
 		if not ImGui.__InspectorUpdate:
@@ -234,7 +253,11 @@ Window size: {4}x{5}"""
 		
 		if not ImGui.__SelectedComponent:
 			ImGui.__InspectorUpdate = False
+			ImGui.EditorsSeparator.grid_forget()
+			ImGui.__UnbindEditors()
 			return
+
+		ImGui.EditorsSeparator.grid(row = 2, column = 0, sticky = "ew", pady = 3)
 
 		ImGui.__UnbindEditors()
 		if type(ImGui.__SelectedComponent) == ColorComponent:
