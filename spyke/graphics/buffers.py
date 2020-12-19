@@ -1,6 +1,7 @@
 from .. import USE_FAST_MIN_FILTER
 from ..utils import INT_SIZE, GetPointer, ObjectManager
 from ..enums import BufferUsageFlag
+from ..debug import Log, LogLevel
 
 from OpenGL import GL
 import numpy
@@ -90,9 +91,9 @@ class Framebuffer(object):
 	__PixelType = GL.GL_UNSIGNED_BYTE
 
 	if USE_FAST_MIN_FILTER:
-		__MinFilter = GL.GL_LINEAR
-	else:
 		__MinFilter = GL.GL_NEAREST
+	else:
+		__MinFilter = GL.GL_LINEAR
 
 	def __init__(self, specification: FramebufferSpecs):
 		self.__spec = specification
@@ -114,30 +115,34 @@ class Framebuffer(object):
 		else:
 			GL.glBindTexture(GL.GL_TEXTURE_2D, self.__colorAttachmentId)
 			GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, Framebuffer.__InternalFormat, self.__spec.Width, self.__spec.Height, 0, Framebuffer.__PixelFormat, Framebuffer.__PixelType, None) ################################
-			GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MIN_FILTER, Framebuffer.__MinFilter)
-			GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, Framebuffer.__MinFilter)
+			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 		
 		self.__id = GL.glGenFramebuffers(1)
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.__id)
-		GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D_MULTISAMPLE if self.__spec.Samples > 4 else GL.GL_TEXTURE_2D, self.__colorAttachmentId, 0)
+		GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D_MULTISAMPLE if self.__spec.Samples > 1 else GL.GL_TEXTURE_2D, self.__colorAttachmentId, 0)
 
 		if self.__spec.HasDepthAttachment:
+			self.__depthAttachmentId = GL.glGenTextures(1)
 			GL.glBindTexture(GL.GL_TEXTURE_2D, self.__depthAttachmentId)
-			GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT, self.__spec.Width, self.__spec.Height, 0, GL.GL_DEPTH_COMPONENT, Framebuffer.__PixelType, None)
-			GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D, self.__depthAttachmentId, 0)
+			GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH24_STENCIL8, self.__spec.Width, self.__spec.Height, 0, GL.GL_DEPTH_STENCIL, GL.GL_UNSIGNED_INT_24_8, None)
 
-			GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MIN_FILTER, Framebuffer.__MinFilter)
-			GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, Framebuffer.__MinFilter)
+			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
 			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
 			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
 
-		GL.glDrawBuffer(GL.GL_NONE)
+			GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D, self.__depthAttachmentId, 0)
+
+		#GL.glDrawBuffer(GL.GL_NONE)
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 		
 		if not resizing:
 			err = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
 			if err != GL.GL_FRAMEBUFFER_COMPLETE:
-				raise RuntimeError(f"Framebuffer {self.__id} incomplete: {err}.")
+				raise RuntimeError(f"Framebuffer (id: {self.__id} incomplete: {err}.")
+			else:
+				Log(f"Framebuffer (id: {self.__id}) created succesfully", LogLevel.Info)
 	
 	def Resize(self, width: int, height: int) -> None:
 		self.__spec.Width = width
@@ -152,9 +157,35 @@ class Framebuffer(object):
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
 	def Delete(self) -> None:
-		GL.glDeleteTextures([self.__colorAttachmentId])
 		GL.glDeleteFramebuffers(1, [self.__id])
+		GL.glDeleteTextures([self.__colorAttachmentId])
+		if self.__spec.HasDepthAttachment:
+			GL.glDeleteTextures([self.__depthAttachmentId])
 	
 	@staticmethod
 	def UnbindAll() -> None:
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+	
+	@property
+	def Width(self) -> int:
+		return self.__spec.Width
+	
+	@property
+	def Height(self) -> int:
+		return self.__spec.Height
+	
+	@property
+	def ColorAttachment(self) -> int:
+		return self.__colorAttachmentId
+	
+	@property
+	def DepthAttachment(self) -> int:
+		return self.__depthAttachmentId
+	
+	@property
+	def IsMultisampled(self) -> bool:
+		return self.__spec.Samples > 1
+	
+	@property
+	def Samples(self) -> int:
+		return self.__spec.Samples

@@ -20,15 +20,6 @@ from spyke.transform import *
 from spyke.input import *
 from spyke.sceneLoader import SaveScene, LoadScene
 
-class UserProcessor(Processor):
-	def __init__(self):
-		self.timer = Delayer(2.0)
-	
-	def Process(self, *args, **kwargs):
-		if not self.timer.IsWaiting():
-			part = self.world.ComponentForEntity(kwargs["ent"], ParticleSystemComponent)
-			part.EmitParticles(5)
-
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
 		super().__init__(windowSpec)
@@ -46,18 +37,18 @@ class Window(GlfwWindow):
 
 		LoadScene("tests/newScene.scn")
 
-		self.ent4 = EntityManager.CreateEntity("Particles")
-		self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
-		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
-		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
-		self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
-		self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
-		self.particleSystem1.velocity = Vector2(0.1, 0.3)
-		self.particleSystem1.rotationVelocity = 0.0
-		self.particleSystem1.randomizeMovement = True
-		self.particleSystem1.fadeOut = True
-		self.particleSystem1.texHandle = "tests/test1.jpg"
-		SceneManager.Current.AddComponent(self.ent4, self.particleSystem1)
+		# self.ent4 = EntityManager.CreateEntity("Particles")
+		# self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
+		# self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
+		# self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
+		# self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
+		# self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
+		# self.particleSystem1.velocity = Vector2(0.1, 0.3)
+		# self.particleSystem1.rotationVelocity = 0.0
+		# self.particleSystem1.randomizeMovement = True
+		# self.particleSystem1.fadeOut = True
+		# self.particleSystem1.texHandle = "tests/test1.jpg"
+		# SceneManager.Current.AddComponent(self.ent4, self.particleSystem1)
 
 		ImGui.Initialize(self)
 		ImGui.UpdateScene()
@@ -65,21 +56,21 @@ class Window(GlfwWindow):
 		Renderer.Initialize(self.specs.Multisample)
 
 		InitializeDefaultProcessors(SceneManager.Current)
-		SceneManager.Current.AddProcessor(UserProcessor())
+		# SceneManager.Current.AddProcessor(UserProcessor())
 
-		#fbSpec = FramebufferSpecs(self.width, self.height)
-		#fbSpec.Samples = 4
-		#fbSpec.HasDepthAttachment = False
+		fbSpec = FramebufferSpecs(self.width, self.height)
+		fbSpec.Samples = 2
+
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
-		renderTarget = RenderTarget(self.camera)#, Framebuffer(fbSpec))
-		self.renderTargetId = Renderer.AddRenderTarget(renderTarget)
-		Renderer.BindRenderTarget(self.renderTargetId)
+		self.renderTarget = RenderTarget(self.camera, Framebuffer(fbSpec))
+
+		self.posTEST = glm.translate(glm.mat4(1.0), glm.vec3(-0.3, -0.4, 0.0))
 
 		RequestGC()
 
 	def OnFrame(self):
-		SceneManager.Current.Process(window = self, ent = self.ent4)
-		#self.renderer.RenderFramebuffer(self.scene.ComponentForEntity(self.ent2, TransformComponent).Matrix, self.renderTarget.Framebuffer, self.renderTarget.Camera.viewProjectionMatrix)
+		SceneManager.Current.Process(window = self, renderTarget = self.renderTarget)
+		Renderer.PostRender(self.posTEST, self.renderTarget, Color(0.5))
 		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(SceneManager.Current.GetFrameTime(), 5)) + "s")
 
 	def OnClose(self):

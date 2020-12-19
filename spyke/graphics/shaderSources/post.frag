@@ -1,8 +1,6 @@
 #version 450 core
-
 in vec4 vColor;
 in vec2 vTexCoord;
-in vec2 vTilingFactor;
 
 out vec4 Color;
 
@@ -28,9 +26,9 @@ void main()
     vec4 texColor;
 
     if (uSamples > 1)
-        texColor = textureMultisample(uTextureMS, vTexCoord * vTilingFactor, uSamples);
+        texColor = textureMultisample(uTextureMS, vTexCoord, uSamples);
     else
-        texColor = texture(uTexture, vTexCoord * vTilingFactor);
+        texColor = texture(uTexture, vTexCoord);
         
     Color = texColor * vColor;
 }

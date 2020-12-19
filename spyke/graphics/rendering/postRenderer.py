@@ -1,5 +1,6 @@
 #region Import
 from .renderStats import RenderStats
+from .renderTarget import RenderTarget
 from ..shader import Shader
 from ..buffers import DynamicVertexBuffer, Framebuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
@@ -8,10 +9,11 @@ from ...transform import Matrix4, TransformQuadVertices
 from ...enums import VertexAttribType, ShaderType
 
 from OpenGL import GL
+import glm
 #endregion
 
 class PostRenderer(object):
-	__VertexSize = 3 * GL_FLOAT_SIZE
+	__VertexSize = (3 + 4 + 2) * GL_FLOAT_SIZE
 
 	def __init__(self):
 		self.shader = Shader()
@@ -24,6 +26,7 @@ class PostRenderer(object):
 		self.__vbo.Bind()
 		self.__vao.Bind()
 		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 3, VertexAttribType.Float, False))
+		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 4, VertexAttribType.Float, False))
 		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aTexCoord"), 2, VertexAttribType.Float, False))
 
 		self.__renderStats = RenderStats()
@@ -31,26 +34,40 @@ class PostRenderer(object):
 		self.BeginScene = lambda *_, **__: None
 		self.EndScene = lambda *_, **__: None
 	
-	def Render(self, transform: Matrix4, framebuffer: Framebuffer, viewProjection: Matrix4) -> None:
+	def Render(self, transform: Matrix4, renderTarget: RenderTarget, color: glm.vec4) -> None:
 		self.__renderStats.Clear()
 		Timer.Start()
 
 		translatedVerts = TransformQuadVertices(transform.to_tuple())
 
 		data = [
-			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 1.0,
-			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, 0.0, 0.0,
-			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, 1.0, 0.0,
-			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, 1.0, 0.0,
-			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, 1.0, 1.0,
-			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 1.0]
+			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, color.x, color.y, color.z, color.w, 0.0, 0.0,
+			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, color.x, color.y, color.z, color.w, 0.0, 1.0,
+			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, color.x, color.y, color.z, color.w, 1.0, 1.0,
+			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, color.x, color.y, color.z, color.w, 1.0, 1.0,
+			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, color.x, color.y, color.z, color.w, 1.0, 0.0,
+			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, color.x, color.y, color.z, color.w, 0.0, 0.0]
 		
 		self.shader.Use()
-		self.shader.SetUniformMat4("uViewProjection", viewProjection, False)
+		self.shader.SetUniform1i("uSamples", renderTarget.Samples)
+
+		if renderTarget.Framebuffer.IsMultisampled:
+			GL.glBindTextureUnit(1, renderTarget.Framebuffer.ColorAttachment)
+			GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, renderTarget.Framebuffer.ColorAttachment)
+		else:
+			GL.glBindTextureUnit(0, renderTarget.Framebuffer.ColorAttachment)
+			GL.glBindTexture(GL.GL_TEXTURE_2D, renderTarget.Framebuffer.ColorAttachment)
 
 		self.__vbo.Bind()
+		self.__vao.Bind()
+
 		self.__vbo.AddData(data, len(data) * GL_FLOAT_SIZE)
+
+		#GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
+
+		#GL.glDisable(GL.GL_DEPTH_TEST)
 		GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
+		#GL.glEnable(GL.GL_DEPTH_TEST)
 
 		self.__renderStats.VertexCount += 6
 		self.__renderStats.DrawTime = Timer.Stop()

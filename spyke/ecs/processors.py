@@ -26,7 +26,11 @@ class RenderingProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		
-		Renderer.BeginScene()
+		if not "renderTarget" in kwargs.keys():
+			Log("No render target bound. Nothing will be drawn.", LogLevel.Warning)
+			return
+		
+		Renderer.BeginScene(kwargs["renderTarget"])
 		for _, (sprite, transform, color) in self.world.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
 			Renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
 		
@@ -50,9 +54,8 @@ class TransformProcessor(Processor):
 			if transform.ShouldRecalculate:
 				transform.Recalculate()
 
-		for renderTarget in Renderer.RenderTargets:
-			if renderTarget.Camera.shouldRecalculate:
-				renderTarget.Camera.RecalculateMatrices()
+		# if renderTarget.Camera.shouldRecalculate:
+		# 	renderTarget.Camera.RecalculateMatrices()
 
 class ScriptProcessor(Processor):
 	def Process(self, *args, **kwargs):

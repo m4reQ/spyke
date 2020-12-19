@@ -12,9 +12,11 @@ from ..text.font import Font
 from ..glCommands import GLCommand
 from ...enums import UniformTarget, EnableCap, Hint, HintMode
 from ...debug import Log, LogLevel
-from ...transform import Vector3, Matrix4, Vector2
+from ...transform import Vector3, Matrix4, Vector2, Vector4
 from ... import USE_FAST_NV_MULTISAMPLE, IS_NVIDIA
 from ...utils import Static
+
+from OpenGL import GL
 #endregion
 
 class Renderer(Static):
@@ -25,9 +27,8 @@ class Renderer(Static):
 		"part": None,
 		"post": None}
 	
-	RenderTargets = []
-	__RenderTargetActive = -1
-	__ClearFrameBuffers = False
+	__RenderTarget = None
+
 	VertexCount = 0
 	DrawsCount = 0
 
@@ -45,22 +46,12 @@ class Renderer(Static):
 					GLCommand.Hint(Hint.MultisampleFilterNvHint, HintMode.Fastest)
 				else:
 					GLCommand.Hint(Hint.MultisampleFilterNvHint, HintMode.Nicest)
-	
-	def AddRenderTarget(renderTarget: RenderTarget) -> int:
-		_id = len(Renderer.RenderTargets)
-		Renderer.RenderTargets.append(renderTarget)
+		
+		GL.glCullFace(GL.GL_FRONT)
+		GL.glPolygonMode(GL.GL_FRONT, GL.GL_FILL)
 
-		return _id
-	
-	def BindRenderTarget(id: int) -> None:
-		Renderer.__RenderTargetActive = id
-
-	def BeginScene() -> None:
-		try:
-			renderTarget = Renderer.RenderTargets[Renderer.__RenderTargetActive]
-		except IndexError:
-			Log(f"Invalid render target id: {Renderer.__RenderTargetActive}.", LogLevel.Error)
-			return
+	def BeginScene(renderTarget: RenderTarget) -> None:
+		Renderer.__RenderTarget = renderTarget
 
 		for renderer in Renderer.__Renderers.values():
 			renderer.BeginScene(renderTarget.Camera.viewProjectionMatrix)
@@ -69,11 +60,12 @@ class Renderer(Static):
 		Renderer.DrawsCount = 0
 		Renderer.VertexCount = 0
 
-		try:
-			Renderer.Renderer.RenderTargets[Renderer.__RenderTargetActive].Framebuffer.Bind()
-			Renderer.__ClearFrameBuffers = True
-		except (AttributeError, IndexError):
-			pass
+		if Renderer.__RenderTarget:
+			Renderer.__RenderTarget.ContainsPass = False
+
+			if Renderer.__RenderTarget.HasFramebuffer:
+				Renderer.__RenderTarget.Framebuffer.Bind()
+				Renderer.__RenderTarget.ContainsPass = True
 
 		for renderer in Renderer.__Renderers.values():
 			renderer.EndScene()
@@ -81,9 +73,9 @@ class Renderer(Static):
 			Renderer.DrawsCount += stats.DrawsCount
 			Renderer.VertexCount += stats.VertexCount
 		
-		if Renderer.__ClearFrameBuffers:
-			Framebuffer.UnbindAll()
-			Renderer.__ClearFrameBuffers = False
+		if Renderer.__RenderTarget:
+			if Renderer.__RenderTarget.HasFramebuffer:
+				Renderer.__RenderTarget.Framebuffer.Unbind()
 	
 	def RenderQuad(transform: Matrix4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple) -> None:
 		Renderer.__Renderers["basic"].RenderQuad(transform, color, texHandle, tilingFactor)
@@ -97,8 +89,8 @@ class Renderer(Static):
 	def RenderParticle(pos: Vector2, size: Vector2, rot: float, color: tuple, texHandle: TextureHandle) -> None:
 		Renderer.__Renderers["part"].RenderParticle(pos, size, rot, color, texHandle)
 	
-	def RenderFramebuffer(transform: Matrix4, framebuffer: Framebuffer, viewProjectionMatrix: Matrix4) -> None:
-		Renderer.__Renderers["post"].RenderFramebuffer(transform, framebuffer, viewProjectionMatrix)
+	def PostRender(transform: Matrix4, renderTarget: RenderTarget, color: Vector4) -> None:
+		Renderer.__Renderers["post"].Render(transform, renderTarget, color)
 	
 	def Resize(width: int, height: int) -> None:
 		Renderer.__Renderers["text"].Resize(width, height)
