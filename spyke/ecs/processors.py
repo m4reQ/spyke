@@ -4,7 +4,7 @@ from .components import *
 from ..graphics import Renderer, GLCommand, OrthographicCamera, RenderTarget
 from ..enums import ClearMask, AudioState
 from ..debug import Log, LogLevel
-from ..imgui import ImGui
+from ..imgui import ImGui as _ImGui
 from ..input import *
 from ..utils import LerpVec2, LerpVec4, LerpFloat
 from ..transform import Vector3
@@ -18,7 +18,7 @@ def InitializeDefaultProcessors(scene: Scene):
 	scene.AddProcessor(TransformProcessor())
 	scene.AddProcessor(ParticleProcessor())
 	scene.AddProcessor(ScriptProcessor())
-	if ImGui.IsInitialized():
+	if _ImGui.IsInitialized():
 		scene.AddProcessor(ImguiProcessor())
 	scene.AddProcessor(RenderingProcessor(), priority = 99)
 
@@ -31,26 +31,26 @@ class RenderingProcessor(Processor):
 			return
 		
 		Renderer.BeginScene(kwargs["renderTarget"])
-		for _, (sprite, transform, color) in self.world.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
+		for _, (sprite, transform, color) in self.scene.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
 			Renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
 		
-		for _, (line, color) in self.world.GetComponents(LineComponent, ColorComponent):
+		for _, (line, color) in self.scene.GetComponents(LineComponent, ColorComponent):
 			Renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
 		
-		for _, particleComponent in self.world.GetComponent(ParticleSystemComponent):
+		for _, particleComponent in self.scene.GetComponent(ParticleSystemComponent):
 			for particle in particleComponent.particlePool:
 				if not particle.isAlive:
 					continue
 
 				Renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
 		
-		for _, (text, transform, color) in self.world.GetComponents(TextComponent, TransformComponent, ColorComponent):
+		for _, (text, transform, color) in self.scene.GetComponents(TextComponent, TransformComponent, ColorComponent):
 			Renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
 		Renderer.EndScene()
 
 class TransformProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		for _, transform in self.world.GetComponent(TransformComponent):
+		for _, transform in self.scene.GetComponent(TransformComponent):
 			if transform.ShouldRecalculate:
 				transform.Recalculate()
 
@@ -59,7 +59,7 @@ class TransformProcessor(Processor):
 
 class ScriptProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		for _, script in self.world.GetComponent(ScriptComponent):
+		for _, script in self.scene.GetComponent(ScriptComponent):
 			script.Process()
 
 class WindowEventProcessor(Processor):
@@ -73,18 +73,18 @@ class WindowEventProcessor(Processor):
 
 class ImguiProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		ImGui.OnFrame()
+		_ImGui.OnFrame()
 
 class AudioProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		for _, audio in self.world.GetComponent(AudioComponent):
+		for _, audio in self.scene.GetComponent(AudioComponent):
 			state = audio.Handle.GetState()
 
 class ParticleProcessor(Processor):
 	def Process(self, *args, **kwargs):
-		dt = self.world.GetFrameTime()
+		dt = self.scene.GetFrameTime()
 
-		for _, particleComponent in self.world.GetComponent(ParticleSystemComponent):
+		for _, particleComponent in self.scene.GetComponent(ParticleSystemComponent):
 			for particle in particleComponent.particlePool:
 				if not particle.isAlive:
 					continue

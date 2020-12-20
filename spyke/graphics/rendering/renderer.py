@@ -60,12 +60,15 @@ class Renderer(Static):
 		Renderer.DrawsCount = 0
 		Renderer.VertexCount = 0
 
-		if Renderer.__RenderTarget:
+		try:
 			Renderer.__RenderTarget.ContainsPass = False
 
 			if Renderer.__RenderTarget.HasFramebuffer:
 				Renderer.__RenderTarget.Framebuffer.Bind()
+				GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 				Renderer.__RenderTarget.ContainsPass = True
+		except AttributeError:
+			pass
 
 		for renderer in Renderer.__Renderers.values():
 			renderer.EndScene()
@@ -73,9 +76,11 @@ class Renderer(Static):
 			Renderer.DrawsCount += stats.DrawsCount
 			Renderer.VertexCount += stats.VertexCount
 		
-		if Renderer.__RenderTarget:
+		try:
 			if Renderer.__RenderTarget.HasFramebuffer:
 				Renderer.__RenderTarget.Framebuffer.Unbind()
+		except AttributeError:
+			pass
 	
 	def RenderQuad(transform: Matrix4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple) -> None:
 		Renderer.__Renderers["basic"].RenderQuad(transform, color, texHandle, tilingFactor)
@@ -94,3 +99,7 @@ class Renderer(Static):
 	
 	def Resize(width: int, height: int) -> None:
 		Renderer.__Renderers["text"].Resize(width, height)
+		try:
+			Renderer.__RenderTarget.Framebuffer.Resize(width, height)
+		except AttributeError:
+			pass

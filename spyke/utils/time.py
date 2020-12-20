@@ -1,13 +1,13 @@
 import time
 
 class Delayer(object):
-	def __init__(self, waitTime):
+	def __init__(self, waitTime: float):
 		self.__firstWait = True
 		self.__waitTime = waitTime
 		self.__toWait = waitTime
 		self.__lastTime = 0.0
 
-	def IsWaiting(self):
+	def IsWaiting(self) -> bool:
 		if self.__firstWait:
 			self.__lastTime = time.perf_counter()
 			self.__firstWait = False

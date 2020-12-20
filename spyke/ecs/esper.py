@@ -8,6 +8,8 @@ Changes made by m4reQ:
 - added type hint to 'world' member in Processor class
 - moved Processor class below World class
 - added 'Timed' memeber in World class that indicates if it uses timed processing
+- Renamed 'world' Processors, class attribute to 'scene'
+- Added 'LateInit' method to Processor class. It is called after an object gets it's scene reference and is generally initialized.
 """
 
 import time as _time
@@ -73,7 +75,8 @@ class World:
 		"""
 		assert issubclass(processor_instance.__class__, Processor)
 		processor_instance.priority = priority
-		processor_instance.world = self
+		processor_instance.scene = self
+		processor_instance.LateInit()
 		self._processors.append(processor_instance)
 		self._processors.sort(key=lambda proc: proc.priority, reverse=True)
 
@@ -388,7 +391,10 @@ class Processor:
 	appropriate world methods there, such as
 	`for ent, (rend, vel) in self.world.get_components(Renderable, Velocity):`
 	"""
-	world: World = None
+	scene: World = None
+
+	def LateInit(self, *args, **kwargs):
+		pass
 
 	def Process(self, *args, **kwargs):
 		raise NotImplementedError
