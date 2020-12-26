@@ -8,6 +8,10 @@ def noexcept(func):
 		return r
 	return __wrapper
 
+class StaticProperty(property):
+    def __get__(self, cls, owner):
+        return classmethod(self.fget).__get__(None, owner)()
+
 class Abstract:
 	def __init__(self, *args, **kwargs):
 		raise RuntimeError("Cannot instantiate abstract class.")

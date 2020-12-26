@@ -7,7 +7,7 @@ from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..text.font import Font
 from ...managers import FontManager
-from ...transform import GetQuadIndexData, Matrix4, Vector3
+from ...transform import CreateQuadIndices, Matrix4, Vector3
 from ...utils import GL_FLOAT_SIZE, Timer
 from ...enums import GLType, VertexAttribType, ShaderType
 from ...debug import Log, LogLevel
@@ -29,7 +29,7 @@ class TextRenderer(RendererComponent):
 
 		self.vao = VertexArray(TextRenderer.__VertexSize)
 		self.vbo = DynamicVertexBuffer(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
-		self.ibo = StaticIndexBuffer(GetQuadIndexData(TextRenderer.MaxChars))
+		self.ibo = StaticIndexBuffer(CreateQuadIndices(TextRenderer.MaxChars))
 
 		self.vbo.Bind()
 		self.vao.Bind()

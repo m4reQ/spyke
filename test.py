@@ -20,6 +20,11 @@ from spyke.transform import *
 from spyke.input import *
 from spyke.sceneLoader import SaveScene, LoadScene
 
+######################
+from OpenGL import GL
+import numpy
+######################
+
 class UserProcessor(Processor):
 	def __init__(self):
 		self.delayer = Delayer(2.0)

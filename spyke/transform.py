@@ -4,15 +4,23 @@ from glm import vec2 as Vector2, vec3 as Vector3, mat4 as Matrix4, vec4 as Vecto
 from functools import lru_cache
 #endregion
 
+TWO_PI = glm.two_pi()
+
 IdentityMatrix4 = glm.mat4(1.0)
 
 QuadVertices = [
-	glm.vec4(0.0, 0.0, 0.0, 1.0),
-	glm.vec4(0.0, 1.0, 0.0, 1.0),
-	glm.vec4(1.0, 1.0, 0.0, 1.0),
-	glm.vec4(1.0, 0.0, 0.0, 1.0)]
+	glm.vec3(0.0, 0.0, 0.0),
+	glm.vec3(0.0, 1.0, 0.0),
+	glm.vec3(1.0, 1.0, 0.0),
+	glm.vec3(1.0, 0.0, 0.0)]
 
-def GetQuadIndexData(count: int) -> list:
+QuadVerticsFloat = [
+	0.0, 0.0, 0.0,
+	0.0, 1.0, 0.0,
+	1.0, 1.0, 0.0,
+	1.0, 0.0, 0.0]
+
+def CreateQuadIndices(count: int) -> list:
 	data = []
 
 	offset = 0
@@ -41,10 +49,10 @@ def CreateScale(size: tuple) -> glm.mat4:
 def CreateRotationZ(angle: float) -> glm.mat4:
     return glm.rotate(glm.mat4(1.0), angle, glm.vec3(0.0, 0.0, 1.0))
 
-def CreateTransform3D(pos: glm.vec3, size: glm.vec2, angle: float) -> glm.mat4:
+def CreateTransform3D(pos: glm.vec3, size: glm.vec3, rot: glm.vec3) -> glm.mat4:
 	transform = glm.translate(glm.mat4(1.0), pos)
-	transform = glm.scale(transform, glm.vec3(size, 0.0))
-	return glm.rotate(transform, glm.radians(angle), glm.vec3(0.0, 0.0, 1.0))
+	transform = glm.scale(transform, size)
+	return glm.rotate(transform, TWO_PI, rot)
 
 @lru_cache
 def TransformQuadVertices(transformTuple: tuple) -> list:
