@@ -64,15 +64,15 @@ Window size: {4}x{5}"""
 	MainWindow.protocol("WM_DELETE_WINDOW", Close)
 
 	def Save() -> None:
-		f = filedialog.asksaveasfilename(parent = ImGui.MainWindow, initialdir = "/", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
-		if f == None:
+		f = filedialog.asksaveasfilename(parent = ImGui.MainWindow, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+		if not f:
 			return
 		
 		SaveScene(SceneManager.Current, f)
 	
 	def Open() -> None:
-		f = filedialog.askopenfilename(parent = ImGui.MainWindow, initialdir = "/", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
-		if f == None:
+		f = filedialog.askopenfilename(parent = ImGui.MainWindow, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+		if not f:
 			return
 		
 		LoadScene(f)

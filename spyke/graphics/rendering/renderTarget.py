@@ -6,6 +6,7 @@ class RenderTarget(object):
         self.Camera = camera
         self.Framebuffer = framebuffer
         self.ContainsPass = False
+        self.ShouldResize = True
     
     @property
     def Width(self):

@@ -7,6 +7,7 @@ IMPORTED = False
 class SceneManager(Static):
 	Current = None
 	SceneName = ""
+	CurrentSceneChanged = False
 	
 	def CreateScene(name: str, timed: bool = False):
 		"""
