@@ -9,17 +9,5 @@ class RenderTarget(object):
         self.ShouldResize = True
     
     @property
-    def Width(self):
-        return self.Framebuffer.Width
-    
-    @property
-    def Height(self):
-        return self.Framebuffer.Height
-    
-    @property
-    def Samples(self):
-        return self.Framebuffer.Samples
-    
-    @property
     def HasFramebuffer(self):
         return self.Framebuffer != None

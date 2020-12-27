@@ -23,7 +23,7 @@ class VertexBuffer(object):
 		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.__id)
 	
 	def Unbind(self) -> None:
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
+		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 	
 	def Delete(self) -> None:
 		GL.glDeleteBuffers(1, [self.__id])
@@ -41,4 +41,4 @@ class VertexBuffer(object):
 	
 	@staticmethod
 	def UnbindAll() -> None:
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
+		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)

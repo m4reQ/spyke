@@ -20,11 +20,6 @@ from spyke.transform import *
 from spyke.input import *
 from spyke.sceneLoader import SaveScene, LoadScene
 
-######################
-from OpenGL import GL
-import numpy
-######################
-
 class UserProcessor(Processor):
 	def __init__(self):
 		self.delayer = Delayer(2.0)
@@ -52,34 +47,46 @@ class Window(GlfwWindow):
 		GLCommand.Enable(EnableCap.Blend)
 		GLCommand.BlendFunction(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha)
 
-		LoadScene("tests/newScene.scn")
+		# LoadScene("tests/newScene.scn")
 
-		self.ent4 = EntityManager.CreateEntity("Particles")
-		self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
-		self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
-		self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
-		self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
-		self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
-		self.particleSystem1.velocity = Vector2(0.1, 0.3)
-		self.particleSystem1.rotationVelocity = 0.0
-		self.particleSystem1.randomizeMovement = True
-		self.particleSystem1.fadeOut = True
-		self.particleSystem1.texHandle = "tests/test1.jpg"
-		SceneManager.Current.AddComponent(self.ent4, self.particleSystem1)
+		# self.ent4 = EntityManager.CreateEntity("Particles")
+		# self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
+		# self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
+		# self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
+		# self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
+		# self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
+		# self.particleSystem1.velocity = Vector2(0.1, 0.3)
+		# self.particleSystem1.rotationVelocity = 0.0
+		# self.particleSystem1.randomizeMovement = True
+		# self.particleSystem1.fadeOut = True
+		# self.particleSystem1.texHandle = "tests/test1.jpg"
+		# SceneManager.Current.AddComponent(self.ent4, self.particleSystem1)
 
-		ImGui.Initialize(self)
-		ImGui.UpdateScene()
+		#ImGui.Initialize(self)
+		#ImGui.UpdateScene()
 
 		Renderer.Initialize(self.specs.Multisample)
 
-		InitializeDefaultProcessors(SceneManager.Current)
-		SceneManager.Current.AddProcessor(UserProcessor())
+		arr = TextureManager.CreateTextureArray(1920, 1080, 1)
+		TextureManager.LoadTexture("tests/test1.jpg", arr)
 
-		#fbSpec = FramebufferSpecs(self.width, self.height)
-		#fbSpec.Samples = 2
+		SceneManager.CreateScene("TEST", True)
+		InitializeDefaultProcessors(SceneManager.Current)
+
+		ent = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent, TransformComponent(Vector3(0.0, 0.0, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 0.0)))
+		SceneManager.Current.AddComponent(ent, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0)))
+		SceneManager.Current.AddComponent(ent, ColorComponent(1.0, 1.0, 1.0, 1.0))
+		# SceneManager.Current.AddProcessor(UserProcessor())
+
+		fbSpec = FramebufferSpec(self.width, self.height)
+		fbSpec.Samples = 4
+		fbSpec.HasDepthAttachment = False ########################
+		fbSpec.Color = Color(1.0, 1.0, 1.0, 0.8)
+
+		self.framebuffer = Framebuffer(fbSpec)
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
-		#self.renderTarget = RenderTarget(self.camera, Framebuffer(fbSpec))
 		self.renderTarget = RenderTarget(self.camera)
 
 		self.posTEST = glm.translate(glm.mat4(1.0), glm.vec3(-1.0, -1.0, 0.0))

@@ -8,6 +8,9 @@ def StrToBool(string: str) -> bool:
 	else:
 		raise ValueError(f"Invalid string for conversion '{string}'.")
 
+def IsArrayLike(obj: object) -> True:
+	return "__getitem__" in dir(obj)
+
 def KwargParse(kwargs: dict, keywords: list, usage: str, copy = True) -> dict:
 	if not usage.lower() in ["n", "r", "l"]:
 		raise RuntimeError(f"Invalid usage mode: {usage}")

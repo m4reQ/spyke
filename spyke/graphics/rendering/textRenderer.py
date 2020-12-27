@@ -3,7 +3,7 @@ from .renderStats import RenderStats
 from .renderBatch import RenderBatch
 from .rendererComponent import RendererComponent
 from ..shader import Shader
-from ..buffers import DynamicVertexBuffer, StaticIndexBuffer
+from ..buffers import VertexBuffer, IndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..text.font import Font
 from ...managers import FontManager
@@ -15,11 +15,11 @@ from ...debug import Log, LogLevel
 from OpenGL import GL
 #endregion
 
+VERTEX_SIZE = (3 + 4 + 1 + 2) * GL_FLOAT_SIZE
+
 class TextRenderer(RendererComponent):
 	MaxChars = 500
 	MaxVertexCount = MaxChars * 4
-
-	__VertexSize = (3 + 4 + 1 + 2) * GL_FLOAT_SIZE
 	
 	def __init__(self):
 		self.shader = Shader()
@@ -27,12 +27,13 @@ class TextRenderer(RendererComponent):
 		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/text.frag")
 		self.shader.Compile()
 
-		self.vao = VertexArray(TextRenderer.__VertexSize)
-		self.vbo = DynamicVertexBuffer(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
-		self.ibo = StaticIndexBuffer(CreateQuadIndices(TextRenderer.MaxChars))
+		self.vao = VertexArray()
+		self.vbo = VertexBuffer(TextRenderer.MaxVertexCount * VERTEX_SIZE)
+		self.ibo = IndexBuffer(CreateQuadIndices(TextRenderer.MaxChars))
 
-		self.vbo.Bind()
 		self.vao.Bind()
+		self.vao.SetVertexSize(VERTEX_SIZE)
+		self.vbo.Bind()
 		self.vao.AddLayouts(
 			[VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 	3, VertexAttribType.Float, False),
 			VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 		4, VertexAttribType.Float, False),
@@ -95,7 +96,7 @@ class TextRenderer(RendererComponent):
 		try:
 			batch = next(x for x in self.__batches if x.IsAccepting)
 		except StopIteration:
-			batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
+			batch = RenderBatch(TextRenderer.MaxVertexCount * VERTEX_SIZE)
 			self.__batches.append(batch)
 
 		for char in text:
@@ -116,13 +117,13 @@ class TextRenderer(RendererComponent):
 			advanceSum += glyph.Advance
 
 			if not batch.WouldAccept(len(charData) * GL_FLOAT_SIZE):
-				batch = RenderBatch(TextRenderer.MaxVertexCount * TextRenderer.__VertexSize)
+				batch = RenderBatch(TextRenderer.MaxVertexCount * VERTEX_SIZE)
 				self.__batches.append(batch)
 			
 			batch.AddData(charData)
 			
 			batch.indexCount += 6
-			self.renderStats.VertexCount += 4
+			RenderStats.QuadsCount += 1
 	
 	def GetStats(self) -> RenderStats:
 		return self.renderStats

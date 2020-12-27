@@ -4,7 +4,7 @@ from ...utils import ObjectManager
 from OpenGL import GL
 import glm
 
-class FramebufferSpecs(object):
+class FramebufferSpec(object):
 	def __init__(self, width: int, height: int):
 		self.Width = width
 		self.Height = height
@@ -18,7 +18,7 @@ class Framebuffer(object):
 	__PixelFormat = GL.GL_RGBA
 	__PixelType = GL.GL_UNSIGNED_BYTE
 
-	def __init__(self, specification: FramebufferSpecs):
+	def __init__(self, specification: FramebufferSpec):
 		self.Spec = specification
 
 		self.__Invalidate(False)
@@ -47,7 +47,7 @@ class Framebuffer(object):
 		if self.Spec.HasDepthAttachment:
 			self.__depthAttachmentId = GL.glGenTextures(1)
 			GL.glBindTexture(GL.GL_TEXTURE_2D, self.__depthAttachmentId)
-			GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH24_STENCIL8, self.Spec.Width, self.Spec.Height, 0, GL.GL_DEPTH_STENCIL, GL.GL_UNSIGNED_INT_24_8, None)
+			GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT, self.Spec.Width, self.Spec.Height, 0, GL.GL_DEPTH_COMPONENT, GL.GL_DEPTH_COMPONENT, None)
 
 			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
 			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
@@ -86,3 +86,7 @@ class Framebuffer(object):
 	@staticmethod
 	def UnbindAll() -> None:
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+
+	@property
+	def ColorAttachment(self):
+		return self.__colorAttachmentId

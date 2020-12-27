@@ -29,9 +29,6 @@ class Renderer(Static):
 	
 	__RenderTarget = None
 
-	VertexCount = 0
-	DrawsCount = 0
-
 	def Initialize(multisample: bool) -> None:
 		Renderer.__Renderers["basic"] = BasicRenderer()
 		Renderer.__Renderers["text"] = TextRenderer()
@@ -57,9 +54,6 @@ class Renderer(Static):
 			renderer.BeginScene(renderTarget.Camera.viewProjectionMatrix)
 	
 	def EndScene() -> None:
-		Renderer.DrawsCount = 0
-		Renderer.VertexCount = 0
-
 		try:
 			Renderer.__RenderTarget.ContainsPass = False
 
@@ -72,10 +66,6 @@ class Renderer(Static):
 
 		for renderer in Renderer.__Renderers.values():
 			renderer.EndScene()
-			stats = renderer.GetStats()
-			Renderer.DrawsCount += stats.DrawsCount
-			Renderer.VertexCount += stats.VertexCount
-		
 		try:
 			if Renderer.__RenderTarget.HasFramebuffer:
 				Renderer.__RenderTarget.Framebuffer.Unbind()
@@ -95,7 +85,7 @@ class Renderer(Static):
 		Renderer.__Renderers["part"].RenderParticle(pos, size, rot, color, texHandle)
 	
 	def PostRender(transform: Matrix4, renderTarget: RenderTarget, color: Vector4) -> None:
-		Renderer.__Renderers["post"].Render(transform, renderTarget, color)
+		Renderer.__Renderers["post"].Render(transform, renderTarget)
 	
 	def Resize(width: int, height: int) -> None:
 		Renderer.__Renderers["text"].Resize(width, height)

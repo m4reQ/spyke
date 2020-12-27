@@ -4,7 +4,7 @@ from .rendererComponent import RendererComponent
 from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
-from ..buffers import DynamicVertexBuffer
+from ..buffers import VertexBuffer
 from ...utils import GL_FLOAT_SIZE, Timer
 from ...enums import VertexAttribType, ShaderType
 from ...debug import Log, LogLevel
@@ -13,11 +13,11 @@ from ...transform import Matrix4, Vector3
 from OpenGL import GL
 #endregion
 
+VERTEX_SIZE = (3 + 4) * GL_FLOAT_SIZE
+
 class LineRenderer(RendererComponent):
 	MaxLinesCount = 500
 	MaxVertexCount = MaxLinesCount * 2
-
-	__VertexSize = (3 + 4) * GL_FLOAT_SIZE
 
 	def __init__(self):
 		self.shader = Shader()
@@ -25,11 +25,12 @@ class LineRenderer(RendererComponent):
 		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/line.frag")
 		self.shader.Compile()
 
-		self.vao = VertexArray(LineRenderer.__VertexSize)
-		self.vbo = DynamicVertexBuffer(LineRenderer.MaxVertexCount * LineRenderer.__VertexSize)
+		self.vao = VertexArray()
+		self.vbo = VertexBuffer(LineRenderer.MaxVertexCount * VERTEX_SIZE)
 
-		self.vbo.Bind()
 		self.vao.Bind()
+		self.vao.SetVertexSize(VERTEX_SIZE)
+		self.vbo.Bind()
 		self.vao.AddLayouts(
 			[VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 	3, VertexAttribType.Float, False),
 			VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 		4, VertexAttribType.Float, False)])
@@ -82,12 +83,12 @@ class LineRenderer(RendererComponent):
 		try:
 			batch = next(x for x in self.__batches if x.WouldAccept(len(data) * GL_FLOAT_SIZE))
 		except StopIteration:
-			batch = RenderBatch(LineRenderer.MaxVertexCount * LineRenderer.__VertexSize)
+			batch = RenderBatch(LineRenderer.MaxVertexCount * VERTEX_SIZE)
 			self.__batches.append(batch)
 
 		batch.AddData(data)
 		
-		self.renderStats.VertexCount += 2
+		self.renderStats.QuadsCount += 1
 	
 	def GetStats(self) -> RenderStats:
 		return self.renderStats

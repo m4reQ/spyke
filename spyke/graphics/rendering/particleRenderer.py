@@ -3,7 +3,7 @@ from .rendererComponent import RendererComponent
 from .renderStats import RenderStats
 from .renderBatch import RenderBatch
 from ..shader import Shader
-from ..buffers import StaticIndexBuffer, DynamicVertexBuffer
+from ..buffers import IndexBuffer, VertexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..texturing.textureUtils import TextureHandle
 from ...managers import TextureManager
@@ -15,10 +15,11 @@ from ...debug import Log, LogLevel
 from OpenGL import GL
 #endregion
 
+VERTEX_SIZE = (2 + 2 + 1 + 4 + 2 + 1) * GL_FLOAT_SIZE
+
 class ParticleRenderer(RendererComponent):
 	MaxParticleCount = 150
 	MaxVertexCount = MaxParticleCount * 1
-	__VertexSize = (2 + 2 + 1 + 4 + 2 + 1) * GL_FLOAT_SIZE
 
 	def __init__(self):
 		self.shader = Shader()
@@ -27,8 +28,8 @@ class ParticleRenderer(RendererComponent):
 		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/particle.frag")
 		self.shader.Compile()
 		
-		self.vao = VertexArray(ParticleRenderer.__VertexSize)
-		self.vbo = DynamicVertexBuffer(ParticleRenderer.MaxVertexCount * ParticleRenderer.__VertexSize)
+		self.vao = VertexArray()
+		self.vbo = VertexBuffer(ParticleRenderer.MaxVertexCount * VERTEX_SIZE)
 
 		self.vbo.Bind()
 		self.vao.Bind()
@@ -52,13 +53,13 @@ class ParticleRenderer(RendererComponent):
 		try:
 			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.WouldAccept(len(data) * GL_FLOAT_SIZE))
 		except StopIteration:
-			batch = RenderBatch(ParticleRenderer.MaxVertexCount * ParticleRenderer.__VertexSize)
+			batch = RenderBatch(ParticleRenderer.MaxVertexCount * VERTEX_SIZE)
 			batch.texarrayID = texHandle.TexarrayID
 			self.__batches.append(batch)
 		
 		batch.AddData(data)
 
-		self.renderStats.VertexCount += 1
+		RenderStats.QuadsCount += 1
 
 	def BeginScene(self, viewProjection: Matrix4) -> None:
 		self.__viewProjection = viewProjection
