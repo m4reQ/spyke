@@ -5,7 +5,7 @@ from ..shader import Shader
 from ..buffers import VertexBuffer, Framebuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ...utils import GL_FLOAT_SIZE, Timer
-from ...transform import Matrix4, TransformQuadVertices
+from ...transform import Matrix4, TransformQuadVertices, CreateTransform3D
 from ...enums import VertexAttribType, ShaderType
 
 from OpenGL import GL
@@ -33,12 +33,11 @@ class PostRenderer(object):
 		self.BeginScene = lambda *_, **__: None
 		self.EndScene = lambda *_, **__: None
 	
-	def Render(self, transform: Matrix4, renderTarget: RenderTarget) -> None:
-		Timer.Start()
-
+	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer) -> None:
+		transform = CreateTransform3D(pos, size, rotation)
 		translatedVerts = TransformQuadVertices(transform.to_tuple())
 
-		color = renderTarget.Framebuffer.Spec.Color
+		color = framebuffer.Spec.Color
 
 		data = [
 			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, color.x, color.y, color.z, color.w, 0.0, 0.0,
@@ -49,28 +48,23 @@ class PostRenderer(object):
 			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, color.x, color.y, color.z, color.w, 0.0, 0.0]
 		
 		self.shader.Use()
-		self.shader.SetUniform1i("uSamples", renderTarget.Framebuffer.Spec.Samples)
+		self.shader.SetUniform1i("uSamples", framebuffer.Spec.Samples)
 
-		if renderTarget.Framebuffer.Spec.Samples > 1:
-			GL.glBindTextureUnit(1, renderTarget.Framebuffer.ColorAttachment)
-			GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, renderTarget.Framebuffer.ColorAttachment)
+		if framebuffer.Spec.Samples > 1:
+			GL.glBindTextureUnit(1, framebuffer.ColorAttachment)
+			GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, framebuffer.ColorAttachment)
 		else:
-			GL.glBindTextureUnit(0, renderTarget.Framebuffer.ColorAttachment)
-			GL.glBindTexture(GL.GL_TEXTURE_2D, renderTarget.Framebuffer.ColorAttachment)
+			GL.glBindTextureUnit(0, framebuffer.ColorAttachment)
+			GL.glBindTexture(GL.GL_TEXTURE_2D, framebuffer.ColorAttachment)
 
 		self.__vbo.Bind()
 		self.__vao.Bind()
 
 		self.__vbo.AddData(data, len(data) * GL_FLOAT_SIZE)
 
-		#GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
-
-		#GL.glDisable(GL.GL_DEPTH_TEST)
+		GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
+		GL.glDisable(GL.GL_DEPTH_TEST)
 		GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
-		#GL.glEnable(GL.GL_DEPTH_TEST)
+		GL.glEnable(GL.GL_DEPTH_TEST)
 
 		RenderStats.QuadsCount += 1
-		RenderStats.DrawTime = Timer.Stop()
-	
-	def GetStats(self) -> RenderStats:
-		return RenderStats

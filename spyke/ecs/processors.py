@@ -1,16 +1,13 @@
 #region Import
 from .esper import Processor, World as Scene
 from .components import *
-from ..graphics import Renderer, GLCommand, OrthographicCamera, RenderTarget
-from ..enums import ClearMask, AudioState
+from ..graphics import OrthographicCamera, Renderer
+from ..enums import AudioState
 from ..debug import Log, LogLevel
 from ..imgui import ImGui as _ImGui
 from ..input import *
 from ..utils import LerpVec2, LerpVec4, LerpFloat
-from ..transform import Vector3
-from ..graphics import Renderer
 
-from OpenGL.GL import glClear, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT
 #endregion
 
 def InitializeDefaultProcessors(scene: Scene):
@@ -20,33 +17,6 @@ def InitializeDefaultProcessors(scene: Scene):
 	scene.AddProcessor(ScriptProcessor())
 	if _ImGui.IsInitialized():
 		scene.AddProcessor(ImguiProcessor())
-	scene.AddProcessor(RenderingProcessor(), priority = 99)
-
-class RenderingProcessor(Processor):
-	def Process(self, *args, **kwargs):
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-		
-		if not "renderTarget" in kwargs.keys():
-			Log("No render target bound. Nothing will be drawn.", LogLevel.Warning)
-			return
-		
-		Renderer.BeginScene(kwargs["renderTarget"])
-		for _, (sprite, transform, color) in self.scene.GetComponents(SpriteComponent, TransformComponent, ColorComponent):
-			Renderer.RenderQuad(transform.Matrix, tuple(color), sprite.TextureHandle, sprite.TilingFactor)
-		
-		for _, (line, color) in self.scene.GetComponents(LineComponent, ColorComponent):
-			Renderer.RenderLine(line.StartPos, line.EndPos, tuple(color))
-		
-		for _, particleComponent in self.scene.GetComponent(ParticleSystemComponent):
-			for particle in particleComponent.particlePool:
-				if not particle.isAlive:
-					continue
-
-				Renderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color.to_tuple(), particle.texHandle)
-		
-		for _, (text, transform, color) in self.scene.GetComponents(TextComponent, TransformComponent, ColorComponent):
-			Renderer.RenderText(transform.Position, tuple(color), text.Font, text.Size, text.Text)
-		Renderer.EndScene()
 
 class TransformProcessor(Processor):
 	def Process(self, *args, **kwargs):
@@ -66,9 +36,6 @@ class WindowEventProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		event = EventHandler.PickEventByType(EventType.WindowResize)
 		if event:
-			GLCommand.Scissor(0, 0, event.Width, event.Height)
-			GLCommand.Viewport(0, 0, event.Width, event.Height)
-			
 			Renderer.Resize(event.Width, event.Height)
 
 class ImguiProcessor(Processor):

@@ -1,24 +1,24 @@
 #region Import
-from ...transform import Matrix4, Vector2
-from ...graphics import NoTexture, Color
 from ...managers.textureManager import TextureManager
+from ...graphics.texturing.textureUtils import NoTexture
 
 import random
+import glm
 #endregion
 
 class Particle(object):
 	def __init__(self):
-		self.position = Vector2(0.0)
-		self.velocity = Vector2(0.0)
-		self.size = Vector2(0.0)
+		self.position = glm.vec2(0.0)
+		self.velocity = glm.vec2(0.0)
+		self.size = glm.vec2(0.0)
 		self.rotation = 0.0
 		self.rotationVelocity = 0.0
-		self.transform = Matrix4(1.0)
+		self.transform = glm.mat4(1.0)
 
 		self.life = 0.0
 		self.isAlive = False
 
-		self.color = Color(1.0)
+		self.color = glm.vec4(1.0)
 
 		self.texHandle = NoTexture
 	
@@ -28,20 +28,20 @@ class Particle(object):
 class ParticleSystemComponent(object):
 	MaxCount = 100
 
-	def __init__(self, basePos: Vector2, duration: float, maxCount: int):
+	def __init__(self, basePos: glm.vec2, duration: float, maxCount: int):
 		self.basePos = basePos
 		self.baseRot = 0.0
 
 		self.duration = duration
-		self.velocity = Vector2(0.0)
+		self.velocity = glm.vec2(0.0)
 		self.rotationVelocity = 0.0
 
-		self._sizeBegin = Vector2(0.0)
-		self._sizeEnd = Vector2(0.0)
+		self._sizeBegin = glm.vec2(0.0)
+		self._sizeEnd = glm.vec2(0.0)
 		self.sizeChange = False
 
-		self._colorBegin = Color(1.0)
-		self._colorEnd = Color(1.0)
+		self._colorBegin = glm.vec4(1.0)
+		self._colorEnd = glm.vec4(1.0)
 		self.colorChange = False
 
 		self.randomizeMovement = False

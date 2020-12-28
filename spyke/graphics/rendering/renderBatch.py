@@ -7,6 +7,7 @@ class RenderBatch(object):
 		self.transformData = []
 		self.texarrayID = -1
 		self.indexCount = 0
+		self.vertexCount = 0
 	
 	def AddTransformData(self, data: list) -> None:
 		self.transformData.extend(data)
@@ -26,6 +27,7 @@ class RenderBatch(object):
 		self.data.clear()
 		self.transformData.clear()
 		self.indexCount = 0
+		self.vertexCount = 0
 	
 	def WouldAccept(self, size) -> bool:
 		return (len(self.data) * GL_FLOAT_SIZE) + size <= self.maxSize

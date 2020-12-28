@@ -11,6 +11,7 @@ from ...debug import Log, LogLevel
 from ...transform import Matrix4, Vector3
 
 from OpenGL import GL
+import glm
 #endregion
 
 VERTEX_SIZE = (3 + 4) * GL_FLOAT_SIZE
@@ -25,60 +26,46 @@ class LineRenderer(RendererComponent):
 		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/line.frag")
 		self.shader.Compile()
 
-		self.vao = VertexArray()
-		self.vbo = VertexBuffer(LineRenderer.MaxVertexCount * VERTEX_SIZE)
+		self.__vao = VertexArray()
+		self.__vbo = VertexBuffer(LineRenderer.MaxVertexCount * VERTEX_SIZE)
 
-		self.vao.Bind()
-		self.vao.SetVertexSize(VERTEX_SIZE)
-		self.vbo.Bind()
-		self.vao.AddLayouts(
+		self.__vao.Bind()
+		self.__vao.SetVertexSize(VERTEX_SIZE)
+		self.__vbo.Bind()
+		self.__vao.AddLayouts(
 			[VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 	3, VertexAttribType.Float, False),
 			VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 		4, VertexAttribType.Float, False)])
 
 		self.__batches = []
 
-		self.__viewProjection = Matrix4(1.0)
-
-		self.renderStats = RenderStats()
-
 		Log("Line renderer initialized", LogLevel.Info)
-
-	def BeginScene(self, viewProjection: Matrix4):
-		self.__viewProjection = viewProjection
-
-		self.renderStats.Clear()
 	
 	def EndScene(self):
 		needsDraw = False
 		for batch in self.__batches:
 			needsDraw |= batch.dataSize != 0
 			if needsDraw:
-				self.__Flush()
+				self.__Flush(viewProjectionMatrix)
 				return
 	
 	def __Flush(self):
-		Timer.Start()
-
 		self.shader.Use()
-		self.shader.SetUniformMat4("uViewProjection", self.__viewProjection, False)
-
-		self.vbo.Bind()
-		self.vao.Bind()
+		
+		self.__vbo.Bind()
+		self.__vao.Bind()
 
 		for batch in self.__batches:
-			self.vbo.AddData(batch.data, batch.dataSize)
+			self.__vbo.AddData(batch.data, batch.dataSize)
 
-			GL.glDrawArrays(GL.GL_LINES, 0, self.renderStats.VertexCount)
-			self.renderStats.DrawsCount += 1
+			GL.glDrawArrays(GL.GL_LINES, 0, RenderStats.VertexCount)
+			RenderStats.DrawsCount += 1
 
 			batch.Clear()
-
-		self.renderStats.DrawTime = Timer.Stop()
 	
-	def Render(self, startPos: Vector3, endPos: Vector3, color: tuple):
+	def Render(self, startPos: glm.vec3, endPos: glm.vec3, color: glm.vec4):
 		data = [
-			startPos.x, startPos.y, startPos.z, color[0], color[1], color[2], color[3],
-			endPos.x, endPos.y, endPos.z, color[0], color[1], color[2], color[3]]
+			startPos.x, startPos.y, startPos.z, color.x, color.y, color.z, color.w,
+			endPos.x, endPos.y, endPos.z, 		color.x, color.y, color.z, color.w]
 
 		try:
 			batch = next(x for x in self.__batches if x.WouldAccept(len(data) * GL_FLOAT_SIZE))
@@ -88,7 +75,4 @@ class LineRenderer(RendererComponent):
 
 		batch.AddData(data)
 		
-		self.renderStats.QuadsCount += 1
-	
-	def GetStats(self) -> RenderStats:
-		return self.renderStats
+		RenderStats.QuadsCount += 1

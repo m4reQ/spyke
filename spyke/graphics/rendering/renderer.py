@@ -4,92 +4,112 @@ from .textRenderer import TextRenderer
 from .lineRenderer import LineRenderer
 from .postRenderer import PostRenderer
 from .particleRenderer import ParticleRenderer
-from .renderTarget import RenderTarget
-from ..buffers import Framebuffer
-from ..texturing.textureUtils import TextureHandle
-from ..shader import Shader
-from ..text.font import Font
-from ..glCommands import GLCommand
-from ...enums import UniformTarget, EnableCap, Hint, HintMode
-from ...debug import Log, LogLevel
-from ...transform import Vector3, Matrix4, Vector2, Vector4
+from .renderStats import RenderStats
+from .rendererSettings import RendererSettings
+from ..buffers import Framebuffer, UniformBuffer
 from ... import USE_FAST_NV_MULTISAMPLE, IS_NVIDIA
-from ...utils import Static
+from ...enums import Hint
+from ...utils import Static, Mat4ToTuple, GL_FLOAT_SIZE
+from ...ecs import components
 
 from OpenGL import GL
+import glm
+import time
 #endregion
 
+UNIFORM_BLOCK_SIZE = 16 * GL_FLOAT_SIZE
+UNIFORM_BLOCK_INDEX = 0
+
 class Renderer(Static):
-	__Renderers = {
-		"basic": None,
-		"text": None,
-		"line": None,
-		"part": None,
-		"post": None}
-	
-	__RenderTarget = None
+	__BasicRenderer = None
+	__TextRenderer = None
+	__LineRenderer = None
+	__ParticleRenderer = None
+	__PostRenderer = None
 
-	def Initialize(multisample: bool) -> None:
-		Renderer.__Renderers["basic"] = BasicRenderer()
-		Renderer.__Renderers["text"] = TextRenderer()
-		Renderer.__Renderers["line"] = LineRenderer()
-		Renderer.__Renderers["part"] = ParticleRenderer()
-		Renderer.__Renderers["post"] = PostRenderer()
+	__ubo = None
 
-		if multisample:
-			GLCommand.Enable(EnableCap.MultiSample)
+	def Initialize() -> None:
+		Renderer.__BasicRenderer = BasicRenderer()
+		Renderer.__TextRenderer = TextRenderer()
+		Renderer.__LineRenderer = LineRenderer()
+		Renderer.__ParticleRenderer = ParticleRenderer()
+		Renderer.__PostRenderer = PostRenderer()
+		
+		Renderer.__ubo = UniformBuffer(UNIFORM_BLOCK_SIZE)
+
+		Renderer.__BasicRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+		Renderer.__TextRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+		Renderer.__LineRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+		Renderer.__ParticleRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+		Renderer.__PostRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+
+		Renderer.__ubo.BindToUniform(UNIFORM_BLOCK_INDEX)
+
+		if RendererSettings.MultisamplingEnabled:
+			GL.glEnable(GL.GL_MULTISAMPLE)
 			if IS_NVIDIA:
 				if USE_FAST_NV_MULTISAMPLE:
-					GLCommand.Hint(Hint.MultisampleFilterNvHint, HintMode.Fastest)
+					GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_FASTEST)
 				else:
-					GLCommand.Hint(Hint.MultisampleFilterNvHint, HintMode.Nicest)
+					GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)
+		
+		if RendererSettings.BlendingEnabled:
+			GL.glEnable(GL.GL_BLEND)
+			GL.glBlendFunc(*RendererSettings.BlendingFunc)
 		
 		GL.glCullFace(GL.GL_FRONT)
 		GL.glPolygonMode(GL.GL_FRONT, GL.GL_FILL)
-
-	def BeginScene(renderTarget: RenderTarget) -> None:
-		Renderer.__RenderTarget = renderTarget
-
-		for renderer in Renderer.__Renderers.values():
-			renderer.BeginScene(renderTarget.Camera.viewProjectionMatrix)
 	
-	def EndScene() -> None:
-		try:
-			Renderer.__RenderTarget.ContainsPass = False
+	def RenderFramebuffer(pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer):
+		Renderer.__PostRenderer.RenderFramebuffer(pos, size, rotation, framebuffer)
 
-			if Renderer.__RenderTarget.HasFramebuffer:
-				Renderer.__RenderTarget.Framebuffer.Bind()
-				GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-				Renderer.__RenderTarget.ContainsPass = True
+	def RenderScene(scene, viewProjectionMatrix: glm.mat4, framebuffer: Framebuffer = None) -> None:
+		RenderStats.Clear()
+		start = time.perf_counter()
+
+		Renderer.__ubo.Bind()
+
+		data = Mat4ToTuple(viewProjectionMatrix)
+		Renderer.__ubo.AddData(data, len(data) * GL_FLOAT_SIZE)
+
+		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+		
+		try:
+			framebuffer.Bind()
 		except AttributeError:
 			pass
 
-		for renderer in Renderer.__Renderers.values():
-			renderer.EndScene()
+		for _, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
+			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.TextureHandle, sprite.TilingFactor)
+		
+		for _, line in scene.GetComponent(components.LineComponent):
+			Renderer.__LineRenderer.RenderLine(line.StartPos, line.EndPos, line.Color)
+		
+		for _, system in scene.GetComponent(components.ParticleSystemComponent):
+			for particle in system.particlePool:
+				if not particle.isAlive:
+					continue
+
+				Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
+		
+		for _, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
+			Renderer.__TextRenderer.RenderText(transform.Position, text.Color, text.Font, text.Size, text.Text)
+
+		Renderer.__BasicRenderer.EndScene()
+		Renderer.__TextRenderer.EndScene()
+		Renderer.__LineRenderer.EndScene()
+		Renderer.__ParticleRenderer.EndScene()
+
 		try:
-			if Renderer.__RenderTarget.HasFramebuffer:
-				Renderer.__RenderTarget.Framebuffer.Unbind()
+			framebuffer.Unbind()
 		except AttributeError:
 			pass
-	
-	def RenderQuad(transform: Matrix4, color: tuple, texHandle: TextureHandle, tilingFactor: tuple) -> None:
-		Renderer.__Renderers["basic"].RenderQuad(transform, color, texHandle, tilingFactor)
-	
-	def RenderLine(startPos: Vector3, endPos: Vector3, color: tuple) -> None:
-		Renderer.__Renderers["line"].Render(startPos, endPos, color)
-	
-	def RenderText(pos: Vector3, color: tuple, font: Font, size: int, text: str) -> None:
-		Renderer.__Renderers["text"].DrawText(pos, color, font, size, text)
-	
-	def RenderParticle(pos: Vector2, size: Vector2, rot: float, color: tuple, texHandle: TextureHandle) -> None:
-		Renderer.__Renderers["part"].RenderParticle(pos, size, rot, color, texHandle)
-	
-	def PostRender(transform: Matrix4, renderTarget: RenderTarget, color: Vector4) -> None:
-		Renderer.__Renderers["post"].Render(transform, renderTarget)
+
+		RenderStats.DrawTime = time.perf_counter() - start
 	
 	def Resize(width: int, height: int) -> None:
-		Renderer.__Renderers["text"].Resize(width, height)
-		try:
-			Renderer.__RenderTarget.Framebuffer.Resize(width, height)
-		except AttributeError:
-			pass
+		GL.glScissor(0, 0, width, height)
+		GL.glViewport(0, 0, width, height)
+
+		Renderer.__TextRenderer.Resize(width, height)

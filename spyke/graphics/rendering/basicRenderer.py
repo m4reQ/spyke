@@ -5,7 +5,7 @@ from .rendererComponent import RendererComponent
 from .rendererSettings import RendererSettings
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
-from ..buffers import VertexBuffer, IndexBuffer, UniformBuffer
+from ..buffers import VertexBuffer, IndexBuffer
 from ..texturing.textureUtils import TextureHandle
 from ...managers import TextureManager
 from ...transform import CreateQuadIndices, Matrix4, QuadVerticsFloat
@@ -62,12 +62,8 @@ class BasicRenderer(RendererComponent):
 			self.vao.AddDivisor(idx + i, 1)
 
 		self.__batches = []
-		self.__viewProjection = Matrix4(1.0)
 
 		Log("2D renderer initialized", LogLevel.Info)
-	
-	def BeginScene(self, viewProjection: Matrix4) -> None:
-		self.__viewProjection = viewProjection
 	
 	def EndScene(self) -> None:
 		needsDraw = False
@@ -79,7 +75,6 @@ class BasicRenderer(RendererComponent):
 
 	def __Flush(self) -> None:
 		self.shader.Use()
-		self.shader.SetUniformMat4("uViewProjection", self.__viewProjection, False)
 
 		self.vao.Bind()
 		self.ibo.Bind()
@@ -94,18 +89,17 @@ class BasicRenderer(RendererComponent):
 			self.transformVbo.AddData(batch.transformData, len(batch.transformData) * GL_FLOAT_SIZE)
 
 			GL.glDrawElementsInstanced(GL.GL_TRIANGLES, batch.indexCount, GL.GL_UNSIGNED_INT, None, batch.indexCount // 6)
-			#GL.glDrawElements(GL.GL_TRIANGLES, batch.indexCount, GL.GL_UNSIGNED_INT, None)
 
 			RenderStats.DrawsCount += 1
 
 			batch.Clear()
 		
-	def RenderQuad(self, transform: Matrix4, color: tuple, texHandle: TextureHandle, tilingFactor: glm.vec3):
+	def RenderQuad(self, transform: Matrix4, color: glm.vec4, texHandle: TextureHandle, tilingFactor: glm.vec2):
 		data = [
-			color[0], color[1], color[2], color[3], 0.0, texHandle.V, 				texHandle.Index, tilingFactor.x, tilingFactor.y,
-			color[0], color[1], color[2], color[3], 0.0, 0.0, 						texHandle.Index, tilingFactor.x, tilingFactor.y,
-			color[0], color[1], color[2], color[3], texHandle.U, 0.0, 				texHandle.Index, tilingFactor.x, tilingFactor.y,
-			color[0], color[1], color[2], color[3], texHandle.U, texHandle.V,		texHandle.Index, tilingFactor.x, tilingFactor.y]
+			color.x, color.y, color.z, color.w, 0.0, texHandle.V, 				texHandle.Index, tilingFactor.x, tilingFactor.y,
+			color.x, color.y, color.z, color.w, 0.0, 0.0, 						texHandle.Index, tilingFactor.x, tilingFactor.y,
+			color.x, color.y, color.z, color.w, texHandle.U, 0.0, 				texHandle.Index, tilingFactor.x, tilingFactor.y,
+			color.x, color.y, color.z, color.w, texHandle.U, texHandle.V,		texHandle.Index, tilingFactor.x, tilingFactor.y]
 
 		try:
 			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.WouldAccept(len(data) * GL_FLOAT_SIZE))

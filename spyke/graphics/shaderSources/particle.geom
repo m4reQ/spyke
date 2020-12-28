@@ -3,7 +3,10 @@
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
 
-uniform mat4 uViewProjection;
+layout (std140) uniform uMatrices
+{
+    mat4 viewProjection;
+};
 
 const vec2 QuadVertices[4] = vec2[4](
 	vec2(1.0f, 1.0f), //up-right
@@ -45,25 +48,25 @@ mat2 createScale(vec2 scale)
 
 void EmitVertices(mat2 rotScale)
 {
-	gl_Position = uViewProjection * vec4(translate(QuadVertices[0], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
+	gl_Position = viewProjection * vec4(translate(QuadVertices[0], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
 	vColor = gsIn[0].color;
 	vTexCoord = gsIn[0].texCoord;
 	vTexIdx = gsIn[0].texIdx;
 	EmitVertex();
 
-	gl_Position = uViewProjection * vec4(translate(QuadVertices[1], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
+	gl_Position = viewProjection * vec4(translate(QuadVertices[1], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
 	vColor = gsIn[0].color;
 	vTexCoord = vec2(gsIn[0].texCoord.x, 0.0f);
 	vTexIdx = gsIn[0].texIdx;
 	EmitVertex();
 
-	gl_Position = uViewProjection * vec4(translate(QuadVertices[2], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
+	gl_Position = viewProjection * vec4(translate(QuadVertices[2], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
 	vColor = gsIn[0].color;
 	vTexCoord = vec2(0.0f, gsIn[0].texCoord.y);
 	vTexIdx = gsIn[0].texIdx;
 	EmitVertex();
 
-	gl_Position = uViewProjection * vec4(translate(QuadVertices[3], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
+	gl_Position = viewProjection * vec4(translate(QuadVertices[3], gsIn[0].pos) * rotScale, 0.0f, 1.0f);
 	vColor = gsIn[0].color;
 	vTexCoord = vec2(0.0f);
 	vTexIdx = gsIn[0].texIdx;

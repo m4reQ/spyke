@@ -4,10 +4,13 @@ layout(location = 1) in vec4 aColor;
 
 out vec4 vColor;
 
-uniform mat4 uViewProjection;
+layout (std140) uniform uMatrices
+{
+    mat4 viewProjection;
+};
 
 void main()
 {
     vColor = aColor;
-    gl_Position = uViewProjection * vec4(aPosition, 1.0f);
+    gl_Position = viewProjection * vec4(aPosition, 1.0f);
 }

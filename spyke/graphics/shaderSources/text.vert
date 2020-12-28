@@ -8,12 +8,15 @@ out vec4 vColor;
 out vec2 vTexCoord;
 out float vTexIdx;
 
-uniform mat4 uViewProjection;
+layout (std140) uniform uMatrices
+{
+    mat4 viewProjection;
+};
 
 void main()
 {
     vColor = aColor;
     vTexCoord = aTexCoord;
     vTexIdx = aTexIdx;
-    gl_Position = uViewProjection * vec4(aPosition, 1.0f);
+    gl_Position = viewProjection * vec4(aPosition, 1.0f);
 }

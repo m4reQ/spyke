@@ -12,6 +12,18 @@ INT_SIZE = ctypes.sizeof(ctypes.c_int)
 GL_FLOAT_SIZE = 4
 GL_INT_SIZE = 4
 
+__GL_TYPE_SIZES = {
+	GL.GL_DOUBLE: 8,
+	GL.GL_FIXED: 4,
+	GL.GL_FLOAT: 4,
+	GL.GL_UNSIGNED_INT: 4,
+	GL.GL_INT: 4,
+	GL.GL_UNSIGNED_SHORT: 2,
+	GL.GL_SHORT: 2,
+	GL.GL_HALF_FLOAT: 2,
+	GL.GL_UNSIGNED_BYTE: 1,
+	GL.GL_BYTE: 1}
+
 def __ThreadedGC():
 	__GC_FLAG.wait()
 
@@ -28,21 +40,9 @@ def RequestGC():
 	__GC_FLAG.set()
 
 def GetGLTypeSize(_type: int) -> int:
-	if _type == GL.GL_FLOAT:
-		return 4
-	elif _type == GL.GL_UNSIGNED_BYTE or _type == GL.GL_BYTE:
-		return 1
-	elif _type == GL.GL_UNSIGNED_SHORT or _type == GL.GL_SHORT:
-		return 2
-	elif _type == GL.GL_UNSIGNED_INT or _type == GL.GL_INT:
-		return 4
-	elif _type == GL.GL_DOUBLE:
-		return 8
-	elif _type == GL.GL_HALF_FLOAT:
-		return 2
-	elif _type == GL.GL_FIXED:
-		return 4
-	else:
+	try:
+		return __GL_TYPE_SIZES[_type]
+	except KeyError:
 		raise RuntimeError(f"Invalid enum: {_type}")
 
 def GetPointer(value: int) -> ctypes.c_void_p:

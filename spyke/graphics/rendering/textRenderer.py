@@ -2,25 +2,24 @@
 from .renderStats import RenderStats
 from .renderBatch import RenderBatch
 from .rendererComponent import RendererComponent
+from .rendererSettings import RendererSettings
 from ..shader import Shader
 from ..buffers import VertexBuffer, IndexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..text.font import Font
 from ...managers import FontManager
-from ...transform import CreateQuadIndices, Matrix4, Vector3
+from ...transform import CreateQuadIndices
 from ...utils import GL_FLOAT_SIZE, Timer
 from ...enums import GLType, VertexAttribType, ShaderType
 from ...debug import Log, LogLevel
 
 from OpenGL import GL
+import glm
 #endregion
 
 VERTEX_SIZE = (3 + 4 + 1 + 2) * GL_FLOAT_SIZE
 
 class TextRenderer(RendererComponent):
-	MaxChars = 500
-	MaxVertexCount = MaxChars * 4
-	
 	def __init__(self):
 		self.shader = Shader()
 		self.shader.AddStage(ShaderType.VertexShader, "spyke/graphics/shaderSources/text.vert")
@@ -28,8 +27,8 @@ class TextRenderer(RendererComponent):
 		self.shader.Compile()
 
 		self.vao = VertexArray()
-		self.vbo = VertexBuffer(TextRenderer.MaxVertexCount * VERTEX_SIZE)
-		self.ibo = IndexBuffer(CreateQuadIndices(TextRenderer.MaxChars))
+		self.vbo = VertexBuffer(RendererSettings.MaxQuadsCount * 4 * VERTEX_SIZE)
+		self.ibo = IndexBuffer(CreateQuadIndices(RendererSettings.MaxQuadsCount))
 
 		self.vao.Bind()
 		self.vao.SetVertexSize(VERTEX_SIZE)
@@ -44,19 +43,10 @@ class TextRenderer(RendererComponent):
 
 		self.__batches = []
 
-		self.__viewProjection = Matrix4(1.0)
-
-		self.renderStats = RenderStats()
-
 		Log("Text renderer initialized", LogLevel.Info)
 
 	def Resize(self, width: int, height: int):
 		self.winSize = (width, height)
-
-	def BeginScene(self, viewProjection: Matrix4) -> None:
-		self.__viewProjection = viewProjection
-
-		self.renderStats.Clear()
 	
 	def EndScene(self) -> None:
 		needsDraw = False
@@ -70,8 +60,6 @@ class TextRenderer(RendererComponent):
 		Timer.Start()
 
 		self.shader.Use()
-		self.shader.SetUniformMat4("uViewProjection", self.__viewProjection, False)
-
 		FontManager.Use()
 
 		self.vbo.Bind()
@@ -81,14 +69,12 @@ class TextRenderer(RendererComponent):
 		for batch in self.__batches:
 			self.vbo.AddData(batch.data, batch.dataSize)
 
-			GL.glDrawElements(GL.GL_TRIANGLES, batch.indexCount, GLType.UnsignedInt, None)
-			self.renderStats.DrawsCount += 1
+			GL.glDrawElements(GL.GL_TRIANGLES, batch.indexCount, GL.GL_UNSIGNED_INT, None)
+			RenderStats.DrawsCount += 1
 
 			batch.Clear()
 
-		self.renderStats.DrawTime = Timer.Stop()
-
-	def DrawText(self, pos: Vector3, color: tuple, font: Font, size: int, text: str) -> None:
+	def RenderText(self, pos: glm.vec3, color: glm.vec4, font: Font, size: int, text: str) -> None:
 		advanceSum = 0
 
 		glyphSize = size / font.baseSize
@@ -96,7 +82,7 @@ class TextRenderer(RendererComponent):
 		try:
 			batch = next(x for x in self.__batches if x.IsAccepting)
 		except StopIteration:
-			batch = RenderBatch(TextRenderer.MaxVertexCount * VERTEX_SIZE)
+			batch = RenderBatch(RendererSettings.MaxQuadsCount * 4 * VERTEX_SIZE)
 			self.__batches.append(batch)
 
 		for char in text:
@@ -117,13 +103,10 @@ class TextRenderer(RendererComponent):
 			advanceSum += glyph.Advance
 
 			if not batch.WouldAccept(len(charData) * GL_FLOAT_SIZE):
-				batch = RenderBatch(TextRenderer.MaxVertexCount * VERTEX_SIZE)
+				batch = RenderBatch(RendererSettings.MaxQuadsCount * 4 * VERTEX_SIZE)
 				self.__batches.append(batch)
 			
 			batch.AddData(charData)
 			
 			batch.indexCount += 6
 			RenderStats.QuadsCount += 1
-	
-	def GetStats(self) -> RenderStats:
-		return self.renderStats

@@ -10,7 +10,7 @@ if __debug__:
 from spyke.ecs.components import *
 from spyke.ecs.processors import *
 
-from spyke.imgui import ImGui
+#from spyke.imgui import ImGui
 from spyke.window import GlfwWindow, WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
@@ -44,9 +44,6 @@ class Window(GlfwWindow):
 		GLCommand.Viewport(0, 0, self.width, self.height)
 		GLCommand.SetClearcolor(0.4, 0.2, 0.3)
 
-		GLCommand.Enable(EnableCap.Blend)
-		GLCommand.BlendFunction(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha)
-
 		# LoadScene("tests/newScene.scn")
 
 		# self.ent4 = EntityManager.CreateEntity("Particles")
@@ -65,7 +62,7 @@ class Window(GlfwWindow):
 		#ImGui.Initialize(self)
 		#ImGui.UpdateScene()
 
-		Renderer.Initialize(self.specs.Multisample)
+		Renderer.Initialize()
 
 		arr = TextureManager.CreateTextureArray(1920, 1080, 1)
 		TextureManager.LoadTexture("tests/test1.jpg", arr)
@@ -75,8 +72,7 @@ class Window(GlfwWindow):
 
 		ent = SceneManager.Current.CreateEntity()
 		SceneManager.Current.AddComponent(ent, TransformComponent(Vector3(0.0, 0.0, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 0.0)))
-		SceneManager.Current.AddComponent(ent, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0)))
-		SceneManager.Current.AddComponent(ent, ColorComponent(1.0, 1.0, 1.0, 1.0))
+		SceneManager.Current.AddComponent(ent, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0), Color(1.0, 0.7, 1.0, 1.0)))
 		# SceneManager.Current.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpec(self.width, self.height)
@@ -95,13 +91,14 @@ class Window(GlfwWindow):
 		RequestGC()
 
 	def OnFrame(self):
-		SceneManager.Current.Process(window = self, renderTarget = self.renderTarget)
+		SceneManager.Current.Process(window = self)
+		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix)
 		#Renderer.PostRender(self.posTEST, self.renderTarget, Color(0.0, 1.0, 0.5, 1.0))
-		self.SetTitle(self.baseTitle + " | Frametime: " + str(round(SceneManager.Current.GetFrameTime(), 5)) + "s")
+		#self.SetTitle(self.baseTitle + " | Frametime: " + str(round(SceneManager.Current.GetFrameTime(), 5)) + "s")
 
 	def OnClose(self):
 		ObjectManager.DeleteAll()
-		ImGui.Close()
+		#ImGui.Close()
 
 if __name__ == "__main__":
 	specs = WindowSpecs(512, 512, "TestWindow", 4, 6)

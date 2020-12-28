@@ -13,9 +13,14 @@ from ...utils import GL_FLOAT_SIZE, Timer
 from ...debug import Log, LogLevel
 
 from OpenGL import GL
+import glm
 #endregion
 
 VERTEX_SIZE = (2 + 2 + 1 + 4 + 2 + 1) * GL_FLOAT_SIZE
+
+###########################################
+#Change shader and everything other to accept rotation as 3 floats in all directions
+#create ubo that will share viewProjectionMatrix between all renderers
 
 class ParticleRenderer(RendererComponent):
 	MaxParticleCount = 150
@@ -42,13 +47,18 @@ class ParticleRenderer(RendererComponent):
 			VertexArrayLayout(self.shader.GetAttribLocation("aTexIdx"), 1, VertexAttribType.Float, False)])
 		
 		self.__batches = []
-		self.__viewProjection = Matrix4(1.0)
-		self.renderStats = RenderStats()
+		self.__vertexCount = 0
 
 		Log("Particle renderer initialized.", LogLevel.Info)
 	
-	def RenderParticle(self, pos: Vector2, size: Vector2, rot: float, color: tuple, texHandle: TextureHandle):
-		data = [pos.x, pos.y, size.x, size.y, rot, color[0], color[1], color[2], color[3], texHandle.U, texHandle.V, texHandle.Index]
+	def RenderParticle(self, pos: glm.vec3, size: glm.vec3, rot: glm.vec3, color: glm.vec4, texHandle: TextureHandle):
+		data = [
+			pos.x, pos.y, pos.z,
+			size.x, size.y, size.z,
+			rot.x, rot.y, rot.z,
+			color.x, color.y, color.z, color.w,
+			texHandle.U, texHandle.V,
+			texHandle.Index]
 
 		try:
 			batch = next(x for x in self.__batches if x.texarrayID == texHandle.TexarrayID and x.WouldAccept(len(data) * GL_FLOAT_SIZE))
@@ -58,12 +68,9 @@ class ParticleRenderer(RendererComponent):
 			self.__batches.append(batch)
 		
 		batch.AddData(data)
+		batch.vertexCount += 1
 
 		RenderStats.QuadsCount += 1
-
-	def BeginScene(self, viewProjection: Matrix4) -> None:
-		self.__viewProjection = viewProjection
-		self.renderStats.Clear()
 
 	def EndScene(self) -> None:
 		needsDraw = False
@@ -74,13 +81,10 @@ class ParticleRenderer(RendererComponent):
 				break
 	
 	def __Flush(self):
-		Timer.Start()
-
 		GL.glDepthMask(False)
 
 		self.shader.Use()
-		self.shader.SetUniformMat4("uViewProjection", self.__viewProjection, False)
-
+		
 		self.vbo.Bind()
 		self.vao.Bind()
 
@@ -89,14 +93,9 @@ class ParticleRenderer(RendererComponent):
 
 			self.vbo.AddData(batch.data, batch.dataSize)
 
-			GL.glDrawArrays(GL.GL_POINTS, 0, self.renderStats.VertexCount)
-			self.renderStats.DrawsCount += 1
+			GL.glDrawArrays(GL.GL_POINTS, 0, batch.vertexCount)
+			RenderStats.DrawsCount += 1
 
 			batch.Clear()
 		
 		GL.glDepthMask(True)
-		
-		self.renderStats.DrawTime = Timer.Stop()
-
-	def GetStats(self) -> RenderStats:
-		return self.renderStats

@@ -90,8 +90,21 @@ class Shader(object):
 			Log(f"cannot find uniform named '{name}'.", LogLevel.Warning)
 		else:
 			self.uniforms[name] = loc
+			self.GetUniformLocation.cache_clear()
 		
 		return loc
+	
+	def GetUniformBlockLocation(self, name: str) -> int:
+		loc = GL.glGetUniformBlockIndex(self.__id, name)
+		
+		if loc == -1:
+			Log(f"cannot find uniform block named '{name}'.", LogLevel.Warning)
+		
+		return loc
+	
+	def SetUniformBlockBinding(self, name: str, index: int) -> None:
+		loc = self.GetUniformBlockLocation(name)
+		GL.glUniformBlockBinding(self.__id, loc, index)
 	
 	#region Setters
 	def SetUniform1i(self, name: str, value: int) -> None:

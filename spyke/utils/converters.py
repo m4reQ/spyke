@@ -1,3 +1,5 @@
+import glm
+
 def StrToBool(string: str) -> bool:
 	_s = string.lower()
 	
@@ -10,6 +12,9 @@ def StrToBool(string: str) -> bool:
 
 def IsArrayLike(obj: object) -> True:
 	return "__getitem__" in dir(obj)
+
+def Mat4ToTuple(mat: glm.mat4) -> tuple:
+	return tuple(mat[0]) + tuple(mat[1]) + tuple(mat[2]) + tuple(mat[3])
 
 def KwargParse(kwargs: dict, keywords: list, usage: str, copy = True) -> dict:
 	if not usage.lower() in ["n", "r", "l"]:
