@@ -62,7 +62,7 @@ class Renderer(Static):
 		GL.glPolygonMode(GL.GL_FRONT, GL.GL_FILL)
 	
 	def RenderFramebuffer(pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer):
-		Renderer.__PostRenderer.RenderFramebuffer(pos, size, rotation, framebuffer)
+		Renderer.__PostRenderer.Render(pos, size, rotation, framebuffer)
 
 	def RenderScene(scene, viewProjectionMatrix: glm.mat4, framebuffer: Framebuffer = None) -> None:
 		RenderStats.Clear()
@@ -77,6 +77,7 @@ class Renderer(Static):
 		
 		try:
 			framebuffer.Bind()
+			GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 		except AttributeError:
 			pass
 

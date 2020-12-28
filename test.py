@@ -78,7 +78,7 @@ class Window(GlfwWindow):
 		fbSpec = FramebufferSpec(self.width, self.height)
 		fbSpec.Samples = 4
 		fbSpec.HasDepthAttachment = False ########################
-		fbSpec.Color = Color(1.0, 1.0, 1.0, 0.8)
+		fbSpec.Color = Color(0.0, 1.0, 1.0, 1.0)
 
 		self.framebuffer = Framebuffer(fbSpec)
 
@@ -92,7 +92,8 @@ class Window(GlfwWindow):
 
 	def OnFrame(self):
 		SceneManager.Current.Process(window = self)
-		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix)
+		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix, self.framebuffer)
+		Renderer.RenderFramebuffer(Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0), self.framebuffer)
 		#Renderer.PostRender(self.posTEST, self.renderTarget, Color(0.0, 1.0, 0.5, 1.0))
 		#self.SetTitle(self.baseTitle + " | Frametime: " + str(round(SceneManager.Current.GetFrameTime(), 5)) + "s")
 

@@ -22,16 +22,15 @@ class PostRenderer(object):
 		self.shader.Compile()
 
 		self.__vao = VertexArray()
+		self.__vao.SetVertexSize(VERTEX_SIZE)
 		self.__vbo = VertexBuffer(6 * VERTEX_SIZE)
 		
 		self.__vao.Bind()
 		self.__vbo.Bind()
+		self.__vao.ClearVertexOffset()
 		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 3, VertexAttribType.Float, False))
 		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 4, VertexAttribType.Float, False))
 		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aTexCoord"), 2, VertexAttribType.Float, False))
-
-		self.BeginScene = lambda *_, **__: None
-		self.EndScene = lambda *_, **__: None
 	
 	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer) -> None:
 		transform = CreateTransform3D(pos, size, rotation)
@@ -62,9 +61,9 @@ class PostRenderer(object):
 
 		self.__vbo.AddData(data, len(data) * GL_FLOAT_SIZE)
 
-		GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
-		GL.glDisable(GL.GL_DEPTH_TEST)
+		#GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
+		#GL.glDisable(GL.GL_DEPTH_TEST)
 		GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
-		GL.glEnable(GL.GL_DEPTH_TEST)
+		#GL.glEnable(GL.GL_DEPTH_TEST)
 
 		RenderStats.QuadsCount += 1
