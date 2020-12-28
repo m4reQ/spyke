@@ -164,7 +164,7 @@ class GlfwWindow(Window):
 				self.__justStarted = False
 			if self.isActive:
 				self.OnFrame()
-				self.SwapBuffers()
+				glfw.swap_buffers(self.__handle)
 
 			self.frameTime = Timer.Stop()
 		
