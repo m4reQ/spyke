@@ -98,7 +98,7 @@ class Shader(object):
 		loc = GL.glGetUniformBlockIndex(self.__id, name)
 		
 		if loc == -1:
-			Log(f"cannot find uniform block named '{name}'.", LogLevel.Warning)
+			Log(f"Cannot find uniform block named '{name}'.", LogLevel.Warning)
 		
 		return loc
 	

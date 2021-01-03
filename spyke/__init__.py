@@ -47,4 +47,5 @@ else:
     IS_NVIDIA = False
 
 glfw.set_window_should_close(handle, glfw.TRUE)
-glfw.terminate()
+glfw.destroy_window(handle)
+glfw.window_hint(glfw.VISIBLE, glfw.TRUE)

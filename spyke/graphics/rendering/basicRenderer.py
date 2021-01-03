@@ -56,7 +56,7 @@ class BasicRenderer(RendererComponent):
 		self.vao.SetVertexSize(TRANSFORM_VERTEX_SIZE)
 		self.vao.ClearVertexOffset()
 
-		idx = self.shader.GetAttribLocation(f"aTransform")
+		idx = self.shader.GetAttribLocation("aTransform")
 		for i in range(4):
 			self.vao.AddLayout(VertexArrayLayout(idx + i, 4, GL.GL_FLOAT, False))
 			self.vao.AddDivisor(idx + i, 1)
