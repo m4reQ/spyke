@@ -7,7 +7,7 @@ from ..ecs.components import *
 from ..graphics import Renderer
 from ..utils import RequestGC
 from ..managers import SceneManager, EntityManager
-from ..sceneLoader import LoadScene, SaveScene
+from ..sceneLoader import SaveScene
 
 import tkinter as tk
 from tkinter import ttk

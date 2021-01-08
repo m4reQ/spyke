@@ -29,7 +29,7 @@ class Renderer(Static):
 
 	__ubo = None
 
-	def Initialize() -> None:
+	def Initialize(initialWidth: int, initialHeight: int) -> None:
 		Renderer.__BasicRenderer = BasicRenderer()
 		Renderer.__TextRenderer = TextRenderer()
 		Renderer.__LineRenderer = LineRenderer()
@@ -60,6 +60,10 @@ class Renderer(Static):
 		
 		GL.glCullFace(GL.GL_FRONT)
 		GL.glPolygonMode(GL.GL_FRONT, GL.GL_FILL)
+
+		GL.glClearColor(*RendererSettings.ClearColor)
+
+		Renderer.Resize(initialWidth, initialHeight)
 	
 	def RenderFramebuffer(pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer):
 		Renderer.__PostRenderer.Render(pos, size, rotation, framebuffer)
@@ -108,7 +112,7 @@ class Renderer(Static):
 			pass
 
 		RenderStats.DrawTime = time.perf_counter() - start
-	
+
 	def Resize(width: int, height: int) -> None:
 		GL.glScissor(0, 0, width, height)
 		GL.glViewport(0, 0, width, height)

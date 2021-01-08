@@ -7,14 +7,28 @@ from .ecs import Scene
 from .transform import Vector3, Vector2
 
 from pydoc import locate
+from copy import deepcopy
 
-SPACE_SUBSTITUTE = "%32"
+COMPONENTS_CLASSES_LOCATION = "spyke.ecs.components."
 
-def __SecureSpaces(string: str):
-	return string.replace(" ", SPACE_SUBSTITUTE)
+def SaveScene(filepath: str):
+	f = open(filepath, "w+")
+	
+	f.write("#configuration\n")
+	f.write(f"/c name {SceneManager.SceneName}\n")
+	f.write(f"/c timed {SceneManager.Current.Timed}\n")
 
-def __RestoreSpaces(string: str):
-	return string.replace(SPACE_SUBSTITUTE, " ")
+	f.write("#entities\n")
+	for name in EntityManager.GetEntities():
+		f.write(f"e {name}\n")
+
+	f.write("#components\n")
+	for ent in SceneManager.Current._entities:
+		for comp in SceneManager.Current.ComponentsForEntity(ent):
+			data = f"c {ent} {type(comp).ClassName} {comp.Serialize()}\n"
+			f.write(data)
+
+	f.close()
 
 def __CreateComponent(_type, data):
 	if _type == ColorComponent:
@@ -87,7 +101,7 @@ def __DecodeLine(line: str, scene: Scene):
 
 		scene.AddComponent(ent, __CreateComponent(_type, args))
 
-def LoadScene(filepath: str):
+def __LoadScene(filepath: str):
 	Timer.Start()
 
 	try:
@@ -127,7 +141,7 @@ def LoadScene(filepath: str):
 	f.close()
 	Log(f"Scene from file '{filepath}' loaded in {Timer.Stop()} seconds.", LogLevel.Info)
 
-def SaveScene(scene: Scene, filepath: str):
+def __SaveScene(scene: Scene, filepath: str):
 	Timer.Start()
 
 	timed = SceneManager.Current.Timed
