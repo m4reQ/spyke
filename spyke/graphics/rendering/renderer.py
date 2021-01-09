@@ -86,7 +86,7 @@ class Renderer(Static):
 			pass
 
 		for _, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
-			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.TextureHandle, sprite.TilingFactor)
+			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
 		
 		for _, line in scene.GetComponent(components.LineComponent):
 			Renderer.__LineRenderer.RenderLine(line.StartPos, line.EndPos, line.Color)

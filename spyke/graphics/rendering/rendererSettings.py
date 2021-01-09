@@ -19,6 +19,8 @@ class RendererSettings(Static):
     to transformation matrices count declared in the shader.
     """
 
+    MaxTextures = 16 ######################## ADD DOCUMENTATION ###########################
+
     BlendingEnabled = True
     """
     Indicates that blending should be enabled.

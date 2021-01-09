@@ -2,9 +2,9 @@
 from ..utils import Static, Timer, ObjectManager
 from ..debug import Log, LogLevel
 from ..textureLoader import TextureLoader
-from ..graphics import TextureArray, TextureHandle, TextureData
+#from ..graphics import TextureArray, TextureHandle, TextureData
 from ..graphics.texturing.textureUtils import GetWhiteTexture, IMAGE_FORMAT_MAP
-from ..graphics.texturing.texture import Texture
+from ..graphics.texturing.texture import Texture, TextureData
 from ..enums import TextureMagFilter
 
 
@@ -26,12 +26,10 @@ def LoadTexture(filepath: str):
 	except FileNotFoundError:
 		raise RuntimeError(f"Cannot find image file: {filepath}.")
 
-	texData = TextureData()
-	texData.Width = img.size[0]
-	texData.Height = img.size[1]
+	texData = TextureData(img.size[0], img.size[1])
 
-	texData.Data = list(img.getdata())
-	texData.TextureType = IMAGE_FORMAT_MAP[img.mode]
+	texData.data = list(img.getdata())
+	texData.format = IMAGE_FORMAT_MAP[img.mode]
 
 	img.close()
 
@@ -53,8 +51,9 @@ class TextureManager(Static):
 
 		textureData = LoadTexture(filepath)
 
-		return Texture(textureData)
+		TextureManager.Textures[name] = Texture(textureData)
 
+"""
 class _TextureManager(Static):
 	__TextureHandles = {}
 	__TextureArrays = []
@@ -124,3 +123,4 @@ class _TextureManager(Static):
 	
 	def GetTextureHandles() -> list:
 		return TextureManager.__TextureHandles.values()
+"""

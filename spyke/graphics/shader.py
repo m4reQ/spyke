@@ -1,6 +1,6 @@
 #region Import
 from ..enums import ShaderType
-from ..debug import Log, LogLevel
+from ..debug import Log, LogLevel, GetGLError
 from ..utils import ObjectManager, EnsureString
 from ..transform import Matrix4
 
@@ -107,6 +107,9 @@ class Shader(object):
 		GL.glUniformBlockBinding(self.__id, loc, index)
 	
 	#region Setters
+	def SetUniformIntArray(self, name: str, values: list) -> None:
+		GL.glUniform1iv(self.GetUniformLocation(name), len(values), numpy.asarray(values, dtype = numpy.int32))
+
 	def SetUniform1i(self, name: str, value: int) -> None:
 		GL.glUniform1i(self.GetUniformLocation(name), value)
 

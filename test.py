@@ -59,15 +59,16 @@ class Window(GlfwWindow):
 
 		Renderer.Initialize(self.width, self.height)
 
-		arr = TextureManager.CreateTextureArray(1920, 1080, 1)
-		TextureManager.LoadTexture("tests/test1.jpg", arr)
+		#arr = TextureManager.CreateTextureArray(1920, 1080, 1)
+		#TextureManager.LoadTexture("tests/test1.jpg", arr)
+		TextureManager.LoadTexture("tests/test1.jpg")
 
 		SceneManager.CreateScene("TEST", True)
 		InitializeDefaultProcessors(SceneManager.Current)
 
 		ent = SceneManager.Current.CreateEntity()
 		SceneManager.Current.AddComponent(ent, TransformComponent(Vector3(0.0, 0.0, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 0.0)))
-		SceneManager.Current.AddComponent(ent, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0), Color(1.0, 0.7, 1.0, 1.0)))
+		SceneManager.Current.AddComponent(ent, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0), Color(1.0, 1.0, 1.0, 1.0)))
 		# SceneManager.Current.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpec(self.width, self.height)
@@ -100,7 +101,7 @@ class Window(GlfwWindow):
 		#ImGui.Close()
 
 if __name__ == "__main__":
-	specs = WindowSpecs(512, 512, "TestWindow", 4, 6)
+	specs = WindowSpecs(512, 512, "TestWindow", 4, 5)
 	specs.Multisample = True
 	specs.Samples = 4
 	specs.Vsync = False
