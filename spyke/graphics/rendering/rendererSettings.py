@@ -19,7 +19,10 @@ class RendererSettings(Static):
     to transformation matrices count declared in the shader.
     """
 
-    MaxTextures = 16 ######################## ADD DOCUMENTATION ###########################
+    MaxTextures = 16
+    """
+    Max number of textures that can be used within one draw batch.
+    """
 
     BlendingEnabled = True
     """

@@ -74,7 +74,7 @@ class Renderer(Static):
 
 		Renderer.__ubo.Bind()
 
-		data = Mat4ToTuple(viewProjectionMatrix)
+		data = list(viewProjectionMatrix[0]) + list(viewProjectionMatrix[1]) + list(viewProjectionMatrix[2]) + list(viewProjectionMatrix[3])
 		Renderer.__ubo.AddData(data, len(data) * GL_FLOAT_SIZE)
 
 		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)

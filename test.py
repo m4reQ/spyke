@@ -59,9 +59,8 @@ class Window(GlfwWindow):
 
 		Renderer.Initialize(self.width, self.height)
 
-		#arr = TextureManager.CreateTextureArray(1920, 1080, 1)
-		#TextureManager.LoadTexture("tests/test1.jpg", arr)
 		TextureManager.LoadTexture("tests/test1.jpg")
+		TextureManager.LoadTexture("tests/test2.png")
 
 		SceneManager.CreateScene("TEST", True)
 		InitializeDefaultProcessors(SceneManager.Current)
@@ -69,6 +68,14 @@ class Window(GlfwWindow):
 		ent = SceneManager.Current.CreateEntity()
 		SceneManager.Current.AddComponent(ent, TransformComponent(Vector3(0.0, 0.0, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 0.0)))
 		SceneManager.Current.AddComponent(ent, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0), Color(1.0, 1.0, 1.0, 1.0)))
+
+		ent1 = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent1, TransformComponent(Vector3(0.0, 0.5, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 0.0)))
+		SceneManager.Current.AddComponent(ent1, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0), Color(1.0, 1.0, 0.0, 0.5)))
+
+		ent2 = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent2, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 0.0)))
+		SceneManager.Current.AddComponent(ent2, SpriteComponent("tests/test2.png", Vector2(1.0, 1.0), Color(1.0, 1.0, 1.0, 1.0)))
 		# SceneManager.Current.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpec(self.width, self.height)

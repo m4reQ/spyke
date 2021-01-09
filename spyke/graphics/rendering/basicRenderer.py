@@ -118,18 +118,21 @@ class BasicRenderer(RendererComponent):
 		if not self.__batch.WouldAccept(VERTEX_SIZE * 4):
 			self.__Flush()
 
-		if self.__lastTexture >= RendererSettings.MaxTextures - 1:
-			self.__Flush()
-
 		texIdx = 0.0
 
 		if texture:
-			if not texture.ID in self.__textures:
-				self.__textures[self.__lastTexture] = texture.ID
+			for i in range(self.__lastTexture):
+				if self.__textures[i] == texture.ID:
+					texIdx = float(i)
+					break
+			
+			if texIdx == 0.0:
+				if self.__lastTexture >= RendererSettings.MaxTextures - 1:
+					self.__Flush()
+				
 				texIdx = float(self.__lastTexture)
+				self.__textures[self.__lastTexture] = texture.ID
 				self.__lastTexture += 1
-			else:
-				texIdx = self.__textures.index(texture.ID, 0, self.__lastTexture + 1)
 
 		data = [
 			color.x, color.y, color.z, color.w, 0.0, 1.0, texIdx, tilingFactor.x, tilingFactor.y,
