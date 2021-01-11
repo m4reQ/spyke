@@ -23,7 +23,7 @@ class OrthographicCamera(Camera):
 		self.viewMatrix = glm.mat4(1.0)
 		self.viewProjectionMatrix = glm.mat4(1.0)
 
-		self.position = glm.vec2(0)
+		self.position = glm.vec3(0.0)
 
 		self.left = left
 		self.right = right
@@ -51,7 +51,7 @@ class OrthographicCamera(Camera):
 		self.shouldRecalculate = True
 		
 	def RecalculateMatrices(self):
-		transform = glm.translate(glm.mat4(1.0), glm.vec3(self.position.x, self.position.y, 0.0))
+		transform = glm.translate(glm.mat4(1.0), self.position)
 
 		self.viewMatrix = glm.inverse(transform)
 		self.viewProjectionMatrix = self.projectionMatrix * self.viewMatrix

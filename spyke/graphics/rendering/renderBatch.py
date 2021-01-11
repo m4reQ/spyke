@@ -5,23 +5,8 @@ class RenderBatch(object):
 		self.maxSize = maxSize
 		self.data = []
 		self.transformData = []
-		self.texarrayID = -1
 		self.indexCount = 0
 		self.vertexCount = 0
-	
-	def AddTransformData(self, data: list) -> None:
-		self.transformData.extend(data)
-
-	def AddData(self, data: list) -> None:
-		self.data.extend(data)
-	
-	def TryAddData(self, data: list) -> bool:
-		if (len(self.data) + len(data)) * GL_FLOAT_SIZE > self.maxSize:
-			return False
-
-		self.data.extend(data)
-
-		return True
 	
 	def Clear(self) -> None:
 		self.data.clear()

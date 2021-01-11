@@ -1,7 +1,0 @@
-#configuration
-/c name TEST
-/c timed True
-#entities
-#components
-c 1 TransformComponent 0.0 0.0 0.0 0.5 0.5 0.0 0.0 0.0 0.0
-c 1 SpriteComponent tests/test1.jpg 1.0 1.0 1.0 0.699999988079071 1.0 1.0

@@ -59,7 +59,9 @@ class Renderer(Static):
 			GL.glBlendFunc(*RendererSettings.BlendingFunc)
 		
 		GL.glCullFace(GL.GL_FRONT)
-		GL.glPolygonMode(GL.GL_FRONT, GL.GL_FILL)
+		GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+
+		GL.glEnable(GL.GL_DEPTH_TEST)
 
 		GL.glClearColor(*RendererSettings.ClearColor)
 

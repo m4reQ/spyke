@@ -1,9 +1,6 @@
 import sys
-version = sys.version_info
-if version.major < 3:
-    raise RuntimeError(f"To run sPYke you require python version at least 3.7 (currently using {version.major}.{version.minor}).")
-if version.major >= 3 and version.minor < 7:
-    raise RuntimeError(f"To run sPYke you require python version at least 3.7 (currently using {version.major}.{version.minor}).")
+if sys.version_info.major < 3 or (sys.version_info.major >= 3 and sys.version_info.minor < 7):
+    raise RuntimeError(f"To run sPYke you require python version at least 3.7 (currently using {sys.version_info.major}.{sys.version_info.minor}).")
 
 from time import perf_counter
 START_TIME = perf_counter()
@@ -19,13 +16,7 @@ USE_FAST_NV_MULTISAMPLE = False
 USE_TIMED_GC = False
 GC_TIMEOUT = 1
 
-import os
-oldOut = sys.stdout
-sys.stdout = open(os.devnull, 'w')
-import pygame
-sys.stdout = oldOut
-
-import psutil
+import os, psutil
 _PROCESS = psutil.Process(os.getpid())
 
 import OpenGL
