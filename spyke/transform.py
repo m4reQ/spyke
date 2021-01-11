@@ -12,7 +12,7 @@ QuadVertices = [
 	glm.vec4(1.0, 1.0, 0.0, 1.0),
 	glm.vec4(1.0, 0.0, 0.0, 1.0)]
 
-QuadVerticsFloat = [
+QuadVerticesFloat = [
 	0.0, 0.0, 0.0,
 	0.0, 1.0, 0.0,
 	1.0, 1.0, 0.0,
@@ -60,13 +60,3 @@ def CreateTransform3D(pos: glm.vec3, size: glm.vec3, rot: glm.vec3) -> glm.mat4:
 	transform = glm.rotate(transform, rot.x, glm.vec3(1.0, 0.0, 0.0))
 	transform = glm.rotate(transform, rot.y, glm.vec3(0.0, 1.0, 0.0))
 	return glm.rotate(transform, rot.z, glm.vec3(0.0, 0.0, 1.0))
-
-@lru_cache
-def TransformQuadVertices(transformTuple: tuple) -> list:
-	transform = glm.mat4(transformTuple[0], transformTuple[1], transformTuple[2], transformTuple[3])
-	return [
-		transform * QuadVertices[0],
-		transform * QuadVertices[1],
-		transform * QuadVertices[2],
-		transform * QuadVertices[3]]
-#endregion

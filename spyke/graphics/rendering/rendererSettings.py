@@ -1,6 +1,7 @@
 from ...utils import Static
 
 from OpenGL import GL
+import glm
 
 class RendererSettings(Static):
     """
@@ -16,6 +17,11 @@ class RendererSettings(Static):
     Max quads count that can be renderer within one batch.
     This value has to be the same as value in the value that coresponds
     to transformation matrices count declared in the shader.
+    """
+
+    MaxTextures = 16
+    """
+    Max number of textures that can be used within one draw batch.
     """
 
     BlendingEnabled = True
@@ -35,4 +41,9 @@ class RendererSettings(Static):
     This is only applied when using direct screen rendering.
     When using custom framebuffer multisampling should be set using appropriate
     framebuffer specifications.
+    """
+
+    ClearColor = glm.vec4(0.0)
+    """
+    Default color that will be used when clearing screen or framebuffer.
     """

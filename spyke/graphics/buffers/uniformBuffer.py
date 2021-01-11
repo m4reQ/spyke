@@ -33,6 +33,14 @@ class UniformBuffer(object):
 
 	def Clear(self):
 		GL.glBufferData(GL.GL_UNIFORM_BUFFER, self.__size, None, self.__usageFlag)
+	
+	#region Direct State Access
+	def AddDataDirect(self, data: list, size: int) -> None:
+		GL.glNamedBufferSubData(self.__id, 0, size, numpy.asarray(data, dtype=numpy.float32))
+	
+	def ClearDirect(self) -> None:
+		GL.glNamedBufferData(self.__id, self.__size, None, self.__usageFlag)
+	#endregion
 
 	@property
 	def Size(self):

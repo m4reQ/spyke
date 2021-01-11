@@ -5,7 +5,7 @@ from ..shader import Shader
 from ..buffers import VertexBuffer, Framebuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ...utils import GL_FLOAT_SIZE, Timer
-from ...transform import Matrix4, TransformQuadVertices, CreateTransform3D
+from ...transform import Matrix4, CreateTransform3D
 from ...enums import VertexAttribType, ShaderType
 
 from OpenGL import GL

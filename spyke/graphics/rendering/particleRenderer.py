@@ -5,9 +5,9 @@ from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..buffers import IndexBuffer, VertexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
-from ..texturing.textureUtils import TextureHandle
+from ..texturing.textureHandle import TextureHandle
 from ...managers import TextureManager
-from ...transform import Matrix4, CreateQuadIndices, TransformQuadVertices, Vector2
+from ...transform import Matrix4, CreateQuadIndices, Vector2
 from ...enums import VertexAttribType, GLType, ShaderType
 from ...utils import GL_FLOAT_SIZE, Timer
 from ...debug import Log, LogLevel
@@ -20,7 +20,6 @@ VERTEX_SIZE = (2 + 2 + 1 + 4 + 2 + 1) * GL_FLOAT_SIZE
 
 ###########################################
 #Change shader and everything other to accept rotation as 3 floats in all directions
-#create ubo that will share viewProjectionMatrix between all renderers
 
 class ParticleRenderer(RendererComponent):
 	MaxParticleCount = 150

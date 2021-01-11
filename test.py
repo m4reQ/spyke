@@ -18,7 +18,7 @@ from spyke.managers import *
 from spyke.utils import *
 from spyke.transform import *
 from spyke.input import *
-from spyke.sceneLoader import SaveScene, LoadScene
+from spyke.sceneLoader import SaveScene
 
 class UserProcessor(Processor):
 	def __init__(self):
@@ -39,11 +39,6 @@ class Window(GlfwWindow):
 		debug.GLInfo.PrintInfo()
 
 		InputHandler.Initialize(self)
-
-		GLCommand.Scissor(0, 0, self.width, self.height)
-		GLCommand.Viewport(0, 0, self.width, self.height)
-		GLCommand.SetClearcolor(0.4, 0.2, 0.3)
-
 		# LoadScene("tests/newScene.scn")
 
 		# self.ent4 = EntityManager.CreateEntity("Particles")
@@ -62,17 +57,25 @@ class Window(GlfwWindow):
 		#ImGui.Initialize(self)
 		#ImGui.UpdateScene()
 
-		Renderer.Initialize()
+		Renderer.Initialize(self.width, self.height)
 
-		arr = TextureManager.CreateTextureArray(1920, 1080, 1)
-		TextureManager.LoadTexture("tests/test1.jpg", arr)
+		TextureManager.LoadTexture("tests/test1.jpg")
+		TextureManager.LoadTexture("tests/test2.png")
 
 		SceneManager.CreateScene("TEST", True)
 		InitializeDefaultProcessors(SceneManager.Current)
 
-		ent = SceneManager.Current.CreateEntity()
-		SceneManager.Current.AddComponent(ent, TransformComponent(Vector3(0.0, 0.0, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 0.0)))
-		SceneManager.Current.AddComponent(ent, SpriteComponent("tests/test1.jpg", Vector2(1.0, 1.0), Color(1.0, 0.7, 1.0, 1.0)))
+		ent1 = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent1, TransformComponent(Vector3(0.0, 0.5, 0.1), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 90.0)))
+		SceneManager.Current.AddComponent(ent1, SpriteComponent("", Vector2(1.0, 1.0), Color(1.0, 0.0, 1.0, 1.0)))
+
+		ent2 = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent2, TransformComponent(Vector3(0.0, 0.1, 0.0), Vector3(0.2, 0.3, 0.0), Vector3(0.0, 0.0, 0.0)))
+		SceneManager.Current.AddComponent(ent2, SpriteComponent("", Vector2(1.0, 1.0), Color(1.0, 1.0, 0.0, 1.0)))
+
+		ent3 = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent3, TransformComponent(Vector3(0.0, 0.0, 1.0), Vector3(1.0), Vector3(0.0)))
+		SceneManager.Current.AddComponent(ent3, SpriteComponent("tests/test2.png", Vector2(1.0, 1.0), Color(1.0, 1.0, 1.0, 1.0)))
 		# SceneManager.Current.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpec(self.width, self.height)
@@ -80,7 +83,7 @@ class Window(GlfwWindow):
 		fbSpec.HasDepthAttachment = False ########################
 		fbSpec.Color = Color(0.0, 1.0, 1.0, 1.0)
 
-		self.framebuffer = Framebuffer(fbSpec)
+		#self.framebuffer = Framebuffer(fbSpec)
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
 		self.renderTarget = RenderTarget(self.camera)
@@ -88,13 +91,16 @@ class Window(GlfwWindow):
 		self.posTEST = glm.translate(glm.mat4(1.0), glm.vec3(-1.0, -1.0, 0.0))
 		self.posTEST = glm.scale(self.posTEST, glm.vec3(2.0, 2.0, 0.0))
 
+		#SaveScene("test.scn")
+
 		RequestGC()
 
 	def OnFrame(self):
 		SceneManager.Current.Process(window = self)
-		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix, self.framebuffer)
-		Renderer.RenderFramebuffer(Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0), self.framebuffer)
+		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix)#, self.framebuffer)
+		#Renderer.RenderFramebuffer(Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0), self.framebuffer)
 		#Renderer.PostRender(self.posTEST, self.renderTarget, Color(0.0, 1.0, 0.5, 1.0))
+		self.SetTitle(self.baseTitle + " | FPS: {0:.2f} | Rendertime: {1:.5f}s".format(1.0 / RenderStats.DrawTime, RenderStats.DrawTime))
 		#self.SetTitle(self.baseTitle + " | Frametime: " + str(round(SceneManager.Current.GetFrameTime(), 5)) + "s")
 
 	def OnClose(self):
@@ -102,12 +108,10 @@ class Window(GlfwWindow):
 		#ImGui.Close()
 
 if __name__ == "__main__":
-	specs = WindowSpecs(512, 512, "TestWindow", 4, 6)
+	specs = WindowSpecs(512, 512, "TestWindow", 4, 5)
 	specs.Multisample = True
 	specs.Samples = 4
 	specs.Vsync = False
 	
 	win = Window(specs)
 	win.Run()
-
-	#input()

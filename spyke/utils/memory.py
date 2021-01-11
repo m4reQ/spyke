@@ -5,6 +5,7 @@ import ctypes
 from OpenGL import GL
 import gc
 import threading
+import pickle
 
 FLOAT_SIZE = ctypes.sizeof(ctypes.c_float)
 INT_SIZE = ctypes.sizeof(ctypes.c_int)
@@ -47,6 +48,23 @@ def GetGLTypeSize(_type: int) -> int:
 
 def GetPointer(value: int) -> ctypes.c_void_p:
 	return ctypes.c_void_p(value)
+
+class Serializable(object):
+	ClassName = "Serializable"
+
+	@classmethod
+	def Deserialize(cls, data: str) -> object:
+		pass
+
+	@classmethod
+	def DeserializeBin(cls, data: bytes) -> object:
+		return pickle.loads(data)
+	
+	def Serialize(self) -> str:
+		pass
+
+	def SerializeBin(self) -> bytes:
+		return pickle.dumps(self)
 
 class ObjectManager(Static):
 	Objects = []

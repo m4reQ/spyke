@@ -1,9 +1,16 @@
 from ...debug import Log, LogLevel
+from ...utils import Serializable
 
 import os
 import importlib.util
 
-class ScriptComponent(object):
+class ScriptComponent(Serializable):
+	ClassName = "ScriptComponent"
+	
+	@classmethod
+	def Deserialize(cls, data):
+		return cls(data)
+
 	@staticmethod
 	def __defaultcaller(func, _object):
 		def inner(*args, **kwargs):
@@ -54,3 +61,6 @@ class ScriptComponent(object):
 	
 	def GetComponent(self, componentType):
 		return self.world.ComponentForEntity(self.entity, componentType)
+	
+	def Serialize(self):
+		return f"{self.Filepath}"

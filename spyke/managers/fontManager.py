@@ -1,13 +1,12 @@
 #region Import
-from .textureManager import TextureManager
-from ..graphics import TextureArray, TextureData, TextureHandle
+from ..graphics.texturing.textureArray import TextureArray, TexArraySpec
+from ..loaders.texture import LoadTexture
 from ..graphics.text.font import Font
 from ..debug import Log, LogLevel
-from ..enums import TextureMagFilter
 from ..utils import Static
-from ..textureLoader import TextureLoader
 
 from functools import lru_cache
+from OpenGL import GL
 #endregion
 
 class FontManager(Static):
@@ -17,18 +16,36 @@ class FontManager(Static):
 
 	__Fonts = {}
 
+	__TextureArray = None
+
+	def Initialize():
+		if not FontManager.__TextureArray:
+			spec = TexArraySpec(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures)
+			spec.minFilter = GL.GL_NEAREST_MIPMAP_NEAREST
+			spec.magFilter = GL.GL_NEAREST
+			spec.mipLevels = 1
+
+			FontManager.__TextureArray = TextureArray(spec)
+		else:
+			Log("Font manager already intialized.", LogLevel.Warning)
+
 	def Reload() -> None:
 		FontManager.__Fonts.clear()
 	
 	def Use() -> None:
-		TextureManager.GetArray(TextureManager.FontArray).Bind()
+		FontManager.__TextureArray.Bind()
 	
-	def CreateFont(fontFilepath: str, bitmapFilepath: str, fontName: str) -> None:
-		if TextureManager.FontArray == -1:
-			TextureManager.FontArray = TextureManager.CreateTextureArray(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures, 1)
+	def CreateFont(fontFilepath: str, imageFilepath: str, fontName: str) -> None:
+		if not FontManager.__TextureArray:
+			FontManager.Initialize()
+		
+		data = LoadTexture(imageFilepath)
+		handle = FontManager.__TextureArray.UploadTexture(data)
 
-		TextureManager.LoadTexture(bitmapFilepath, TextureManager.FontArray)
-		FontManager.__Fonts[fontName] = Font(fontFilepath, bitmapFilepath)
+		FontManager.__Fonts[fontName] = Font(fontFilepath, handle)
+		FontManager.__Fonts[fontName].ImageFilepath = imageFilepath
+
+		FontManager.GetFont.cache_clear()
 	
 	@lru_cache
 	def GetFont(fontName: str) -> Font:
