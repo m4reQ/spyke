@@ -1,6 +1,5 @@
 #region Import
 from ...managers.textureManager import TextureManager
-from ...graphics.texturing.textureUtils import NoTexture
 
 import random
 import glm
@@ -20,7 +19,7 @@ class Particle(object):
 
 		self.color = glm.vec4(1.0)
 
-		self.texHandle = NoTexture
+		self.texture = None
 	
 	def __repr__(self):
 		return f"Active: {self.isAlive}"
@@ -47,7 +46,7 @@ class ParticleSystemComponent(object):
 		self.randomizeMovement = False
 		self.fadeOut = False
 
-		self.__texHandle = NoTexture
+		self.__texture = None
 
 		self.maxCount = max(maxCount, ParticleSystemComponent.MaxCount)
 		
@@ -62,7 +61,7 @@ class ParticleSystemComponent(object):
 	
 	@texHandle.setter
 	def texHandle(self, value: str):
-		self.__texHandle = TextureManager.GetTexture(value)
+		self.__texHandle = TextureManager.Textures[value]
 	
 	def EmitParticles(self, count: int) -> None:
 		for _ in range(count):

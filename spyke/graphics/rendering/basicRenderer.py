@@ -6,8 +6,8 @@ from .rendererSettings import RendererSettings
 from ..shader import Shader
 from ..vertexArray import VertexArray, VertexArrayLayout
 from ..buffers import VertexBuffer, IndexBuffer
-from ..texturing.textureUtils import TextureHandle
-from ..texturing.texture import Texture, TextureData
+from ..texturing.textureUtils import GetWhiteTexture
+from ..texturing.texture import Texture
 from ...managers import TextureManager
 from ...transform import CreateQuadIndices, Matrix4, QuadVerticesFloat
 from ...debug import Log, LogLevel, GetGLError
@@ -21,16 +21,14 @@ import numpy
 VERTEX_SIZE = (3 + 4 + 2 + 1 + 2 + 16) * GL_FLOAT_SIZE
 TRANSFORM_VERTEX_SIZE = 16 * GL_FLOAT_SIZE
 POS_VERTEX_SIZE = 3 * GL_FLOAT_SIZE
-__DATA_VERTEX_SIZE = (4 + 2 + 1 + 2) * GL_FLOAT_SIZE
-
 INSTANCE_DATA_VERTEX_SIZE = (4 + 2 + 1 + 16) * GL_FLOAT_SIZE
 VERTEX_DATA_VERTEX_SIZE = 2 * GL_FLOAT_SIZE
 
 class BasicRenderer(RendererComponent):
 	def __init__(self):
 		self.shader = Shader()
-		self.shader.AddStage(GL.GL_VERTEX_SHADER, "spyke/graphics/shaderSources/basicInstancedMulti.vert")
-		self.shader.AddStage(GL.GL_FRAGMENT_SHADER, "spyke/graphics/shaderSources/basicInstancedMulti.frag")
+		self.shader.AddStage(GL.GL_VERTEX_SHADER, "spyke/graphics/shaderSources/basicInstanced.vert")
+		self.shader.AddStage(GL.GL_FRAGMENT_SHADER, "spyke/graphics/shaderSources/basicInstanced.frag")
 		self.shader.Compile()
 
 		self.posVbo = VertexBuffer(POS_VERTEX_SIZE * 4, GL.GL_STATIC_DRAW)
@@ -75,7 +73,6 @@ class BasicRenderer(RendererComponent):
 			self.vao.AddLayout(VertexArrayLayout(matLoc + i, 4, GL.GL_FLOAT, False))
 			self.vao.AddDivisor(matLoc + i, 1)
 
-		#self.__batch = RenderBatch(VERTEX_SIZE * RendererSettings.MaxQuadsCount)
 		self.__vertexData = []
 		self.__instanceData = []
 		self.__indexCount = 0
@@ -83,22 +80,12 @@ class BasicRenderer(RendererComponent):
 		self.__textures = [0] * (RendererSettings.MaxTextures - 1)
 		self.__lastTexture = 1
 
-		wtData = TextureData(1, 1)
-		wtData.data = numpy.asarray([255, 255, 255], dtype = numpy.uint8)
-		wtData.minFilter = GL.GL_NEAREST
-		wtData.magFilter = GL.GL_NEAREST
-		wtData.mipLevels = 1
-		wtData.format = GL.GL_RGB
-
-		self.__whiteTexture = Texture(wtData)
+		self.__whiteTexture = Texture(GetWhiteTexture())
 
 		samplers = [x for x in range(RendererSettings.MaxTextures)]
 
 		self.shader.Use()
 		self.shader.SetUniformIntArray("uTextures", samplers)
-
-		######################### TEMPORARY #################################
-		GL.glPointSize(5.0)
 
 		Log("2D renderer initialized", LogLevel.Info)
 	
@@ -112,7 +99,9 @@ class BasicRenderer(RendererComponent):
 		self.shader.Use()
 
 		GL.glBindTextureUnit(0, self.__whiteTexture.ID)
-		GL.glBindTextures(1, self.__lastTexture, self.__textures[:self.__lastTexture + 1])
+
+		for i in range(self.__lastTexture):
+			GL.glBindTextureUnit(i, self.__textures[i])
 
 		self.vao.Bind()
 		self.ibo.Bind()
@@ -124,7 +113,6 @@ class BasicRenderer(RendererComponent):
 
 		RenderStats.DrawsCount += 1
 
-		#self.__batch.Clear()
 		self.__indexCount = 0
 		self.__vertexData.clear()
 		self.__instanceData.clear()

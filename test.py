@@ -65,22 +65,17 @@ class Window(GlfwWindow):
 		SceneManager.CreateScene("TEST", True)
 		InitializeDefaultProcessors(SceneManager.Current)
 
-		# for i in range(5):
-		# 	ent = SceneManager.Current.CreateEntity()
-		# 	SceneManager.Current.AddComponent(ent, TransformComponent(Vector3(0.4 * i, 0.4 * i, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0, 0.0, 0.0)))
-		# 	SceneManager.Current.AddComponent(ent, SpriteComponent("EMPTY", Vector2(1.0, 1.0), Color(0.25 * i, 0.25 * i, 1.0, 1.0)))
-
 		ent1 = SceneManager.Current.CreateEntity()
 		SceneManager.Current.AddComponent(ent1, TransformComponent(Vector3(0.0, 0.5, 0.1), Vector3(0.5, 0.5, 0.0), Vector3(0.0, 0.0, 90.0)))
-		SceneManager.Current.AddComponent(ent1, SpriteComponent("EMPTY", Vector2(1.0, 1.0), Color(1.0, 0.0, 1.0, 1.0)))
+		SceneManager.Current.AddComponent(ent1, SpriteComponent("", Vector2(1.0, 1.0), Color(1.0, 0.0, 1.0, 1.0)))
 
 		ent2 = SceneManager.Current.CreateEntity()
 		SceneManager.Current.AddComponent(ent2, TransformComponent(Vector3(0.0, 0.1, 0.0), Vector3(0.2, 0.3, 0.0), Vector3(0.0, 0.0, 0.0)))
-		SceneManager.Current.AddComponent(ent2, SpriteComponent("EMPTY", Vector2(1.0, 1.0), Color(1.0, 1.0, 0.0, 1.0)))
+		SceneManager.Current.AddComponent(ent2, SpriteComponent("", Vector2(1.0, 1.0), Color(1.0, 1.0, 0.0, 1.0)))
 
-		# ent2 = SceneManager.Current.CreateEntity()
-		# SceneManager.Current.AddComponent(ent2, TransformComponent(Vector3(0.0, 0.0, 1.0), Vector3(1.0), Vector3(0.0)))
-		# SceneManager.Current.AddComponent(ent2, SpriteComponent("tests/test2.png", Vector2(1.0, 1.0), Color(1.0, 1.0, 1.0, 1.0)))
+		ent3 = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent3, TransformComponent(Vector3(0.0, 0.0, 1.0), Vector3(1.0), Vector3(0.0)))
+		SceneManager.Current.AddComponent(ent3, SpriteComponent("tests/test2.png", Vector2(1.0, 1.0), Color(1.0, 1.0, 1.0, 1.0)))
 		# SceneManager.Current.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpec(self.width, self.height)
@@ -120,5 +115,3 @@ if __name__ == "__main__":
 	
 	win = Window(specs)
 	win.Run()
-
-	#input()

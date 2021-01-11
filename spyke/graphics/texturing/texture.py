@@ -1,20 +1,14 @@
-from ...utils import ObjectManager
+from .textureData import TextureData
+from ...debug import Log, LogLevel
+from ...utils import ObjectManager, Timer
 
 from OpenGL import GL
 import numpy
 
-class TextureData(object):
-	def __init__(self, width, height):
-		self.width = width
-		self.height = height
-		self.data = []
-		self.format = GL.GL_RGB
-		self.mipLevels = 4
-		self.minFilter = GL.GL_LINEAR_MIPMAP_LINEAR
-		self.magFilter = GL.GL_LINEAR
-
 class Texture(object):
 	def __init__(self, textureData: TextureData):
+		Timer.Start()
+
 		self.width = textureData.width
 		self.height = textureData.height
 
@@ -34,6 +28,8 @@ class Texture(object):
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, 0)
 
 		ObjectManager.AddObject(self)
+		
+		Log(f"Texture (id: {self.__id}) initialized in {Timer.Stop()} seconds.", LogLevel.Info)
 
 	def BindToUnit(self, slot):
 		GL.glBindTextureUnit(slot, self.__id)

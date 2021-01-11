@@ -5,7 +5,7 @@ from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..buffers import IndexBuffer, VertexBuffer
 from ..vertexArray import VertexArray, VertexArrayLayout
-from ..texturing.textureUtils import TextureHandle
+from ..texturing.textureHandle import TextureHandle
 from ...managers import TextureManager
 from ...transform import Matrix4, CreateQuadIndices, Vector2
 from ...enums import VertexAttribType, GLType, ShaderType

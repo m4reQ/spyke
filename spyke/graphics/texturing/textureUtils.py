@@ -1,37 +1,20 @@
-from ...enums import TextureType
+from .textureData import TextureData
 
-import numpy
-
-class TextureData(object):
-	def __init__(self):
-		self.Width = 0
-		self.Height = 0
-		self.Data = []
-		self.TextureType = None
-		self.ImageName = ""
-
-class TextureHandle(object):
-	def __init__(self, u: float, v: float, index: float):
-		self.U = u
-		self.V = v
-		self.Index = index
-		self.TexarrayID = 0
-		self.Width = 0
-		self.Height = 0
+from OpenGL import GL
 
 def GetWhiteTexture():
-	data = TextureData()
-	data.Width = 1
-	data.Height = 1
-	data.Data = [255, 255, 255]
-	data.TextureType = TextureType.Rgb
+	data = TextureData(1, 1)
+	data.data = [255, 255, 255]
+	data.minFilter = GL.GL_NEAREST
+	data.magFilter = GL.GL_NEAREST
+	data.mipLevels = 1
+	data.format = GL.GL_RGB
 
 	return data
 
 IMAGE_FORMAT_MAP = {
-	"JPEG": TextureType.Rgb,
-	"RGB": TextureType.Rgb,
-	"PNG": TextureType.Rgba,
-	"RGBA": TextureType.Rgba}
-
-NoTexture = TextureHandle(0.5, 0.5, 0.0)
+	"JPEG": GL.GL_RGB,
+	"JPG": GL.GL_RGB,
+	"PNG": GL.GL_RGBA,
+	"RGB": GL.GL_RGB,
+	"RGBA": GL.GL_RGBA}

@@ -10,7 +10,7 @@ DEBUG_ENABLE = True
 DEBUG_COLOR = False
 AUTO_LOG_EXCEPTIONS = True
 
-USE_FAST_MIN_FILTER = False
+USE_FAST_ARRAY_MIN_FILTER = False
 USE_FAST_NV_MULTISAMPLE = False
 
 USE_TIMED_GC = False
@@ -18,6 +18,12 @@ GC_TIMEOUT = 1
 
 import os, psutil
 _PROCESS = psutil.Process(os.getpid())
+
+oldOut = sys.stdout
+with open(os.devnull, "w") as f:
+    sys.stdout = f
+    import pygame
+    sys.stdout = oldOut
 
 import OpenGL
 OpenGL.ERROR_CHECKING = False
