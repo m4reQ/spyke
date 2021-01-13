@@ -45,7 +45,7 @@ class OrthographicCamera(Camera):
 
 		self.shouldRecalculate = True
 	
-	def ReinitProjectionMatrix(self, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 10.0):
+	def ReinitProjectionMatrix(self, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 1.0):
 		self.projectionMatrix = glm.ortho(left, right, bottom, top, zNear, zFar)
 
 		self.shouldRecalculate = True

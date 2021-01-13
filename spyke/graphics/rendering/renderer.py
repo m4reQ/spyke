@@ -63,11 +63,18 @@ class Renderer(Static):
 
 		GL.glEnable(GL.GL_DEPTH_TEST)
 
+		GL.glEnable(GL.GL_CULL_FACE)
+
 		GL.glClearColor(*RendererSettings.ClearColor)
 
 		Renderer.Resize(initialWidth, initialHeight)
+
+		Renderer.__DefaultDepthFunc = GL.glGetInteger(GL.GL_DEPTH_FUNC)
+
+	def ClearScreen() -> None:
+		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 	
-	def RenderFramebuffer(pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer):
+	def RenderFramebuffer(pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer) -> None:
 		Renderer.__PostRenderer.Render(pos, size, rotation, framebuffer)
 
 	def RenderScene(scene, viewProjectionMatrix: glm.mat4, framebuffer: Framebuffer = None) -> None:
@@ -79,13 +86,26 @@ class Renderer(Static):
 		data = list(viewProjectionMatrix[0]) + list(viewProjectionMatrix[1]) + list(viewProjectionMatrix[2]) + list(viewProjectionMatrix[3])
 		Renderer.__ubo.AddData(data, len(data) * GL_FLOAT_SIZE)
 
-		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-		
 		try:
 			framebuffer.Bind()
-			GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 		except AttributeError:
 			pass
+	
+		Renderer.ClearScreen()
+
+		drawables = [x[1] for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
+		opaque = [x for x in drawables if x[0].Color.w == 1.0]
+		alpha = [x for x in drawables if x not in opaque]
+
+		alpha.sort(key = lambda x: x[0].Color.w, reverse = True)
+
+		for (sprite, transform) in opaque:
+			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
+		
+		Renderer.__BasicRenderer.EndScene()
+
+		for (sprite, transform) in alpha:
+			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
 
 		for _, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
 			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)

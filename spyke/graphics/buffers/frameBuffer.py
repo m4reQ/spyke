@@ -88,5 +88,9 @@ class Framebuffer(object):
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
 	@property
-	def ColorAttachment(self):
+	def ColorAttachment(self) -> int:
 		return self.__colorAttachmentId
+	
+	@property
+	def ID(self) -> int:
+		return self.__id

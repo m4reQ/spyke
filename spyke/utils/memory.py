@@ -71,13 +71,16 @@ class ObjectManager(Static):
 	__Buffers = []
 	__Textures = []
 	__Shaders = []
+	__Framebuffers = []
 
 	def AddObject(obj):
 		name = type(obj).__name__
 
 		if name == "VertexArray":
 			ObjectManager.__VertexArrays.append(obj.ID)
-		elif "buffer" in name.lower():
+		elif name == "Framebuffer":
+			ObjectManager.__Framebuffers.append(obj.ID)
+		elif "buffer" in name.lower() and name != "Framebuffer":
 			ObjectManager.__Buffers.append(obj.ID)
 		elif name == "Shader":
 			ObjectManager.__Shaders.append(obj.ID)
@@ -91,6 +94,11 @@ class ObjectManager(Static):
 			GL.glDeleteBuffers(len(ObjectManager.__Buffers), ObjectManager.__Buffers)
 			
 		Log(f"{len(ObjectManager.__Buffers)} buffers deleted succesfully.", LogLevel.Info)
+
+		for _ in ObjectManager.__Framebuffers:
+			GL.glDeleteFramebuffers(len(ObjectManager.__Framebuffers), ObjectManager.__Framebuffers)
+			
+		Log(f"{len(ObjectManager.__Framebuffers)} frame buffers deleted succesfully.", LogLevel.Info)
 		
 		for _ in ObjectManager.__Shaders:
 			GL.glDeleteBuffers(len(ObjectManager.__Shaders), ObjectManager.__Shaders)
@@ -108,8 +116,9 @@ class ObjectManager(Static):
 		Log(f"{len(ObjectManager.__VertexArrays)} vertex arrays deleted succesfully.", LogLevel.Info)
 
 		ObjectManager.__Buffers.clear()
+		ObjectManager.__Framebuffers.clear()
 		ObjectManager.__Shaders.clear()
 		ObjectManager.__Textures.clear()
 		ObjectManager.__VertexArrays.clear()
 
-		RequestGC()
+		gc.collect()
