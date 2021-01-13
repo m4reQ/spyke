@@ -4,7 +4,7 @@ from .renderStats import RenderStats
 from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..buffers import IndexBuffer, VertexBuffer
-from ..vertexArray import VertexArray, VertexArrayLayout
+from ..vertexArray import VertexArray
 from ..texturing.textureHandle import TextureHandle
 from ...managers import TextureManager
 from ...transform import Matrix4, CreateQuadIndices, Vector2
@@ -35,16 +35,15 @@ class ParticleRenderer(RendererComponent):
 		self.vao = VertexArray()
 		self.vbo = VertexBuffer(ParticleRenderer.MaxVertexCount * VERTEX_SIZE)
 
-		self.vbo.Bind()
 		self.vao.Bind()
-		self.vao.AddLayouts([
-			VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 2, VertexAttribType.Float, False),
-			VertexArrayLayout(self.shader.GetAttribLocation("aSize"), 2, VertexAttribType.Float, False),
-			VertexArrayLayout(self.shader.GetAttribLocation("aRotation"), 1, VertexAttribType.Float, False),
-			VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 4, VertexAttribType.Float, False),
-			VertexArrayLayout(self.shader.GetAttribLocation("aTexCoord"), 2, VertexAttribType.Float, False),
-			VertexArrayLayout(self.shader.GetAttribLocation("aTexIdx"), 1, VertexAttribType.Float, False)])
-		
+		self.vbo.Bind()
+		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 2, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aSize"), 2, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aRotation"), 1, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), 2, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aTexIdx"), 1, GL.GL_FLOAT, False)
+
 		self.__batches = []
 		self.__vertexCount = 0
 

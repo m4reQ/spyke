@@ -24,6 +24,11 @@ class RendererSettings(Static):
     Max number of textures that can be used within one draw batch.
     """
 
+    MaxFontTextures = 5
+    """
+    Max number of font textures that can be loaded.
+    """
+
     BlendingEnabled = True
     """
     Indicates that blending should be enabled.

@@ -4,7 +4,7 @@ from .renderStats import RenderStats
 from .rendererComponent import RendererComponent
 from .rendererSettings import RendererSettings
 from ..shader import Shader
-from ..vertexArray import VertexArray, VertexArrayLayout
+from ..vertexArray import VertexArray
 from ..buffers import VertexBuffer, IndexBuffer
 from ..texturing.textureUtils import GetWhiteTexture
 from ..texturing.texture import Texture
@@ -32,7 +32,6 @@ class BasicRenderer(RendererComponent):
 		self.shader.Compile()
 
 		self.posVbo = VertexBuffer(POS_VERTEX_SIZE * 4, GL.GL_STATIC_DRAW)
-
 		self.instanceDataVbo = VertexBuffer(INSTANCE_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount)
 		self.vertexDataVbo = VertexBuffer(VERTEX_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount * 4)
 
@@ -44,13 +43,13 @@ class BasicRenderer(RendererComponent):
 		self.posVbo.Bind()
 		self.vao.SetVertexSize(POS_VERTEX_SIZE)
 		self.vao.ClearVertexOffset()
-		self.vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False))
+		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False)
 		self.posVbo.AddDataDirect(QuadVerticesFloat, len(QuadVerticesFloat) * GL_FLOAT_SIZE)
 
 		self.vertexDataVbo.Bind()
 		self.vao.SetVertexSize(VERTEX_DATA_VERTEX_SIZE)
 		self.vao.ClearVertexOffset()
-		self.vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aTexCoord"), 2, GL.GL_FLOAT, False))
+		self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), 2, GL.GL_FLOAT, False)
 
 		self.instanceDataVbo.Bind()
 		self.vao.SetVertexSize(INSTANCE_DATA_VERTEX_SIZE)
@@ -60,9 +59,9 @@ class BasicRenderer(RendererComponent):
 		tfLoc = self.shader.GetAttribLocation("aTilingFactor")
 		tiLoc = self.shader.GetAttribLocation("aTexIdx")
 
-		self.vao.AddLayout(VertexArrayLayout(colLoc, 4, GL.GL_FLOAT, False))
-		self.vao.AddLayout(VertexArrayLayout(tfLoc, 2, GL.GL_FLOAT, False))
-		self.vao.AddLayout(VertexArrayLayout(tiLoc, 1, GL.GL_FLOAT, False))
+		self.vao.AddLayout(colLoc, 4, GL.GL_FLOAT, False)
+		self.vao.AddLayout(tfLoc, 2, GL.GL_FLOAT, False)
+		self.vao.AddLayout(tiLoc, 1, GL.GL_FLOAT, False)
 
 		self.vao.AddDivisor(colLoc, 1)
 		self.vao.AddDivisor(tfLoc, 1)
@@ -70,7 +69,7 @@ class BasicRenderer(RendererComponent):
 
 		matLoc = self.shader.GetAttribLocation("aTransform")
 		for i in range(4):
-			self.vao.AddLayout(VertexArrayLayout(matLoc + i, 4, GL.GL_FLOAT, False))
+			self.vao.AddLayout(matLoc + i, 4, GL.GL_FLOAT, False)
 			self.vao.AddDivisor(matLoc + i, 1)
 
 		self.__vertexData = []
@@ -90,10 +89,8 @@ class BasicRenderer(RendererComponent):
 		Log("2D renderer initialized", LogLevel.Info)
 	
 	def EndScene(self) -> None:
-		if not self.__indexCount:
-			return
-		
-		self.__Flush()
+		if self.__indexCount != 0:
+			self.__Flush()
 
 	def __Flush(self) -> None:
 		self.shader.Use()
@@ -113,9 +110,9 @@ class BasicRenderer(RendererComponent):
 
 		RenderStats.DrawsCount += 1
 
-		self.__indexCount = 0
 		self.__vertexData.clear()
 		self.__instanceData.clear()
+		self.__indexCount = 0
 		self.__lastTexture = 1
 		
 	def RenderQuad(self, transform: Matrix4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2):

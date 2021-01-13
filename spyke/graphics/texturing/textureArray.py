@@ -4,7 +4,7 @@ from .textureHandle import TextureHandle
 from ... import USE_FAST_ARRAY_MIN_FILTER
 from ...utils import ObjectManager, Timer
 from ...enums import TextureType, TextureMagFilter
-from ...debug import Log, LogLevel
+from ...debug import Log, LogLevel, GetGLError
 
 import numpy
 from OpenGL import GL
@@ -37,7 +37,7 @@ class TextureArray(object):
 
 		self.__id = GL.glGenTextures(1)
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)
-		GL.glTexStorage3D(GL.GL_TEXTURE_2D_ARRAY, self.__spec.mipLevels, GL.GL_RGBA, self.__spec.width, self.__spec.height, self.__spec.layers)
+		GL.glTexStorage3D(GL.GL_TEXTURE_2D_ARRAY, self.__spec.mipLevels, GL.GL_RGBA8, self.__spec.width, self.__spec.height, self.__spec.layers)
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT)
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT)
 		GL.glTexParameter(GL.GL_TEXTURE_2D_ARRAY, GL.GL_TEXTURE_MIN_FILTER, self.__spec.minFilter)
@@ -52,7 +52,7 @@ class TextureArray(object):
 	def UploadTexture(self, texData: TextureData) -> TextureHandle:
 		self.Bind()
 
-		if self.__currentLayer + 1 > TextureArray.__MaxLayersCount:
+		if self.__currentLayer + 1 > self.__spec.layers:
 			raise RuntimeError("Max texture array layers count exceeded.")
 		if texData.width > self.__spec.width or texData.height > self.__spec.height:
 			raise RuntimeError("Texture size is higher than maximum.")
@@ -66,6 +66,8 @@ class TextureArray(object):
 		handle.u = (texData.width - 0.5) / self.__spec.width
 		handle.v = (texData.height - 0.5) / self.__spec.height
 		handle.layer = self.__currentLayer
+		handle.width = texData.width
+		handle.height = texData.height
 
 		self.__currentLayer += 1
 
@@ -83,22 +85,22 @@ class TextureArray(object):
 	
 	#region Getters
 	@property
-	def CurrentLayer(self):
+	def CurrentLayer(self) -> int:
 		return self.__currentLayer
 	
 	@property
-	def IsAccepting(self):
-		return self.__currentLayer < self.__spec.layers
-	
-	@property
-	def Width(self):
+	def Width(self) -> int:
 		return self.__spec.width
 	
 	@property
-	def Height(self):
+	def Height(self) -> int:
 		return self.__spec.height
 	
 	@property
-	def Layers(self):
+	def Layers(self) -> int:
 		return self.__spec.layers
+
+	@property
+	def ID(self) -> int:
+		return self.__id
 	#endregion

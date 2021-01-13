@@ -56,8 +56,8 @@ class Font(object):
 		self.FontFilepath = fontFilepath
 		self.ImageFilepath = ""
 
-		self.__texId = handle.Index
-		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (handle.Width, handle.Height))
+		self.__texId = handle.layer
+		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (handle.width, handle.height))
 
 	@lru_cache
 	def GetGlyph(self, charId: int) -> Glyph:

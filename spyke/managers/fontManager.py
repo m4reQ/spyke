@@ -1,7 +1,8 @@
 #region Import
 from ..graphics.texturing.textureArray import TextureArray, TexArraySpec
-from ..loaders.texture import LoadTexture
 from ..graphics.text.font import Font
+from ..graphics.rendering.rendererSettings import RendererSettings
+from ..loaders.texture import LoadTexture
 from ..debug import Log, LogLevel
 from ..utils import Static
 
@@ -12,7 +13,6 @@ from OpenGL import GL
 class FontManager(Static):
 	__TextureWidth = 512
 	__TextureHeight = 512
-	__MaxFontTextures = 5
 
 	__Fonts = {}
 
@@ -20,7 +20,7 @@ class FontManager(Static):
 
 	def Initialize():
 		if not FontManager.__TextureArray:
-			spec = TexArraySpec(FontManager.__TextureWidth, FontManager.__TextureHeight, FontManager.__MaxFontTextures)
+			spec = TexArraySpec(FontManager.__TextureWidth, FontManager.__TextureHeight, RendererSettings.MaxFontTextures)
 			spec.minFilter = GL.GL_NEAREST_MIPMAP_NEAREST
 			spec.magFilter = GL.GL_NEAREST
 			spec.mipLevels = 1

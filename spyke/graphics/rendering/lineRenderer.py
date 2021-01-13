@@ -3,7 +3,7 @@ from .renderStats import RenderStats
 from .rendererComponent import RendererComponent
 from .renderBatch import RenderBatch
 from ..shader import Shader
-from ..vertexArray import VertexArray, VertexArrayLayout
+from ..vertexArray import VertexArray
 from ..buffers import VertexBuffer
 from ...utils import GL_FLOAT_SIZE, Timer
 from ...enums import VertexAttribType, ShaderType
@@ -26,15 +26,14 @@ class LineRenderer(RendererComponent):
 		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/line.frag")
 		self.shader.Compile()
 
-		self.__vao = VertexArray()
-		self.__vbo = VertexBuffer(LineRenderer.MaxVertexCount * VERTEX_SIZE)
+		self.vao = VertexArray()
+		self.vbo = VertexBuffer(LineRenderer.MaxVertexCount * VERTEX_SIZE)
 
-		self.__vao.Bind()
-		self.__vao.SetVertexSize(VERTEX_SIZE)
-		self.__vbo.Bind()
-		self.__vao.AddLayouts(
-			[VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 	3, VertexAttribType.Float, False),
-			VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 		4, VertexAttribType.Float, False)])
+		self.vao.Bind()
+		self.vao.SetVertexSize(VERTEX_SIZE)
+		self.vbo.Bind()
+		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False)
 
 		self.__batches = []
 
@@ -51,11 +50,11 @@ class LineRenderer(RendererComponent):
 	def __Flush(self):
 		self.shader.Use()
 		
-		self.__vbo.Bind()
-		self.__vao.Bind()
+		self.vbo.Bind()
+		self.vao.Bind()
 
 		for batch in self.__batches:
-			self.__vbo.AddData(batch.data, batch.dataSize)
+			self.vbo.AddData(batch.data, batch.dataSize)
 
 			GL.glDrawArrays(GL.GL_LINES, 0, RenderStats.VertexCount)
 			RenderStats.DrawsCount += 1

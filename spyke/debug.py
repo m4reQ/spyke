@@ -13,6 +13,16 @@ import time
 import colorama
 import sys
 
+__GL_ERROR_CODE_NAMES_MAP = {
+	0x0500: "INVALID_ENUM",
+	0x0501: "INVALID_VALUE",
+	0x0502: "INVALID_OPERATION",
+	0x0503: "STACK_OVERFLOW",
+	0x0504: "STACK_UNDERFLOW",
+	0x0505: "OUT_OF_MEMORY",
+	0x0506: "INVALID_FRAMEBUFFER_OPERATION",
+	0x0507: "CONTEXT_LOST"}
+
 if DEBUG_COLOR:
 	colorama.init()
 
@@ -60,7 +70,7 @@ if AUTO_LOG_EXCEPTIONS:
 def GetGLError():
 	err = glGetError()
 	if err != ErrorCode.NoError:
-		Log(f"GLError: {err}", LogLevel.Error)
+		Log(f"GLError: {__GL_ERROR_CODE_NAMES_MAP[err]} ({err})", LogLevel.Error)
 
 def GetVideoMemoryCurrent():
 	if IS_NVIDIA:

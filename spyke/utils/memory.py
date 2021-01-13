@@ -67,34 +67,49 @@ class Serializable(object):
 		return pickle.dumps(self)
 
 class ObjectManager(Static):
-	Objects = []
+	__VertexArrays = []
+	__Buffers = []
+	__Textures = []
+	__Shaders = []
 
 	def AddObject(obj):
-		ObjectManager.Objects.append(obj)
+		name = type(obj).__name__
 
-	def DeleteObject(obj):
-		if obj not in ObjectManager.Objects:
-			Log(f"Cannot delete object of type {type(obj).__name__}, object not present.", LogLevel.Error)
-			return
-		
-		try:
-			obj.Delete()
-		except Exception as e:
-			raise RuntimeError(f"Cannot delete object of type '{type(obj).__name__}', {e}")
-
-		ObjectManager.Objects.remove(obj)
-
-		Log(f"Object of type {type(obj).__name__} deleted.", LogLevel.Info)
-
+		if name == "VertexArray":
+			ObjectManager.__VertexArrays.append(obj.ID)
+		elif "buffer" in name.lower():
+			ObjectManager.__Buffers.append(obj.ID)
+		elif name == "Shader":
+			ObjectManager.__Shaders.append(obj.ID)
+		elif "texture" in name.lower():
+			ObjectManager.__Textures.append(obj.ID)
+		else:
+			Log(f"Invalid object of type '{name}'.", LogLevel.Warning)
+	
 	def DeleteAll():
-		for obj in ObjectManager.Objects:
-			try:
-				obj.Delete()
-			except Exception as e:
-				raise RuntimeError(f"Cannot delete object of type '{type(obj).__name__}', {e}")
+		for _ in ObjectManager.__Buffers:
+			GL.glDeleteBuffers(len(ObjectManager.__Buffers), ObjectManager.__Buffers)
+			
+		Log(f"{len(ObjectManager.__Buffers)} buffers deleted succesfully.", LogLevel.Info)
+		
+		for _ in ObjectManager.__Shaders:
+			GL.glDeleteBuffers(len(ObjectManager.__Shaders), ObjectManager.__Shaders)
+		
+		Log(f"{len(ObjectManager.__Shaders)} shader programs deleted succesfully.", LogLevel.Info)
 
-			Log(f"Object of type {type(obj).__name__} deleted.", LogLevel.Info)
+		for _ in ObjectManager.__Textures:
+			GL.glDeleteTextures(len(ObjectManager.__Textures), ObjectManager.__Textures)
 		
-		ObjectManager.Objects.clear()
+		Log(f"{len(ObjectManager.__Textures)} textures deleted succesfully.", LogLevel.Info)
 		
-		Log("All objects deleted succesfully.", LogLevel.Info)
+		for _ in ObjectManager.__VertexArrays:
+			GL.glDeleteVertexArrays(len(ObjectManager.__VertexArrays), ObjectManager.__VertexArrays)
+		
+		Log(f"{len(ObjectManager.__VertexArrays)} vertex arrays deleted succesfully.", LogLevel.Info)
+
+		ObjectManager.__Buffers.clear()
+		ObjectManager.__Shaders.clear()
+		ObjectManager.__Textures.clear()
+		ObjectManager.__VertexArrays.clear()
+
+		RequestGC()

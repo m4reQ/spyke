@@ -2,13 +2,6 @@ from ..utils import GetGLTypeSize, GetPointer, ObjectManager
 
 from OpenGL import GL
 
-class VertexArrayLayout:
-	def __init__(self, index, count, type, normalized):
-		self.Index = index
-		self.Count = count
-		self.Type = type
-		self.IsNormalized = normalized
-
 class VertexArray(object):
 	def __init__(self):
 		self.__vertexSize = 0
@@ -27,15 +20,11 @@ class VertexArray(object):
 	def AddDivisor(self, index: int, instances: int):
 		GL.glVertexAttribDivisor(index, instances)
 	
-	def AddLayout(self, layout: VertexArrayLayout):
-		GL.glVertexAttribPointer(layout.Index, layout.Count, layout.Type, layout.IsNormalized, self.__vertexSize, GetPointer(self.__offset))
-		GL.glEnableVertexAttribArray(layout.Index)
+	def AddLayout(self, index: int, count: int, _type: int, isNormalized: bool):
+		GL.glVertexAttribPointer(index, count, _type, isNormalized, self.__vertexSize, GetPointer(self.__offset))
+		GL.glEnableVertexAttribArray(index)
 
-		self.__offset += GetGLTypeSize(layout.Type) * layout.Count
-	
-	def AddLayouts(self, layouts: list):
-		for layout in layouts:
-			self.AddLayout(layout)
+		self.__offset += GetGLTypeSize(_type) * count
 
 	def Bind(self):
 		GL.glBindVertexArray(self.__id)

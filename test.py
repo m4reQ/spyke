@@ -62,6 +62,8 @@ class Window(GlfwWindow):
 		TextureManager.LoadTexture("tests/test1.jpg")
 		TextureManager.LoadTexture("tests/test2.png")
 
+		FontManager.CreateFont("tests/ArialNative.fnt", "tests/ArialNative.png", "Arial")
+
 		SceneManager.CreateScene("TEST", True)
 		InitializeDefaultProcessors(SceneManager.Current)
 
@@ -76,6 +78,10 @@ class Window(GlfwWindow):
 		ent3 = SceneManager.Current.CreateEntity()
 		SceneManager.Current.AddComponent(ent3, TransformComponent(Vector3(0.0, 0.0, 1.0), Vector3(1.0), Vector3(0.0)))
 		SceneManager.Current.AddComponent(ent3, SpriteComponent("tests/test2.png", Vector2(1.0, 1.0), Color(1.0, 1.0, 1.0, 1.0)))
+
+		ent4 = SceneManager.Current.CreateEntity()
+		SceneManager.Current.AddComponent(ent4, TransformComponent(Vector3(0.5, 0.5, 0.0), Vector3(1.0), Vector3(0.0)))
+		SceneManager.Current.AddComponent(ent4, TextComponent("TEST", 20, "Arial", Color(0.0, 1.0, 1.0, 0.7)))
 		# SceneManager.Current.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpec(self.width, self.height)

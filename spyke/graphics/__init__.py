@@ -7,7 +7,7 @@ from .shader import Shader
 from .text.font import Font
 from .glCommands import GLCommand
 from .cameras import *
-from .vertexArray import VertexArray, VertexArrayLayout
+from .vertexArray import VertexArray
 from .buffers import *
 
 from glm import vec4 as __Color

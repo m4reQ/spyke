@@ -3,7 +3,7 @@ from .renderStats import RenderStats
 from .renderTarget import RenderTarget
 from ..shader import Shader
 from ..buffers import VertexBuffer, Framebuffer
-from ..vertexArray import VertexArray, VertexArrayLayout
+from ..vertexArray import VertexArray
 from ...utils import GL_FLOAT_SIZE, Timer
 from ...transform import Matrix4, CreateTransform3D
 from ...enums import VertexAttribType, ShaderType
@@ -21,16 +21,16 @@ class PostRenderer(object):
 		self.shader.AddStage(ShaderType.FragmentShader, "spyke/graphics/shaderSources/post.frag")
 		self.shader.Compile()
 
-		self.__vao = VertexArray()
-		self.__vao.SetVertexSize(VERTEX_SIZE)
-		self.__vbo = VertexBuffer(6 * VERTEX_SIZE)
+		self.vao = VertexArray()
+		self.vao.SetVertexSize(VERTEX_SIZE)
+		self.vbo = VertexBuffer(6 * VERTEX_SIZE)
 		
-		self.__vao.Bind()
-		self.__vbo.Bind()
-		self.__vao.ClearVertexOffset()
-		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aPosition"), 3, VertexAttribType.Float, False))
-		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aColor"), 4, VertexAttribType.Float, False))
-		self.__vao.AddLayout(VertexArrayLayout(self.shader.GetAttribLocation("aTexCoord"), 2, VertexAttribType.Float, False))
+		self.vao.Bind()
+		self.vbo.Bind()
+		self.vao.ClearVertexOffset()
+		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, VertexAttribType.Float, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, VertexAttribType.Float, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), 2, VertexAttribType.Float, False)
 	
 	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer) -> None:
 		transform = CreateTransform3D(pos, size, rotation)
@@ -56,10 +56,10 @@ class PostRenderer(object):
 			GL.glBindTextureUnit(0, framebuffer.ColorAttachment)
 			GL.glBindTexture(GL.GL_TEXTURE_2D, framebuffer.ColorAttachment)
 
-		self.__vbo.Bind()
-		self.__vao.Bind()
+		self.vbo.Bind()
+		self.vao.Bind()
 
-		self.__vbo.AddData(data, len(data) * GL_FLOAT_SIZE)
+		self.vbo.AddData(data, len(data) * GL_FLOAT_SIZE)
 
 		#GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
 		#GL.glDisable(GL.GL_DEPTH_TEST)
