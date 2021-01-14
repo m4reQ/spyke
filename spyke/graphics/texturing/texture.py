@@ -1,6 +1,7 @@
 from .textureData import TextureData
 from ...debug import Log, LogLevel
-from ...utils import ObjectManager, Timer
+from ...managers.objectManager import ObjectManager
+from ...utils import Timer
 
 from OpenGL import GL
 import numpy

@@ -1,5 +1,6 @@
 #region Import
-from ..utils import Static, Timer, ObjectManager
+from . import objectManager
+from ..utils import Static, Timer
 from ..debug import Log, LogLevel
 from ..loaders.texture import LoadTexture
 from ..graphics.texturing.texture import Texture, TextureData
@@ -15,7 +16,7 @@ class TextureManager(Static):
 			Log("Texture with given name already exists. Texture will be overwritten.", LogLevel.Warning)
 
 			tex = TextureManager.Textures[name]
-			ObjectManager.DeleteObject(tex)
+			objectManager.ObjectManager.DeleteObject(tex)
 
 			del TextureManager.Textures[name]
 

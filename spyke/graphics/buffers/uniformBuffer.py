@@ -1,4 +1,4 @@
-from ...utils import ObjectManager
+from ...managers.objectManager import ObjectManager
 
 from OpenGL import GL
 import numpy

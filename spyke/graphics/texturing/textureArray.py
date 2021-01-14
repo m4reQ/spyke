@@ -2,9 +2,10 @@
 from .textureData import TextureData
 from .textureHandle import TextureHandle
 from ... import USE_FAST_ARRAY_MIN_FILTER
-from ...utils import ObjectManager, Timer
+from ...utils import Timer
 from ...enums import TextureType, TextureMagFilter
-from ...debug import Log, LogLevel, GetGLError
+from ...debug import Log, LogLevel
+from ...managers.objectManager import ObjectManager
 
 import numpy
 from OpenGL import GL

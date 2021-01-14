@@ -1,7 +1,8 @@
 #region Import
 from ..enums import ShaderType
 from ..debug import Log, LogLevel, GetGLError
-from ..utils import ObjectManager, EnsureString
+from ..managers.objectManager import ObjectManager
+from ..utils import EnsureString
 from ..transform import Matrix4
 
 from OpenGL import GL

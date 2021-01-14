@@ -1,7 +1,7 @@
 from .bufferManager import BufferManager
 from .buffer import SoundBuffer
 from .audioLoader import LoadSound
-from ..utils import ObjectManager
+from ..managers.objectManager import ObjectManager
 
 import openal
 

@@ -1,4 +1,5 @@
-from ...utils import ObjectManager, INT_SIZE
+from ...managers.objectManager import ObjectManager
+from ...utils import INT_SIZE
 
 from OpenGL import GL
 import numpy

@@ -1,5 +1,5 @@
 from .soundData import SoundData
-from ..utils import ObjectManager
+from ..managers.objectManager import ObjectManager
 
 import openal
 
