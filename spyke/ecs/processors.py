@@ -15,8 +15,8 @@ def InitializeDefaultProcessors(scene: Scene):
 	scene.AddProcessor(TransformProcessor())
 	scene.AddProcessor(ParticleProcessor())
 	scene.AddProcessor(ScriptProcessor())
-	if _ImGui.IsInitialized():
-		scene.AddProcessor(ImguiProcessor())
+	# if _ImGui.IsInitialized():
+	# 	scene.AddProcessor(ImguiProcessor())
 
 class TransformProcessor(Processor):
 	def Process(self, *args, **kwargs):

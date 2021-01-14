@@ -10,7 +10,7 @@ if __debug__:
 from spyke.ecs.components import *
 from spyke.ecs.processors import *
 
-#from spyke.imgui import ImGui
+from spyke.imgui import ImGui
 from spyke.window import GlfwWindow, WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
@@ -100,6 +100,8 @@ class Window(GlfwWindow):
 
 		#SaveScene("test.scn")
 
+		ImGui.Initialize()
+
 		RequestGC()
 
 	def OnFrame(self):
@@ -107,7 +109,6 @@ class Window(GlfwWindow):
 		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix, self.framebuffer)
 		Renderer.ClearScreen()
 		Renderer.RenderFramebuffer(Vector3(0.0, 0.0, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0), self.framebuffer)
-		self.SetTitle(self.baseTitle + " | FPS: {0:.2f} | Rendertime: {1:.5f}s".format(1.0 / RenderStats.DrawTime, RenderStats.DrawTime))
 
 	def OnClose(self):
 		ObjectManager.DeleteAll()

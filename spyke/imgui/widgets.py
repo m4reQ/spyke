@@ -1,8 +1,43 @@
+from ..graphics.rendering.renderStats import RenderStats
 from ..utils import Abstract
 
 import tkinter as tk
 
 FONT = ("Helvetica", 9)
+
+class StatsWidget(tk.Frame):
+	def __init__(self, master: tk.Frame):
+		super().__init__(master)
+
+		self.drawsTitleLabel = tk.Label(self, text = "Draws count: ", bg = "white", anchor = "w")
+		self.quadsTitleLabel = tk.Label(self, text = "Quads count: ", bg = "white", anchor = "w")
+		self.timeTitleLabel = tk.Label(self, text = "Draw time: ", bg = "white", anchor = "w")
+		self.fpsTitleLabel = tk.Label(self, text = "FPS: ", bg = "white", anchor = "w")
+
+		self.drawsLabel = tk.Label(self, text = "0", bg = "white", anchor = "e")
+		self.quadsLabel = tk.Label(self, text = "0", bg = "white", anchor = "e")
+		self.timeLabel = tk.Label(self, text = "0.0", bg = "white", anchor = "e")
+		self.fpsLabel = tk.Label(self, text = "0.0", bg = "white", anchor = "e")
+
+		self.drawsTitleLabel.grid(row = 0, column = 0, sticky = "we")
+		self.quadsTitleLabel.grid(row = 1, column = 0, sticky = "we")
+		self.timeTitleLabel.grid(row = 2, column = 0, sticky = "we")
+		self.fpsTitleLabel.grid(row = 3, column = 0, sticky = "we")
+
+		self.drawsLabel.grid(row = 0, column = 1, sticky = "we")
+		self.quadsLabel.grid(row = 1, column = 1, sticky = "we")
+		self.timeLabel.grid(row = 2, column = 1, sticky = "we")
+		self.fpsLabel.grid(row = 3, column = 1, sticky = "we")
+	
+	def Update(self):
+		if not RenderStats.DrawTime:
+			return
+
+		self.drawsLabel["text"] = str(RenderStats.DrawsCount)
+		self.quadsLabel["text"] = str(RenderStats.QuadsCount)
+		self.timeLabel["text"] = "{0:.5f}".format(RenderStats.DrawTime)
+		if RenderStats.DrawTime:
+			self.fpsLabel["text"] = "{0:.2f}".format(1.0 / RenderStats.DrawTime)
 
 class ExpandableFrame(tk.Frame):
 	def __init__(self, master: tk.Frame, title: str, widgetType: type, **widgetConfig):

@@ -1,8 +1,8 @@
 #region Import
-from .components import *
+from .widgets import *
 from .dialogWindow import DialogWindow
 from .. import IS_NVIDIA
-from ..debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo
+from ..debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo, Log, LogLevel
 from ..ecs.components import *
 from ..graphics import Renderer
 from ..utils import RequestGC
@@ -14,6 +14,8 @@ from tkinter import ttk
 from tkinter import filedialog
 import random
 from pydoc import locate
+import threading
+import gc
 #endregion
 
 #This is just a large weight which forces other widgets with
@@ -23,254 +25,136 @@ DONT_RESIZE_OTHERS = 450
 
 class ImGui:
 	__Initialized = False
-	__SceneUpdate = False
-	__InspectorUpdate = False
+	__IsRunning = False
+	__NeedsUpdate = True
 
-	__ParentWindow = None
+	__Thread = None
 
-	__SelectedEntity = None
-	__LastSelectedEntity = None
-	__SelectedComponent = None
+	__Window = None
 
-	__Font = ("Helvetica", 9)
+	#region Menus
+	__Menu = None
+	__FileMenu = None
+	__TreeviewPopupMenu = None
+	#endregion
+	#region Frames
+	__StatsFrame = None
+	__InspectorFrame = None
+	__TreeviewFrame = None
+	#endregion
+	#region Widgets
+	__EntitiesTree = None
+	__RenderStatsLabel = None
+	__InspectorLabel = None
+	__RenderStatsWidget = None
+	#endregion
 
-	__StatsTextTemplate = """Draws count: {0}
-Vertices count: {1}
-Memory used: {2:.2f}kB
-Video memory used: {3}
-Window size: {4}x{5}"""
+	__MainFont = ("Helvetica", 9)
 
-	MainWindow = tk.Tk()
-	MainWindow.title("Imgui")
-	MainWindow.grid_rowconfigure(0, weight = 1)
-	MainWindow.grid_rowconfigure(1, weight = DONT_RESIZE_OTHERS)
-	MainWindow.grid_rowconfigure(2, weight = 1)
-	MainWindow.grid_rowconfigure(3, weight = DONT_RESIZE_OTHERS)
-	MainWindow.grid_columnconfigure(0, weight = 2)
-	MainWindow.grid_columnconfigure(1, weight = 5)
-	MainWindow.grid_columnconfigure(2, weight = 5)
+	def Initialize():
+		if ImGui.__Initialized:
+			return
+		
+		ImGui.__IsRunning = True
+		ImGui.__Thread = threading.Thread(target = ImGui.__Run, name = "spyke.imgui")
 
-	MainWindow.geometry("850x280")
+		ImGui.__Thread.start()
+		Log("Imgui started.", LogLevel.Info)
 	
-	def Close() -> None:
+	#region Callbacks
+	def __Close():
 		ImGui.__Initialized = False
+		ImGui.__IsRunning = False
+
 		try:
-			ImGui.MainWindow.destroy()
+			ImGui.__Window.destroy()
 		except tk.TclError:
 			pass
 
-		RequestGC()
-		Log("ImGui window closed.", LogLevel.Info)
-	MainWindow.protocol("WM_DELETE_WINDOW", Close)
-
-	def Save() -> None:
+		gc.collect()
+		Log("ImGui closed", LogLevel.Info)
+	
+	def __SaveScene():
 		f = filedialog.asksaveasfilename(parent = ImGui.MainWindow, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
 		if not f:
 			return
 		
 		SaveScene(SceneManager.Current, f)
-	
-	def Open() -> None:
+
+	def __OpenScene() -> None:
 		f = filedialog.askopenfilename(parent = ImGui.MainWindow, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
 		if not f:
 			return
 		
 		LoadScene(f)
 
-	#widgets
-	RenderStatsLabel = tk.Label(MainWindow, text = "Render stats", bd = 0)
-	EntitiesLabel = tk.Label(MainWindow, text = "Entities", bd = 0)
-	RenderStatsText = tk.Text(MainWindow, width = 35, height = 5, relief = "solid", bd = 1)
-	ttk.Style().configure("Treeview", bd = 1, relief = "solid")
-	EntitiesTree = ttk.Treeview(MainWindow, show = "tree", style = "Treeview")
-	InspectorLabel = tk.Label(MainWindow, text = "Inspector", bd = 0)
-	InspectorFrame = tk.Frame(MainWindow, bd = 1, relief = "solid", bg = "white")
-	EntityName = tk.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", fg = "white")
-	ComponentName = tk.Label(InspectorFrame, text = "\n", bd = 0, bg = "white", font = (*__Font, "bold"), anchor = "w")
-
-	#popup menu
 	def __AddEntity():
-		popupWindow = DialogWindow(ImGui.MainWindow, "Create Enitity", "Entity name: ")
-		popupWindow.AwaitWindow()
+		win = DialogWindow(ImGui.MainWindow, "Create Enitity", "Entity name: ")
+		win.AwaitWindow()
 
-		EntityManager.CreateEntity(popupWindow.value)
-		ImGui.__SceneUpdate = True
+		SceneManager.Current.CreateEntity(TagComponent(win.value))
 
-	TreeviewPopupMenu = tk.Menu(MainWindow, tearoff = 0)
-	TreeviewPopupMenu.add_command(label = "AddEntity", command = __AddEntity)
-
-	#main menu
-	MainMenu = tk.Menu(MainWindow)
-
-	FileMenu = tk.Menu(MainMenu, tearoff = 0)
-	FileMenu.add_command(label = "New Scene")
-	FileMenu.add_command(label = "Open Scene...", command = Open)
-	FileMenu.add_command(label = "Save Scene...", command = Save)
-	FileMenu.add_separator()
-	FileMenu.add_command(label = "Exit", command = Close)
-
-	MainMenu.add_cascade(label = "File", menu = FileMenu)
-
-	MainWindow.config(menu = MainMenu)
-
-	#inspector widgets
-	Inspectors = {
-		"Color": ColorEditor(InspectorFrame),
-		"Text": TextEditor(InspectorFrame),
-		"Transform": TransformEditor(InspectorFrame),
-		"Script": ScriptEditor(InspectorFrame),
-		"Line": LineEditor(InspectorFrame)}
-	EditorsSeparator = ttk.Separator(InspectorFrame, orient = "horizontal")
-
-	#inspector grid
-	InspectorFrame.grid_columnconfigure(0, weight = 1)
-	EntityName.grid(row = 0, column = 0, sticky = "news")
-	ComponentName.grid(row = 1, column = 0, sticky = "news")
-
-	#grid
-	RenderStatsLabel.grid(row = 0, column = 0, sticky = "ew")
-	RenderStatsText.grid(row = 1, column = 0, sticky = "news")
-	EntitiesLabel.grid(row = 0, column = 1, sticky = "ew")
-	EntitiesTree.grid(row = 1, column = 1, sticky = "news")
-	InspectorLabel.grid(row = 0, column = 2, sticky = "news")
-	InspectorFrame.grid(row = 1, column = 2, sticky = "news")
-
-	#region EventHandling
-	def __SelectTreeview(event):
-		sel = ImGui.EntitiesTree.selection()[0]
-
-		item = ImGui.EntitiesTree.item(sel)
-		parent = ImGui.EntitiesTree.parent(sel)
-
-		if not parent:
-			ent = str(item["values"][0])
-			if ent != ImGui.__SelectedEntity:
-				ImGui.ComponentName.configure(text = "\n")
-				ImGui.__UnbindEditors()
-
-			ImGui.__SelectedEntity = ent
-			ImGui.__SelectedComponent = None
-		else:
-			_item = ImGui.EntitiesTree.item(parent)
-			ImGui.__SelectedEntity = str(_item["values"][0])
-
-			typeName = item["values"][0]
-			typeName = typeName.replace("<class '", "")
-			typeName = typeName.replace("'>", "")
-			
-			compType = locate(typeName)
-			ImGui.__SelectedComponent = SceneManager.Current.ComponentForEntity(ImGui.__SelectedEntity, compType)
-		
-		ImGui.__InspectorUpdate = True
+		ImGui.__NeedsUpdate = True
 	
-	def __TreeviewPopMenu(event):
-		if ImGui.EntitiesTree.identify("region", event.x, event.y) != "nothing":
+	def __PopTreeviewMenu(event):
+		if ImGui.__EntitiesTree.identify("region", event.x, event.y) != "nothing":
 			return
-
+		
 		try:
-			ImGui.TreeviewPopupMenu.tk_popup(event.x_root, event.y_root)
+			ImGui.__TreeviewPopupMenu.tk_popup(event.x_root, event.y_root)
 		finally:
-			ImGui.TreeviewPopupMenu.grab_release()
-
-	EntitiesTree.bind('<<TreeviewSelect>>', __SelectTreeview)
-	EntitiesTree.bind('<Button-3>', __TreeviewPopMenu)
+			ImGui.__TreeviewPopupMenu.grab_release()
 	#endregion
-
-	def UpdateScene() -> None:
-		ImGui.__SceneUpdate = True
 	
-	def Initialize(parentWindow) -> None:
-		ImGui.__Initialized = True
-		ImGui.__ParentWindow = parentWindow
+	def __Setup():
+		ImGui.__Window = tk.Tk()
+		ImGui.__Window.title("ImGui")
+		ImGui.__Window.geometry("850x280")
+		ImGui.__Window.protocol("WM_DELETE_WINDOW", ImGui.__Close)
+
+		ImGui.__Menu = tk.Menu(ImGui.__Window)
+
+		ImGui.__FileMenu = tk.Menu(ImGui.__Menu, tearoff = 0)
+		ImGui.__FileMenu.add_command(label = "New Scene")
+		ImGui.__FileMenu.add_command(label = "Open Scene...", command = ImGui.__OpenScene)
+		ImGui.__FileMenu.add_command(label = "Save Scene...", command = ImGui.__SaveScene)
+		ImGui.__FileMenu.add_separator()
+		ImGui.__FileMenu.add_command(label = "Exit", command = ImGui.__Close)
+
+		ImGui.__Menu.add_cascade(label = "File", menu = ImGui.__FileMenu)
+
+		ImGui.__Window.config(menu = ImGui.__Menu)
+
+		ImGui.__TreeviewPopupMenu = tk.Menu(ImGui.__Window, tearoff = 0)
+		ImGui.__TreeviewPopupMenu.add_command(label = "AddEntity", command = ImGui.__AddEntity)
+
+		ttk.Style().configure("Treeview", bd = 1, relief = "solid")
+
+		ImGui.__EntitiesTree = ttk.Treeview(ImGui.__Window, show = "tree", style = "Treeview")
+
+		ImGui.__StatsFrame = tk.Frame(ImGui.__Window, bd = 1, relief = "solid", bg = "white")
+		ImGui.__InspectorFrame = tk.Frame(ImGui.__Window, bd = 1, relief = "solid", bg = "white")
+		ImGui.__TreeviewFrame = tk.Frame(ImGui.__Window, bd = 1, relief = "solid", bg = "white")
+
+		ImGui.__RenderStatsLabel = tk.Label(ImGui.__StatsFrame, text = "Render stats", bd = 0, bg = "white", font = (*ImGui.__MainFont, "bold"))
+		ImGui.__RenderStatsWidget = StatsWidget(ImGui.__StatsFrame)
+		ImGui.__RenderStatsLabel.grid(row = 0, column = 0, sticky = "we")
+		ImGui.__RenderStatsWidget.grid(row = 1, column = 0, sticky = "nswe")
+		ImGui.__StatsFrame.grid(row = 0, column = 0, sticky = "nswe")
+
+		ImGui.__InspectorLabel = tk.Label(ImGui.__InspectorFrame, text = "Inspector", bd = 0, bg = "white")
 	
-	def IsInitialized() -> bool:
-		return ImGui.__Initialized
-
-	def OnFrame() -> None:
-		if not ImGui.__Initialized:
-			return
-
-		try:
-			ImGui.__HandleRenderStats()
-			ImGui.__HandleEntities()
-			ImGui.__HandleInspector()
-			ImGui.MainWindow.update()
-		except tk.TclError as e:
-			Log(f"TclError: {e}.", LogLevel.Error)
-		except Exception as _e:
-			Log(f"ImGui error: {_e}.", LogLevel.Error)
+	def __OnFrame():
+		ImGui.__RenderStatsWidget.Update()
 	
-	def __UnbindEditors():
-		for e in ImGui.Inspectors.values():
-			e.grid_forget()
-		
-		ImGui.ComponentName.configure(text = "\n")
+	def __Run():
+		ImGui.__Setup()
 
-	def __HandleEntities() -> None:
-		if not ImGui.__SceneUpdate:
-			return
-		
-		for child in ImGui.EntitiesTree.get_children():
-			ImGui.EntitiesTree.delete(child)
-		
-		_id = 0
-		for ent in SceneManager.Current._entities:
-			entView = ImGui.EntitiesTree.insert("", ent, text = EntityManager.GetEntityName(ent), values = (ent,))
-			for comp in SceneManager.Current.ComponentsForEntity(ent):
-				ImGui.EntitiesTree.insert(entView, "end", tags = str(_id), text = type(comp).__name__.replace("Component", ""), values = (type(comp),))
-				_id += 1
-		
-		ImGui.__SceneUpdate = False
-
-	def __HandleRenderStats() -> None:
-		if not IS_NVIDIA:
-			vidMemUsed = "unavailable"
-		else:
-			vidMemUsed = f"{((GLInfo.MemoryAvailable - GetVideoMemoryCurrent()) / 1000000.0):.3f} GB"
-		
-		memUsed = GetMemoryUsed() / 1000.0
-
-		text = ImGui.__StatsTextTemplate.format(Renderer.DrawsCount, Renderer.VertexCount, memUsed, vidMemUsed, ImGui.__ParentWindow.width, ImGui.__ParentWindow.height)
-
-		ImGui.RenderStatsText.configure(state = "normal")
-		ImGui.RenderStatsText.delete(1.0, "end")
-		ImGui.RenderStatsText.insert("end", text)
-		ImGui.RenderStatsText.configure(state = "disabled")
-	
-	def __SelectEditor(name: str):
-		ImGui.ComponentName.configure(text = name)
-		ImGui.Inspectors[name].SetComp(ImGui.__SelectedComponent)
-		ImGui.Inspectors[name].grid(row = 3, column = 0, sticky = "news")
-
-	def __HandleInspector() -> None:
-		if not ImGui.__InspectorUpdate:
-			return
-		
-		if ImGui.__SelectedEntity:
-			ImGui.EntityName.configure(text = EntityManager.GetEntityName(ImGui.__SelectedEntity), bg = "#545659")
-		else:
-			ImGui.EntityName.configure(text = "\n", bg = "white")
-		
-		if not ImGui.__SelectedComponent:
-			ImGui.__InspectorUpdate = False
-			ImGui.EditorsSeparator.grid_forget()
-			ImGui.__UnbindEditors()
-			return
-
-		ImGui.EditorsSeparator.grid(row = 2, column = 0, sticky = "ew", pady = 3)
-
-		ImGui.__UnbindEditors()
-		if type(ImGui.__SelectedComponent) == ColorComponent:
-			ImGui.__SelectEditor("Color")
-		elif type(ImGui.__SelectedComponent) == TextComponent:
-			ImGui.__SelectEditor("Text")
-		elif type(ImGui.__SelectedComponent) == TransformComponent:
-			ImGui.__SelectEditor("Transform")
-		elif type(ImGui.__SelectedComponent) == ScriptComponent:
-			ImGui.__SelectEditor("Script")
-		elif type(ImGui.__SelectedComponent) == LineComponent:
-			ImGui.__SelectEditor("Line")
-		else:
-			ImGui.ComponentName.configure(text = "\n")
-		
-		ImGui.__InspectorUpdate = False
+		while ImGui.__IsRunning:
+			try:
+				ImGui.__OnFrame()
+				ImGui.__Window.update()
+			except tk.TclError:
+				pass
+			except Exception as e:
+				Log(f"ImGui error: {e}.", LogLevel.Error)

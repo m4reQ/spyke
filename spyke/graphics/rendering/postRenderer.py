@@ -80,4 +80,5 @@ class PostRenderer(object):
 
 		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, 6, 1)
 
+		RenderStats.DrawsCount += 1
 		RenderStats.QuadsCount += 1
