@@ -21,6 +21,9 @@ class Framebuffer(object):
 	def __init__(self, specification: FramebufferSpec):
 		self.Spec = specification
 
+		self.__colorAttachmentId = -1
+		self.__depthRenderbuffer = -1
+
 		self.__Invalidate(False)
 
 		ObjectManager.AddObject(self)
@@ -45,17 +48,13 @@ class Framebuffer(object):
 		GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D_MULTISAMPLE if self.Spec.Samples > 1 else GL.GL_TEXTURE_2D, self.__colorAttachmentId, 0)
 
 		if self.Spec.HasDepthAttachment:
-			self.__depthAttachmentId = GL.glGenTextures(1)
-			GL.glBindTexture(GL.GL_TEXTURE_2D, self.__depthAttachmentId)
-			GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT, self.Spec.Width, self.Spec.Height, 0, GL.GL_DEPTH_COMPONENT, GL.GL_DEPTH_COMPONENT, None)
+			self.__depthRenderBuffer = GL.glGenRenderbuffers(1)
+			GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.__depthRenderBuffer)
+			GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8, self.Spec.Width, self.Spec.Height)
+			GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
 
-			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-			GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+			GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_STENCIL_ATTACHMENT, GL.GL_RENDERBUFFER, self.__depthRenderBuffer)
 
-			GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D, self.__depthAttachmentId, 0)
-		
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 		
 		if not resizing:
@@ -78,10 +77,10 @@ class Framebuffer(object):
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
 	def Delete(self) -> None:
-		GL.glDeleteFramebuffers(1, [self.__id])
 		GL.glDeleteTextures([self.__colorAttachmentId])
 		if self.Spec.HasDepthAttachment:
-			GL.glDeleteTextures([self.__depthAttachmentId])
+			GL.glDeleteRenderbuffers(1, [self.__depthRenderBuffer])
+		GL.glDeleteFramebuffers(1, [self.__id])
 	
 	@staticmethod
 	def UnbindAll() -> None:
@@ -90,6 +89,10 @@ class Framebuffer(object):
 	@property
 	def ColorAttachment(self) -> int:
 		return self.__colorAttachmentId
+
+	@property
+	def DepthRenderbuffer(self) -> int:
+		return self.__depthRenderBuffer
 	
 	@property
 	def ID(self) -> int:

@@ -72,6 +72,7 @@ class ObjectManager(Static):
 	__Textures = []
 	__Shaders = []
 	__Framebuffers = []
+	__Renderbuffers = []
 
 	def AddObject(obj):
 		name = type(obj).__name__
@@ -80,6 +81,9 @@ class ObjectManager(Static):
 			ObjectManager.__VertexArrays.append(obj.ID)
 		elif name == "Framebuffer":
 			ObjectManager.__Framebuffers.append(obj.ID)
+			ObjectManager.__Textures.append(obj.ColorAttachment)
+			if obj.Spec.HasDepthAttachment:
+				ObjectManager.__Renderbuffers.append(obj.DepthRenderbuffer)
 		elif "buffer" in name.lower() and name != "Framebuffer":
 			ObjectManager.__Buffers.append(obj.ID)
 		elif name == "Shader":
@@ -99,6 +103,11 @@ class ObjectManager(Static):
 			GL.glDeleteFramebuffers(len(ObjectManager.__Framebuffers), ObjectManager.__Framebuffers)
 			
 		Log(f"{len(ObjectManager.__Framebuffers)} frame buffers deleted succesfully.", LogLevel.Info)
+	
+		for _ in ObjectManager.__Renderbuffers:
+			GL.glDeleteRenderbuffers(len(ObjectManager.__Renderbuffers), ObjectManager.__Renderbuffers)
+			
+		Log(f"{len(ObjectManager.__Framebuffers)} render buffers deleted succesfully.", LogLevel.Info)
 		
 		for _ in ObjectManager.__Shaders:
 			GL.glDeleteBuffers(len(ObjectManager.__Shaders), ObjectManager.__Shaders)

@@ -63,8 +63,6 @@ class Renderer(Static):
 
 		GL.glEnable(GL.GL_DEPTH_TEST)
 
-		GL.glEnable(GL.GL_CULL_FACE)
-
 		GL.glClearColor(*RendererSettings.ClearColor)
 
 		Renderer.Resize(initialWidth, initialHeight)
@@ -103,9 +101,11 @@ class Renderer(Static):
 			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
 		
 		Renderer.__BasicRenderer.EndScene()
-
+		
+		GL.glDepthMask(GL.GL_FALSE)
 		for (sprite, transform) in alpha:
 			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
+		GL.glDepthMask(GL.GL_TRUE)
 
 		for _, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
 			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
@@ -129,6 +129,7 @@ class Renderer(Static):
 		Renderer.__ParticleRenderer.EndScene()
 
 		try:
+			#GL.glFlush()
 			framebuffer.Unbind()
 		except AttributeError:
 			pass

@@ -78,7 +78,6 @@ class PostRenderer(object):
 		self.vertexDataVbo.AddDataDirect(vertexData, len(vertexData) * GL_FLOAT_SIZE)
 		self.instanceDataVbo.AddDataDirect(instanceData, len(instanceData) * GL_FLOAT_SIZE)
 
-		GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
 		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, 6, 1)
 
 		RenderStats.QuadsCount += 1
