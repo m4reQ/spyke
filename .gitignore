@@ -133,8 +133,4 @@ dmypy.json
 .vscode/
 
 # test files
-fonts/
-textures/
-launch.bat
-*.jpg
 tests/
