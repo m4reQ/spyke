@@ -61,6 +61,9 @@ class ImGui:
 		ImGui.__Thread.start()
 		Log("Imgui started.", LogLevel.Info)
 	
+	def Close():
+		ImGui.__IsRunning = False
+	
 	#region Callbacks
 	def __Close():
 		ImGui.__Initialized = False

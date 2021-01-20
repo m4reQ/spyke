@@ -1,10 +1,12 @@
 #region Import
 from .windowSpecs import WindowSpecs
+from . import enginePreview
 from .window import Window
 from ..input.event import *
 from ..input.eventHandler import EventHandler
 from ..debug import Log, LogLevel
 from ..utils import Timer, RequestGC
+from ..imgui import ImGui
 
 import glfw
 #endregion
@@ -56,6 +58,9 @@ class GlfwWindow(Window):
 			raise RuntimeError("Cannot create window.")
 
 		glfw.make_context_current(self.__handle)
+
+		enginePreview.RenderPreview()
+		glfw.swap_buffers(self.__handle)
 
 		if not self.specs.CursorVisible:
 			glfw.set_input_mode(self.__handle, glfw.CURSOR, glfw.CURSOR_HIDDEN)
@@ -138,6 +143,8 @@ class GlfwWindow(Window):
 		glfw.terminate()
 		Log("Glfw terminated.", LogLevel.Info)
 
+		ImGui.Close()
+
 		RequestGC()
 	
 	def SetTitle(self, title: str) -> None:
@@ -155,6 +162,9 @@ class GlfwWindow(Window):
 		Log(f"Vsync set to: {value}.", LogLevel.Info)
 
 	def Run(self):
+		enginePreview.CleanupPreview()
+		glfw.swap_buffers(self.__handle)
+
 		while self.isRunning:
 			Timer.Start()
 			

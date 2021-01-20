@@ -26,7 +26,7 @@ with open(os.devnull, "w") as f:
     sys.stdout = oldOut
 
 import OpenGL
-OpenGL.ERROR_CHECKING = False
+#OpenGL.ERROR_CHECKING = False
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
 
