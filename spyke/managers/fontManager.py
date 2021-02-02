@@ -3,7 +3,7 @@ from ..graphics.texturing.textureArray import TextureArray, TexArraySpec
 from ..graphics.text.font import Font
 from ..graphics.rendering.rendererSettings import RendererSettings
 from ..loaders.texture import LoadTexture
-from ..debug import Log, LogLevel
+from ..debugging import Log, LogLevel
 from ..utils import Static
 
 from functools import lru_cache

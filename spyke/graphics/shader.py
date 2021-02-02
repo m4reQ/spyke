@@ -1,12 +1,11 @@
 #region Import
-from ..enums import ShaderType
-from ..debug import Log, LogLevel, GetGLError
+from ..debugging import Log, LogLevel, Timed
 from ..managers.objectManager import ObjectManager
 from ..utils import EnsureString
-from ..transform import Matrix4
 
 from OpenGL import GL
 import numpy
+import glm
 from functools import lru_cache
 #endregion
 
@@ -21,7 +20,8 @@ class Shader(object):
 
 		ObjectManager.AddObject(self)
 	
-	def AddStage(self, stage: ShaderType, filepath: str) -> None:
+	@Timed("Shader.AddStage")
+	def AddStage(self, stage: int, filepath: str) -> None:
 		if self.__compiled:
 			Log("Tried to add shader stage to already compiled shader.", LogLevel.Warning)
 			return
@@ -45,6 +45,7 @@ class Shader(object):
 
 		GL.glAttachShader(self.__id, shader)
 	
+	@Timed("Shader.Compile")
 	def Compile(self) -> None:
 		if self.__compiled:
 			LogLevel("Shader already compiled.", LogLevel.Warning)
@@ -117,7 +118,7 @@ class Shader(object):
 	def SetUniform1f(self, name: str, value: float) -> None:
 		GL.glUniform1f(self.GetUniformLocation(name), value)
 	
-	def SetUniformMat4(self, name: str, value: Matrix4, transpose: bool) -> None:
+	def SetUniformMat4(self, name: str, value: glm.mat4, transpose: bool) -> None:
 		GL.glUniformMatrix4fv(self.GetUniformLocation(name), 1, transpose, numpy.asarray(value, dtype="float32"))
 	#endregion
 	

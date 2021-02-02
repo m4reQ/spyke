@@ -1,6 +1,5 @@
 from .texturing import *
 from .rendering.renderer import Renderer
-from .rendering.renderTarget import RenderTarget
 from .rendering.renderStats import RenderStats
 from .rendering.rendererSettings import RendererSettings
 from .shader import Shader

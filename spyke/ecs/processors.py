@@ -3,7 +3,7 @@ from .esper import Processor, World as Scene
 from .components import *
 from ..graphics import OrthographicCamera, Renderer
 from ..enums import AudioState
-from ..debug import Log, LogLevel
+from ..debugging import Log, LogLevel
 from ..imgui import ImGui as _ImGui
 from ..input import *
 from ..utils import LerpVec2, LerpVec4, LerpFloat

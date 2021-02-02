@@ -1,5 +1,5 @@
 from .textureData import TextureData
-from ...debug import Log, LogLevel
+from ...debugging import Log, LogLevel
 from ...managers.objectManager import ObjectManager
 from ...utils import Timer
 

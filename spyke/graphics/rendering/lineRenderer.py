@@ -7,7 +7,7 @@ from ..vertexArray import VertexArray
 from ..buffers import VertexBuffer
 from ...utils import GL_FLOAT_SIZE, Timer
 from ...enums import VertexAttribType, ShaderType
-from ...debug import Log, LogLevel
+from ...debugging import Log, LogLevel
 from ...transform import Matrix4, Vector3
 
 from OpenGL import GL

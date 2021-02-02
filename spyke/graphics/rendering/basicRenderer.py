@@ -10,7 +10,7 @@ from ..texturing.textureUtils import GetWhiteTexture
 from ..texturing.texture import Texture
 from ...managers import TextureManager
 from ...transform import CreateQuadIndices, Matrix4
-from ...debug import Log, LogLevel, GetGLError
+from ...debugging import Log, LogLevel, Timed
 from ...utils import GL_FLOAT_SIZE
 
 from OpenGL import GL
@@ -30,6 +30,7 @@ class BasicRenderer(RendererComponent):
 		1.0, 1.0, 0.0,
 		1.0, 0.0, 0.0]
 
+	@Timed("BasicRenderer.__init__")
 	def __init__(self):
 		self.shader = Shader()
 		self.shader.AddStage(GL.GL_VERTEX_SHADER, "spyke/graphics/shaderSources/basicInstanced.vert")

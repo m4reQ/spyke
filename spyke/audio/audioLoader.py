@@ -1,6 +1,6 @@
 from .soundData import SoundData
 from .audioUtils import FORMAT_MAP
-from ..debug import Log, LogLevel
+from ..debugging import Log, LogLevel
 
 import wave
 import time

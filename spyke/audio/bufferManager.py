@@ -1,6 +1,6 @@
 from .buffer import SoundBuffer
 from .audioLoader import LoadSound
-from ..debug import Log, LogLevel
+from ..debugging import Log, LogLevel
 
 class BufferManager(object):
     Buffers = {}

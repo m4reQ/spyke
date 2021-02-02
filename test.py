@@ -4,8 +4,8 @@ if __debug__:
 	spyke.DEBUG_LOG_TIME = True
 	spyke.DEBUG_COLOR = True
 
-	from spyke import debug
-	debug.Log("Debugging enabled.", debug.LogLevel.Info)
+	from spyke.debugging import Log, LogLevel
+	Log("Debugging enabled.", LogLevel.Info)
 
 from spyke.ecs.components import *
 from spyke.ecs.processors import *
@@ -18,7 +18,7 @@ from spyke.managers import *
 from spyke.utils import *
 from spyke.transform import *
 from spyke.input import *
-from spyke.sceneLoader import SaveScene
+#from spyke.sceneLoader import SaveScene
 
 class UserProcessor(Processor):
 	def __init__(self):
@@ -35,9 +35,8 @@ class UserProcessor(Processor):
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
 		super().__init__(windowSpec)
-
-		debug.GLInfo.PrintInfo()
-
+	
+	def OnLoad(self):
 		InputHandler.Initialize(self)
 		# LoadScene("tests/newScene.scn")
 
@@ -86,14 +85,14 @@ class Window(GlfwWindow):
 		# SceneManager.Current.AddProcessor(UserProcessor())
 
 		fbSpec = FramebufferSpec(self.width, self.height)
-		fbSpec.Samples = 1
-		fbSpec.HasDepthAttachment = True
-		fbSpec.Color = Color(0.0, 1.0, 1.0, 1.0)
+		fbSpec.attachmentsSpecs = [
+			FramebufferAttachmentSpec(FramebufferTextureFormat.Rgba8),
+			FramebufferAttachmentSpec(FramebufferTextureFormat.Rgba8),
+			FramebufferAttachmentSpec(FramebufferTextureFormat.Depth)]
 
 		self.framebuffer = Framebuffer(fbSpec)
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0, zNear = -1.0, zFar = 10.0)
-		self.renderTarget = RenderTarget(self.camera)
 
 		self.posTEST = glm.translate(glm.mat4(1.0), glm.vec3(-1.0, -1.0, 0.0))
 		self.posTEST = glm.scale(self.posTEST, glm.vec3(2.0, 2.0, 0.0))
@@ -108,11 +107,7 @@ class Window(GlfwWindow):
 		SceneManager.Current.Process(window = self)
 		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix, self.framebuffer)
 		Renderer.ClearScreen()
-		Renderer.RenderFramebuffer(Vector3(0.0, 0.0, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0), self.framebuffer)
-
-	def OnClose(self):
-		ObjectManager.DeleteAll()
-		#ImGui.Close()
+		Renderer.RenderFramebuffer(Vector3(0.0, 0.0, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0), self.framebuffer, passIdx=0)
 
 if __name__ == "__main__":
 	specs = WindowSpecs(512, 512, "TestWindow", 4, 5)

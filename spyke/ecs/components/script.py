@@ -1,4 +1,4 @@
-from ...debug import Log, LogLevel
+from ...debugging import Log, LogLevel
 from ...utils import Serializable
 
 import os

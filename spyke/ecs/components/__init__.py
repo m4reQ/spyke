@@ -6,3 +6,4 @@ from .script import ScriptComponent
 from .sprite import SpriteComponent
 from .text import TextComponent
 from .transform import TransformComponent
+from .tag import TagComponent

@@ -1,6 +1,5 @@
 #region Import
 from .renderStats import RenderStats
-from .renderTarget import RenderTarget
 from ..shader import Shader
 from ..buffers import VertexBuffer, Framebuffer
 from ..vertexArray import VertexArray
@@ -44,7 +43,7 @@ class PostRenderer(object):
 
 		self.vao.AddDivisor(self.shader.GetAttribLocation("aColor"), 1)
 
-	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer) -> None:
+	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer, passIdx = 0) -> None:
 		transform = CreateTransform3D(pos, size, rotation)
 		
 		translatedVerts = [
@@ -61,17 +60,21 @@ class PostRenderer(object):
 			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, 1.0, 0.0,
 			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 0.0]
 		
-		instanceData = [framebuffer.Spec.Color.x, framebuffer.Spec.Color.y, framebuffer.Spec.Color.z, framebuffer.Spec.Color.w]
+		instanceData = [framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w]
 
 		self.shader.Use()
-		self.shader.SetUniform1i("uSamples", framebuffer.Spec.Samples)
 
-		if framebuffer.Spec.Samples > 1:
-			GL.glBindTextureUnit(1, framebuffer.ColorAttachment)
-			GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, framebuffer.ColorAttachment)
+		samples = framebuffer.spec.attachmentsSpecs[passIdx].samples
+		attachment = framebuffer.GetColorAttachment(passIdx)
+
+		self.shader.SetUniform1i("uSamples", samples)
+
+		if samples > 1:
+			GL.glBindTextureUnit(1, attachment)
+			GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, attachment)
 		else:
-			GL.glBindTextureUnit(0, framebuffer.ColorAttachment)
-			GL.glBindTexture(GL.GL_TEXTURE_2D, framebuffer.ColorAttachment)
+			GL.glBindTextureUnit(0, attachment)
+			GL.glBindTexture(GL.GL_TEXTURE_2D, attachment)
 
 		self.vao.Bind()
 		

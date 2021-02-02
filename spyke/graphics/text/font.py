@@ -1,7 +1,7 @@
 #region Import
 from .glyph import Glyph
 from ...managers import TextureManager
-from ...debug import Log, LogLevel
+from ...debugging import Log, LogLevel
 from ...utils import Timer
 
 from functools import lru_cache

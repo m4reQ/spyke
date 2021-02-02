@@ -1,5 +1,5 @@
 from .utils import Timer, StrToBool
-from .debug import Log, LogLevel
+from .debugging import Log, LogLevel
 from .managers import TextureManager, FontManager, SceneManager, EntityManager
 from .enums import TextureMagFilter
 from .ecs.components import *

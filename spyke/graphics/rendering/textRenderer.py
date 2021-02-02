@@ -9,7 +9,7 @@ from ..text.font import Font
 from ...managers import FontManager
 from ...transform import CreateQuadIndices
 from ...utils import GL_FLOAT_SIZE
-from ...debug import Log, LogLevel
+from ...debugging import Log, LogLevel, Timed
 
 from OpenGL import GL
 import glm
@@ -21,6 +21,7 @@ VERTEX_DATA_VERTEX_SIZE = (3 + 2) * GL_FLOAT_SIZE
 INSTANCE_DATA_VERTEX_SIZE = (4 + 1) * GL_FLOAT_SIZE
 
 class TextRenderer(RendererComponent):
+	@Timed("TextRenderer.__init__")
 	def __init__(self):
 		self.shader = Shader()
 		self.shader.AddStage(GL.GL_VERTEX_SHADER, "spyke/graphics/shaderSources/text.vert")

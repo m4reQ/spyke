@@ -1,12 +1,15 @@
+#region Import
 from ...managers.objectManager import ObjectManager
-from ...utils import INT_SIZE
+from ...constants import _INT_SIZE, PROFILE_ENABLE
+from ...debugging import Timed
 
 from OpenGL import GL
 import numpy
+#endregion
 
 class IndexBuffer(object):
 	def __init__(self, data: list):
-		self.__size = len(data) * INT_SIZE
+		self.__size = len(data) * _INT_SIZE
 		self.__id = GL.glGenBuffers(1)
 		
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.__id)
@@ -35,3 +38,6 @@ class IndexBuffer(object):
 	@staticmethod
 	def UnbindAll() -> None:
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
+	
+	if PROFILE_ENABLE:
+		Timed("IndexBuffer.__init__")(__init__)

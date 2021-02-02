@@ -10,7 +10,7 @@ from ...managers import TextureManager
 from ...transform import Matrix4, CreateQuadIndices, Vector2
 from ...enums import VertexAttribType, GLType, ShaderType
 from ...utils import GL_FLOAT_SIZE, Timer
-from ...debug import Log, LogLevel
+from ...debugging import Log, LogLevel
 
 from OpenGL import GL
 import glm

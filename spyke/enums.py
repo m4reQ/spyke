@@ -13,9 +13,11 @@ class CameraType:
 	Orthographic = "Orthographic"
 	Perspective = "Perspective"
 
-class UniformTarget:
-	ViewProjectionMatrix = "VIEW_PROJECTION_MATRIX"
-	DeltaTime = "DELTA_TIME"
+class Vendor:
+	Nvidia = "NVIDIA"
+	Intel = "INTEL"
+	Amd = "AMD"
+	Unknown = "UNKNOWN"
 #endregion
 #region OpenGL
 class TextureMagFilter:

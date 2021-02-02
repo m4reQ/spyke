@@ -1,13 +1,13 @@
 #region Import
 from .widgets import *
 from .dialogWindow import DialogWindow
-from .. import IS_NVIDIA
-from ..debug import GetMemoryUsed, GetVideoMemoryCurrent, GLInfo, Log, LogLevel
+from ..debugging import Log, LogLevel
 from ..ecs.components import *
 from ..graphics import Renderer
+from ..graphics.contextInfo import ContextInfo
 from ..utils import RequestGC
 from ..managers import SceneManager, EntityManager
-from ..sceneLoader import SaveScene
+#from ..sceneLoader import SaveScene
 
 import tkinter as tk
 from tkinter import ttk
@@ -161,3 +161,5 @@ class ImGui:
 				pass
 			except Exception as e:
 				Log(f"ImGui error: {e}.", LogLevel.Error)
+		
+		ImGui.__Close()

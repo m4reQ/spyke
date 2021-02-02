@@ -7,17 +7,19 @@ from .particleRenderer import ParticleRenderer
 from .renderStats import RenderStats
 from .rendererSettings import RendererSettings
 from ..buffers import Framebuffer, UniformBuffer
-from ... import USE_FAST_NV_MULTISAMPLE, IS_NVIDIA
-from ...enums import Hint
-from ...utils import Static, Mat4ToTuple, GL_FLOAT_SIZE
+from ..contextInfo import ContextInfo
+from ...constants import USE_FAST_NV_MULTISAMPLE, _GL_FLOAT_SIZE
+from ...enums import Hint, Vendor
+from ...utils import Static
 from ...ecs import components
+from ...debugging import Log, LogLevel, Timed
 
 from OpenGL import GL
 import glm
 import time
 #endregion
 
-UNIFORM_BLOCK_SIZE = 16 * GL_FLOAT_SIZE
+UNIFORM_BLOCK_SIZE = 16 * _GL_FLOAT_SIZE
 UNIFORM_BLOCK_INDEX = 0
 
 class Renderer(Static):
@@ -29,6 +31,7 @@ class Renderer(Static):
 
 	__ubo = None
 
+	@Timed("Renderer.Initialize")
 	def Initialize(initialWidth: int, initialHeight: int) -> None:
 		Renderer.__BasicRenderer = BasicRenderer()
 		Renderer.__TextRenderer = TextRenderer()
@@ -48,7 +51,8 @@ class Renderer(Static):
 
 		if RendererSettings.MultisamplingEnabled:
 			GL.glEnable(GL.GL_MULTISAMPLE)
-			if IS_NVIDIA:
+
+			if ContextInfo.Vendor == Vendor.Nvidia:
 				if USE_FAST_NV_MULTISAMPLE:
 					GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_FASTEST)
 				else:
@@ -67,13 +71,13 @@ class Renderer(Static):
 
 		Renderer.Resize(initialWidth, initialHeight)
 
-		Renderer.__DefaultDepthFunc = GL.glGetInteger(GL.GL_DEPTH_FUNC)
+		Log("Renderer fully initialized.", LogLevel.Info)
 
 	def ClearScreen() -> None:
 		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 	
-	def RenderFramebuffer(pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer) -> None:
-		Renderer.__PostRenderer.Render(pos, size, rotation, framebuffer)
+	def RenderFramebuffer(pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer, passIdx = 0) -> None:
+		Renderer.__PostRenderer.Render(pos, size, rotation, framebuffer, passIdx)
 
 	def RenderScene(scene, viewProjectionMatrix: glm.mat4, framebuffer: Framebuffer = None) -> None:
 		RenderStats.Clear()
@@ -82,14 +86,14 @@ class Renderer(Static):
 		Renderer.__ubo.Bind()
 
 		data = list(viewProjectionMatrix[0]) + list(viewProjectionMatrix[1]) + list(viewProjectionMatrix[2]) + list(viewProjectionMatrix[3])
-		Renderer.__ubo.AddData(data, len(data) * GL_FLOAT_SIZE)
+		Renderer.__ubo.AddData(data, len(data) * _GL_FLOAT_SIZE)
 
 		try:
 			framebuffer.Bind()
 		except AttributeError:
 			pass
 	
-		Renderer.ClearScreen()
+		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
 		drawables = [x[1] for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
 		opaque = [x for x in drawables if x[0].Color.w == 1.0]
@@ -129,7 +133,6 @@ class Renderer(Static):
 		Renderer.__ParticleRenderer.EndScene()
 
 		try:
-			#GL.glFlush()
 			framebuffer.Unbind()
 		except AttributeError:
 			pass

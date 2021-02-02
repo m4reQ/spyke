@@ -1,13 +1,11 @@
 #region Import
 from .textureData import TextureData
 from .textureHandle import TextureHandle
-from ... import USE_FAST_ARRAY_MIN_FILTER
-from ...utils import Timer
-from ...enums import TextureType, TextureMagFilter
-from ...debug import Log, LogLevel
+from ...debugging import Log, LogLevel, Timed
 from ...managers.objectManager import ObjectManager
 
 import numpy
+import time
 from OpenGL import GL
 #endregion
 
@@ -23,8 +21,9 @@ class TexArraySpec(object):
 class TextureArray(object):
 	__MaxLayersCount = 0
 
+	@Timed("TextureArray.__init__")
 	def __init__(self, spec: TexArraySpec):
-		Timer.Start()
+		start = time.perf_counter()
 
 		if not TextureArray.__MaxLayersCount:
 			TextureArray.__MaxLayersCount = int(GL.glGetInteger(GL.GL_MAX_ARRAY_TEXTURE_LAYERS))
@@ -33,7 +32,6 @@ class TextureArray(object):
 			raise RuntimeError(f"Cannot create texture array with {spec.layers} layers (max layers count: {TextureArray.__MaxLayersCount}).")
 
 		self.__spec = spec
-
 		self.__currentLayer = 0
 
 		self.__id = GL.glGenTextures(1)
@@ -47,21 +45,19 @@ class TextureArray(object):
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, 0)
 
 		ObjectManager.AddObject(self)
-
-		Log(f"Texture array of size ({self.__spec.width}x{self.__spec.height}x{self.__spec.layers}) initialized in {Timer.Stop()} seconds.", LogLevel.Info)
+		Log(f"Texture array of size ({self.__spec.width}x{self.__spec.height}x{self.__spec.layers}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 	
+	@Timed("TextureArray.UploadTexture")
 	def UploadTexture(self, texData: TextureData) -> TextureHandle:
-		self.Bind()
-
 		if self.__currentLayer + 1 > self.__spec.layers:
 			raise RuntimeError("Max texture array layers count exceeded.")
 		if texData.width > self.__spec.width or texData.height > self.__spec.height:
 			raise RuntimeError("Texture size is higher than maximum.")
 		
 		if texData.width != self.__spec.width or texData.height != self.__spec.height:
-			GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, self.__spec.width, self.__spec.height, 1, texData.format, GL.GL_UNSIGNED_BYTE, numpy.empty(self.__spec.width * self.__spec.height * (3 if texData.format == GL.GL_RGB else 4), dtype = numpy.uint8))
-		GL.glTexSubImage3D(GL.GL_TEXTURE_2D_ARRAY, 0, 0, 0, self.__currentLayer, texData.width, texData.height, 1, texData.format, GL.GL_UNSIGNED_BYTE, numpy.asarray(texData.data, dtype = numpy.uint8))
-		GL.glGenerateMipmap(GL.GL_TEXTURE_2D_ARRAY)
+			GL.glTextureSubImage3D(self.__id, 0, 0, 0, self.__currentLayer, self.__spec.width, self.__spec.height, 1, texData.format, GL.GL_UNSIGNED_BYTE, numpy.empty(self.__spec.width * self.__spec.height * (3 if texData.format == GL.GL_RGB else 4), dtype = numpy.uint8))
+		GL.glTextureSubImage3D(self.__id, 0, 0, 0, self.__currentLayer, texData.width, texData.height, 1, texData.format, GL.GL_UNSIGNED_BYTE, numpy.asarray(texData.data, dtype = numpy.uint8))
+		GL.glGenerateTextureMipmap(self.__id)
 
 		handle = TextureHandle()
 		handle.u = (texData.width - 0.5) / self.__spec.width

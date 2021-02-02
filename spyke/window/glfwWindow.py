@@ -1,19 +1,27 @@
 #region Import
+#from . import enginePreview
 from .windowSpecs import WindowSpecs
-from . import enginePreview
 from .window import Window
 from ..input.event import *
 from ..input.eventHandler import EventHandler
-from ..debug import Log, LogLevel
-from ..utils import Timer, RequestGC
+from ..debugging import Log, LogLevel, Timed, Profiler
 from ..imgui import ImGui
+from ..managers import ObjectManager
+from ..constants import PROFILE_ENABLE
 
 import glfw
+import time
+import gc
 #endregion
+
+Profiler.BeginProfile("profile.json")
 
 class GlfwWindow(Window):
 	def __init__(self, specification: WindowSpecs):
-		Timer.Start()
+		if PROFILE_ENABLE:
+			session = Profiler.StartSession("GlfwWindow.__init__")
+
+		start = time.perf_counter()
 
 		self.width = specification.Width
 		self.height = specification.Height
@@ -59,8 +67,8 @@ class GlfwWindow(Window):
 
 		glfw.make_context_current(self.__handle)
 
-		enginePreview.RenderPreview()
-		glfw.swap_buffers(self.__handle)
+		#enginePreview.RenderPreview()
+		#glfw.swap_buffers(self.__handle)
 
 		if not self.specs.CursorVisible:
 			glfw.set_input_mode(self.__handle, glfw.CURSOR, glfw.CURSOR_HIDDEN)
@@ -73,7 +81,8 @@ class GlfwWindow(Window):
 		glfw.set_key_callback(self.__handle, self.__KeyCb)
 		glfw.set_window_pos_callback(self.__handle, self.__WindowPosCallback)
 
-		self.SetVsync(specification.Vsync)
+		glfw.swap_interval(1 if specification.Vsync else 0)
+		Log(f"Vsync set to: {True if specification.Vsync else False}.", LogLevel.Info)
 
 		self.isRunning = True
 		self.isActive = True
@@ -82,12 +91,25 @@ class GlfwWindow(Window):
 
 		self.__justStarted = True
 
-		Log(f"GLFW window initialized in {Timer.Stop()} seconds.", LogLevel.Info)
+		if PROFILE_ENABLE:
+			Profiler.AddSession(session)
+
+		if PROFILE_ENABLE:
+			session = Profiler.StartSession("GlfwWindow.OnLoad")
+		self.OnLoad()
+
+		if PROFILE_ENABLE:
+			Profiler.AddSession(session)
+
+		Log(f"GLFW window initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 	
 	def OnFrame(self):
 		pass
 	
 	def OnClose(self):
+		pass
+	
+	def OnLoad(self):
 		pass
 
 	def __ResizeCb(self, _, width, height):
@@ -137,15 +159,17 @@ class GlfwWindow(Window):
 			EventHandler.DispatchEvent(WindowCloseEvent())
 			self.isRunning = False
 
+	Timed("GlfwWindow.__DefClose")
 	def __DefClose(self):
+		ImGui.Close()
+		ObjectManager.DeleteAll()
+
 		glfw.destroy_window(self.__handle)
 		Log("Window destroyed.", LogLevel.Info)
 		glfw.terminate()
 		Log("Glfw terminated.", LogLevel.Info)
-
-		ImGui.Close()
-
-		RequestGC()
+		
+		gc.collect()
 	
 	def SetTitle(self, title: str) -> None:
 		glfw.set_window_title(self.__handle, title)
@@ -162,11 +186,11 @@ class GlfwWindow(Window):
 		Log(f"Vsync set to: {value}.", LogLevel.Info)
 
 	def Run(self):
-		enginePreview.CleanupPreview()
+		#enginePreview.CleanupPreview()
 		glfw.swap_buffers(self.__handle)
 
 		while self.isRunning:
-			Timer.Start()
+			start = time.perf_counter()
 			
 			self.__DefUpdate()
 			if self.__justStarted:
@@ -176,10 +200,12 @@ class GlfwWindow(Window):
 				self.OnFrame()
 				glfw.swap_buffers(self.__handle)
 
-			self.frameTime = Timer.Stop()
+			self.frameTime = time.perf_counter() - start
 		
 		self.OnClose()
 		self.__DefClose()
+
+		Profiler.EndProfile()
 	
 	@property
 	def WindowHandle(self):

@@ -1,7 +1,7 @@
 #region Import
 from . import objectManager
 from ..utils import Static, Timer
-from ..debug import Log, LogLevel
+from ..debugging import Log, LogLevel
 from ..loaders.texture import LoadTexture
 from ..graphics.texturing.texture import Texture, TextureData
 #endregion

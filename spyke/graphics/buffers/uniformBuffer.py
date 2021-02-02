@@ -1,7 +1,11 @@
+#region Import
 from ...managers.objectManager import ObjectManager
+from ...debugging import Timed
+from ...constants import PROFILE_ENABLE
 
 from OpenGL import GL
 import numpy
+#endregion
 
 class UniformBuffer(object):
 	def __init__(self, size: int, usage = GL.GL_STREAM_DRAW):
@@ -53,3 +57,6 @@ class UniformBuffer(object):
 	@staticmethod
 	def UnbindAll() -> None:
 		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
+	
+	if PROFILE_ENABLE:
+		Timed("UniformBuffer.__init__")(__init__)
