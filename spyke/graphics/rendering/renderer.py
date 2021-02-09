@@ -1,18 +1,19 @@
 #region Import
 from .basicRenderer import BasicRenderer
+from ...input import EventHook, EventHandler, EventType
 from .textRenderer import TextRenderer
 from .lineRenderer import LineRenderer
 from .postRenderer import PostRenderer
 from .particleRenderer import ParticleRenderer
 from .renderStats import RenderStats
 from .rendererSettings import RendererSettings
-from ..buffers import Framebuffer, UniformBuffer
+from ..buffers import Framebuffer, UniformBuffer, FramebufferSpec, FramebufferAttachmentSpec, FramebufferTextureFormat
 from ..contextInfo import ContextInfo
 from ...constants import USE_FAST_NV_MULTISAMPLE, _GL_FLOAT_SIZE
 from ...enums import Hint, Vendor
 from ...utils import Static
 from ...ecs import components
-from ...debugging import Log, LogLevel, Timed
+from ...debugging import Log, LogLevel
 
 from OpenGL import GL
 import glm
@@ -29,9 +30,10 @@ class Renderer(Static):
 	__ParticleRenderer = None
 	__PostRenderer = None
 
-	__ubo = None
+	__Ubo = None
 
-	@Timed("Renderer.Initialize")
+	__Framebuffer = None
+
 	def Initialize(initialWidth: int, initialHeight: int) -> None:
 		Renderer.__BasicRenderer = BasicRenderer()
 		Renderer.__TextRenderer = TextRenderer()
@@ -39,7 +41,15 @@ class Renderer(Static):
 		Renderer.__ParticleRenderer = ParticleRenderer()
 		Renderer.__PostRenderer = PostRenderer()
 		
-		Renderer.__ubo = UniformBuffer(UNIFORM_BLOCK_SIZE)
+		Renderer.__Ubo = UniformBuffer(UNIFORM_BLOCK_SIZE)
+
+
+		fbSpec = FramebufferSpec(self.width, self.height)
+		fbSpec.attachmentsSpecs = [
+			FramebufferAttachmentSpec(FramebufferTextureFormat.Rgba8),
+			FramebufferAttachmentSpec(FramebufferTextureFormat.Depth)]
+
+		Renderer.__Framebuffer = Framebuffer(fbSpec)
 
 		Renderer.__BasicRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
 		Renderer.__TextRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
@@ -47,7 +57,7 @@ class Renderer(Static):
 		Renderer.__ParticleRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
 		Renderer.__PostRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
 
-		Renderer.__ubo.BindToUniform(UNIFORM_BLOCK_INDEX)
+		Renderer.__Ubo.BindToUniform(UNIFORM_BLOCK_INDEX)
 
 		if RendererSettings.MultisamplingEnabled:
 			GL.glEnable(GL.GL_MULTISAMPLE)
@@ -69,7 +79,11 @@ class Renderer(Static):
 
 		GL.glClearColor(*RendererSettings.ClearColor)
 
-		Renderer.Resize(initialWidth, initialHeight)
+		GL.glScissor(0, 0, initialWidth, initialHeight)
+		GL.glViewport(0, 0, initialWidth, initialHeight)
+
+		EventHandler.BindHook(EventHook(Renderer.ResizeCallback, -1), EventType.WindowResize)
+		EventHandler.BindHook(EventHook(Renderer.__TextRenderer.ResizeCallback, -1), EventType.WindowResize)
 
 		Log("Renderer fully initialized.", LogLevel.Info)
 
@@ -83,15 +97,12 @@ class Renderer(Static):
 		RenderStats.Clear()
 		start = time.perf_counter()
 
-		Renderer.__ubo.Bind()
+		Renderer.__Ubo.Bind()
 
 		data = list(viewProjectionMatrix[0]) + list(viewProjectionMatrix[1]) + list(viewProjectionMatrix[2]) + list(viewProjectionMatrix[3])
-		Renderer.__ubo.AddData(data, len(data) * _GL_FLOAT_SIZE)
+		Renderer.__Ubo.AddData(data, len(data) * _GL_FLOAT_SIZE)
 
-		try:
-			framebuffer.Bind()
-		except AttributeError:
-			pass
+		Renderer.__Framebuffer.Bind()
 	
 		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
@@ -132,15 +143,16 @@ class Renderer(Static):
 		Renderer.__LineRenderer.EndScene()
 		Renderer.__ParticleRenderer.EndScene()
 
-		try:
-			framebuffer.Unbind()
-		except AttributeError:
-			pass
+		Renderer.__Framebuffer.Unbind()
+
+		Renderer.__PostRenderer.RenderFramebuffer(glm.vec3(0.0, 0.0, 0.0), glm.vec3(1.0, 1.0, 0.0), glm.vec3(0.0), Renderer.__Framebuffer, passIdx=0)
 
 		RenderStats.DrawTime = time.perf_counter() - start
 
-	def Resize(width: int, height: int) -> None:
+	def ResizeCallback(width: int, height: int) -> None:
 		GL.glScissor(0, 0, width, height)
 		GL.glViewport(0, 0, width, height)
 
-		Renderer.__TextRenderer.Resize(width, height)
+		Renderer.__Framebuffer.Resize(width, height)
+
+		return False

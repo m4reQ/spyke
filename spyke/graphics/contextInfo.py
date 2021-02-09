@@ -20,7 +20,6 @@ class ContextInfo:
 		ContextInfo.Version = EnsureString(GL.glGetString(GL.GL_VERSION))
 		ContextInfo.GLSLVersion = EnsureString(GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION))
 
-
 		vendor = EnsureString(GL.glGetString(GL.GL_VENDOR)).lower()
 		if "nvidia" in vendor:
 			ContextInfo.Vendor = Vendor.Nvidia

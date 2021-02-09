@@ -1,13 +1,12 @@
 #region Import
 #from . import enginePreview
+from ..graphics.rendering.renderer import Renderer
 from .windowSpecs import WindowSpecs
 from .window import Window
-from ..input.event import *
-from ..input.eventHandler import EventHandler
+from ..input.eventHandler import EventHandler, EventType
 from ..debugging import Log, LogLevel, Timed, Profiler
 from ..imgui import ImGui
 from ..managers import ObjectManager
-from ..constants import PROFILE_ENABLE
 
 import glfw
 import time
@@ -18,16 +17,11 @@ Profiler.BeginProfile("profile.json")
 
 class GlfwWindow(Window):
 	def __init__(self, specification: WindowSpecs):
-		if PROFILE_ENABLE:
-			session = Profiler.StartSession("GlfwWindow.__init__")
-
 		start = time.perf_counter()
 
 		self.width = specification.Width
 		self.height = specification.Height
 		self.baseTitle = specification.Title
-
-		self.specs = specification
 
 		if not glfw.init():
 			raise RuntimeError("Cannot initialize GLFW.")
@@ -42,7 +36,7 @@ class GlfwWindow(Window):
 		if specification.Multisample:
 			glfw.window_hint(glfw.SAMPLES, specification.Samples)
 		
-		if self.specs.Fullscreen:
+		if specification.Fullscreen:
 			Log("Window started in fulscreen mode.", LogLevel.Info)
 			mon = glfw.get_primary_monitor()
 			mode = glfw.get_video_mode(mon)
@@ -55,9 +49,9 @@ class GlfwWindow(Window):
 
 			self.width, self.height = glfw.get_framebuffer_size(self.__handle)
 		else:
-			if self.specs.Resizable:
+			if specification.Resizable:
 				glfw.window_hint(glfw.RESIZABLE, glfw.TRUE)
-			if self.specs.Borderless:
+			if specification.Borderless:
 				glfw.window_hint(glfw.DECORATED, glfw.FALSE)
 
 			self.__handle = glfw.create_window(self.width, self.height, self.baseTitle, None, None)
@@ -70,7 +64,7 @@ class GlfwWindow(Window):
 		#enginePreview.RenderPreview()
 		#glfw.swap_buffers(self.__handle)
 
-		if not self.specs.CursorVisible:
+		if not specification.CursorVisible:
 			glfw.set_input_mode(self.__handle, glfw.CURSOR, glfw.CURSOR_HIDDEN)
 
 		glfw.set_framebuffer_size_callback(self.__handle, self.__ResizeCb)
@@ -82,24 +76,16 @@ class GlfwWindow(Window):
 		glfw.set_window_pos_callback(self.__handle, self.__WindowPosCallback)
 
 		glfw.swap_interval(1 if specification.Vsync else 0)
-		Log(f"Vsync set to: {True if specification.Vsync else False}.", LogLevel.Info)
+		Log(f"Vsync set to: {specification.Vsync}.", LogLevel.Info)
 
 		self.isRunning = True
 		self.isActive = True
 
 		self.positionX, self.positionY = glfw.get_window_pos(self.__handle)
 
-		self.__justStarted = True
+		Renderer.Initialize(self.width, self.height)
 
-		if PROFILE_ENABLE:
-			Profiler.AddSession(session)
-
-		if PROFILE_ENABLE:
-			session = Profiler.StartSession("GlfwWindow.OnLoad")
 		self.OnLoad()
-
-		if PROFILE_ENABLE:
-			Profiler.AddSession(session)
 
 		Log(f"GLFW window initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 	
@@ -116,50 +102,50 @@ class GlfwWindow(Window):
 		self.width = width
 		self.height = height
 
-		EventHandler.DispatchEvent(WindowResizeEvent(width, height))
+		EventHandler.PostEvent(EventType.WindowResize, width, height)
 	
 	def __CursorPosCb(self, _, x, y):
-		EventHandler.DispatchEvent(MouseMovedEvent(x, y))
+		EventHandler.PostEvent(EventType.MouseMove, x, y)
 	
 	def __WindowPosCallback(self, _, x, y):
 		if (x, y) != (self.positionX, self.positionY):
-			EventHandler.DispatchEvent(WindowMovedEvent(x, y))
+			EventHandler.PostEvent(EventType.WindowMove, x, y)
+
 			self.positionX = x
 			self.positionY = y
 	
 	def __IconifyCb(self, _, value):
-		if value == 1:
-			EventHandler.DispatchEvent(WindowIconifiedEvent())
-			EventHandler.DispatchEvent(WindowResizeEvent(0, 0))
+		if value:
+			EventHandler.PostEvent(EventType.WindowResize, 0, 0)
+			EventHandler.PostEvent(EventType.WindowLostFocus)
 			self.isActive = False
-		elif value == 0:
-			EventHandler.DispatchEvent(WindowResizeEvent(self.width, self.height))
+		else:
+			EventHandler.PostEvent(EventType.WindowResize, self.width, self.height)
+			EventHandler.PostEvent(EventType.WindowFocus)
 			self.isActive = True
 		
 	def __MouseCb(self, _, button, action, mods):
 		if action == glfw.PRESS:
-			EventHandler.DispatchEvent(MouseButtonPressedEvent(button))
+			EventHandler.PostEvent(EventType.MouseButtonDown, button)
 		elif action == glfw.RELEASE:
-			EventHandler.DispatchEvent(MouseButtonReleasedEvent(button))
+			EventHandler.PostEvent(EventType.MouseButtonUp, button)
 	
 	def __MouseScrollCb(self, _, xOffset, yOffset):
-		EventHandler.DispatchEvent(MouseScrolledEvent(xOffset, yOffset))
+		EventHandler.PostEvent(EventType.MouseScroll, xOffset, yOffset)
 	
 	def __KeyCb(self, _, key, scancode, action, mods):
 		if action == glfw.PRESS:
-			EventHandler.DispatchEvent(KeyPressedEvent(key, 0))
+			EventHandler.PostEvent(EventType.KeyDown, key)
 		elif action == glfw.RELEASE:
-			EventHandler.DispatchEvent(KeyReleasedEvent(key))
+			EventHandler.PostEvent(EventType.KeyUp, key)
 
 	def __DefUpdate(self):
-		EventHandler.ClearEvents()
 		glfw.poll_events()
 
 		if glfw.window_should_close(self.__handle):
-			EventHandler.DispatchEvent(WindowCloseEvent())
+			EventHandler.PostEvent(EventType.WindowClose)
 			self.isRunning = False
 
-	Timed("GlfwWindow.__DefClose")
 	def __DefClose(self):
 		ImGui.Close()
 		ObjectManager.DeleteAll()
@@ -193,9 +179,7 @@ class GlfwWindow(Window):
 			start = time.perf_counter()
 			
 			self.__DefUpdate()
-			if self.__justStarted:
-				EventHandler.DispatchEvent(WindowResizeEvent(self.width, self.height))
-				self.__justStarted = False
+
 			if self.isActive:
 				self.OnFrame()
 				glfw.swap_buffers(self.__handle)

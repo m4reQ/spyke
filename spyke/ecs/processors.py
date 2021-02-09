@@ -1,22 +1,15 @@
 #region Import
 from .esper import Processor, World as Scene
 from .components import *
-from ..graphics import OrthographicCamera, Renderer
 from ..enums import AudioState
 from ..debugging import Log, LogLevel
-from ..imgui import ImGui as _ImGui
-from ..input import *
 from ..utils import LerpVec2, LerpVec4, LerpFloat
-
 #endregion
 
 def InitializeDefaultProcessors(scene: Scene):
-	scene.AddProcessor(WindowEventProcessor(), priority = 1)
 	scene.AddProcessor(TransformProcessor())
 	scene.AddProcessor(ParticleProcessor())
 	scene.AddProcessor(ScriptProcessor())
-	# if _ImGui.IsInitialized():
-	# 	scene.AddProcessor(ImguiProcessor())
 
 class TransformProcessor(Processor):
 	def Process(self, *args, **kwargs):
@@ -31,16 +24,6 @@ class ScriptProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		for _, script in self.scene.GetComponent(ScriptComponent):
 			script.Process()
-
-class WindowEventProcessor(Processor):
-	def Process(self, *args, **kwargs):
-		event = EventHandler.PickEventByType(EventType.WindowResize)
-		if event:
-			Renderer.Resize(event.Width, event.Height)
-
-class ImguiProcessor(Processor):
-	def Process(self, *args, **kwargs):
-		_ImGui.OnFrame()
 
 class AudioProcessor(Processor):
 	def Process(self, *args, **kwargs):

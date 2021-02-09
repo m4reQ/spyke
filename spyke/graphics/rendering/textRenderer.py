@@ -63,8 +63,10 @@ class TextRenderer(RendererComponent):
 
 		Log("Text renderer initialized", LogLevel.Info)
 
-	def Resize(self, width: int, height: int):
+	def ResizeCallback(self, width: int, height: int):
 		self.winSize = (width, height)
+
+		return False
 	
 	def EndScene(self) -> None:
 		if self.__indexCount != 0:

@@ -5,7 +5,6 @@ in vec2 vTexCoord;
 in flat float vTexIdx;
 
 layout(location = 0) out vec4 Color;
-layout(location = 1) out vec4 Color2;
 
 uniform sampler2D uTextures[16];
 
@@ -34,5 +33,4 @@ void main()
     }
     
     Color = texCol;
-    Color2 = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }

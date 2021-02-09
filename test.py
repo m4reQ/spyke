@@ -37,7 +37,6 @@ class Window(GlfwWindow):
 		super().__init__(windowSpec)
 	
 	def OnLoad(self):
-		InputHandler.Initialize(self)
 		# LoadScene("tests/newScene.scn")
 
 		# self.ent4 = EntityManager.CreateEntity("Particles")

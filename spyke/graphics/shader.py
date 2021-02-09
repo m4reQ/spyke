@@ -1,5 +1,5 @@
 #region Import
-from ..debugging import Log, LogLevel, Timed
+from ..debugging import Log, LogLevel
 from ..managers.objectManager import ObjectManager
 from ..utils import EnsureString
 
@@ -20,7 +20,6 @@ class Shader(object):
 
 		ObjectManager.AddObject(self)
 	
-	@Timed("Shader.AddStage")
 	def AddStage(self, stage: int, filepath: str) -> None:
 		if self.__compiled:
 			Log("Tried to add shader stage to already compiled shader.", LogLevel.Warning)
@@ -45,7 +44,6 @@ class Shader(object):
 
 		GL.glAttachShader(self.__id, shader)
 	
-	@Timed("Shader.Compile")
 	def Compile(self) -> None:
 		if self.__compiled:
 			LogLevel("Shader already compiled.", LogLevel.Warning)

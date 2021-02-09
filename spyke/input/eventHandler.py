@@ -1,42 +1,38 @@
-from .event import Event, EventType, EventCategory
 from ..utils.functional import Static
-from typing import List
+
+class EventType:
+	KeyDown, KeyUp, WindowClose, WindowResize, WindowMove, MouseButtonUp, MouseButtonDown, MouseMove, MouseScroll, WindowFocus, WindowLostFocus = range(11)
+
+class EventHook(object):
+	def __init__(self, func: callable, priority: int = 0):
+		self.__func = func
+		self.priority = priority
+	
+	def Call(self, *args, **kwargs):
+		self.__func(*args, **kwargs)
 
 class EventHandler(Static):
-	__Events = []
+	__Hooks = {}
 
-	def DispatchEvent(event: Event) -> None:
-		EventHandler.__Events.append(event)
+	def PostEvent(_type: EventType, *args, **kwargs):
+		try:
+			for hook in EventHandler.__Hooks[_type]:
+				if hook.Call(*args, **kwargs):
+					break
+		except KeyError:
+			pass
 	
-	def GetLastEvent() -> Event:
-		return EventHandler.__Events[-1]
+	def BindHook(hook: EventHook, _type: EventType):
+		try:
+			EventHandler.__Hooks[_type].append(hook)
+		except KeyError:
+			EventHandler.__Hooks[_type] = [hook]
+		
+		EventHandler.__Hooks[_type].sort(key = lambda x: x.priority)
 	
-	def GetEvents() -> List[Event]:
-		return EventHandler.__Events
-	
-	def PickEventByType(eventType: EventType) -> Event:
-		"""
-		Returns first event that appeared and matches the given type.
-		"""
-		return next((x for x in EventHandler.__Events if x.Type == eventType and not x.Handled), None)
-	
-	def PickEventByCategory(eventCategory: EventCategory) -> Event:
-		"""
-		Returns first event that appeared and matches the given category.
-		"""
-		return next((x for x in EventHandler.__Events if x.IsInCategory(eventCategory) and not x.Handled), None)
-	
-	def GetEventsByType(eventType: EventType) -> List[Event]:
-		"""
-		Returns all events that match the given type.
-		"""
-		return [x for x in EventHandler.__Events if x.Type == eventType and not x.Handled]
-	
-	def GetEventsByCategory(eventCategory: EventCategory) -> List[Event]:
-		"""
-		Returns all events that belong to the given category.
-		"""
-		return [x for x in EventHandler.__Events if x.IsInCategory(eventCategory) and not x.Handled]
-	
-	def ClearEvents() -> None:
-		EventHandler.__Events.clear()
+	def RemoveHook(hook: EventHook):
+		for hookSet in EventHandler.__Hooks.values():
+			try:
+				hookSet.remove(hook)
+			except ValueError:
+				pass

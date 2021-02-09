@@ -21,7 +21,7 @@ class VertexArray(object):
 	def AddDivisor(self, index: int, instances: int):
 		GL.glVertexAttribDivisor(index, instances)
 	
-	def AddLayout(self, index: int, count: int, _type: int, isNormalized: bool, divisor = 0):
+	def AddLayout(self, index: int, count: int, _type: int, isNormalized: bool, divisor: int = 0):
 		GL.glVertexAttribPointer(index, count, _type, isNormalized, self.__vertexSize, GetPointer(self.__offset))
 		GL.glEnableVertexAttribArray(index)
 
