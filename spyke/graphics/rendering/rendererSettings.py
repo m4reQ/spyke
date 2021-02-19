@@ -3,7 +3,7 @@ from ...utils import Static
 from OpenGL import GL
 import glm
 
-class RendererSettings(Static):
+class RendererSettings:
     """
     A class that stores set of rules about how renderer
     should work. To make them work any changes have to
@@ -15,11 +15,9 @@ class RendererSettings(Static):
     MaxQuadsCount = 300
     """
     Max quads count that can be renderer within one batch.
-    This value has to be the same as value in the value that coresponds
-    to transformation matrices count declared in the shader.
     """
 
-    MaxTextures = 16
+    MaxTextures = 32
     """
     Max number of textures that can be used within one draw batch.
     """

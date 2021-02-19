@@ -1,5 +1,4 @@
-from ..debugging import Log, LogLevel, Timed
-from ..constants import PROFILE_ENABLE
+from ..debugging import Log, LogLevel
 
 from OpenGL import GL
 import gc
@@ -69,6 +68,3 @@ class ObjectManager():
 		ObjectManager.__VertexArrays.clear()
 
 		gc.collect()
-	
-	if PROFILE_ENABLE:
-		Timed("ObjectManager.DeleteAll")(DeleteAll)

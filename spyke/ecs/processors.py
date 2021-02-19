@@ -31,9 +31,7 @@ class AudioProcessor(Processor):
 			state = audio.Handle.GetState()
 
 class ParticleProcessor(Processor):
-	def Process(self, *args, **kwargs):
-		dt = self.scene.GetFrameTime()
-
+	def Process(self, dt: float):
 		for _, particleComponent in self.scene.GetComponent(ParticleSystemComponent):
 			for particle in particleComponent.particlePool:
 				if not particle.isAlive:

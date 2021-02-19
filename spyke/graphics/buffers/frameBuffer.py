@@ -4,6 +4,10 @@ from ...managers.objectManager import ObjectManager
 from OpenGL import GL
 import glm
 
+_DEPTH_ATTACHMENT_TARGET_MAP = {
+	GL.GL_DEPTH24_STENCIL8: GL.GL_DEPTH_STENCIL_ATTACHMENT
+}
+
 class FramebufferTextureFormat:
 	Rgba8 = GL.GL_RGBA8
 	Depth24Stencil8 = GL.GL_DEPTH24_STENCIL8
@@ -56,7 +60,9 @@ class Framebuffer(object):
 			else:
 				GL.glTexStorage2DMultisample(target, 1, _format.textureFormat, self.spec.width, self.spec.height)
 			
-			GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, _format.textureFormat, target, tex, 0)
+			attachment = _DEPTH_ATTACHMENT_TARGET_MAP[_format.textureFormat]
+
+			GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, attachment, target, tex, 0)
 		else:
 			if target == GL.GL_TEXTURE_2D:
 				GL.glTexImage2D(target, 0, _format.textureFormat, self.spec.width, self.spec.height, 0, Framebuffer.__PixelFormat, Framebuffer.__PixelType, None)
@@ -78,13 +84,13 @@ class Framebuffer(object):
 		self.__id = GL.glGenFramebuffers(1)
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.__id)
 
-		for idx, f in enumerate(self.spec.attachmentsSpecs):
+		for f in self.spec.attachmentsSpecs:
 			if f.textureFormat == FramebufferTextureFormat.Depth:
 				self.__depthAttachment = self.__CreateFramebufferTexture(f, 0)
 			else:
-				tex = self.__CreateFramebufferTexture(f, idx)
+				tex = self.__CreateFramebufferTexture(f, len(self.__colorAttachments))
 				self.__colorAttachments.append(tex)
-		
+
 		if len(self.__colorAttachments) > 1:
 			assert(len(self.__colorAttachments) <= 4)
 
@@ -92,7 +98,7 @@ class Framebuffer(object):
 			GL.glDrawBuffers(len(self.__colorAttachments), buffers)
 		elif len(self.__colorAttachments) == 0:
 			GL.glDrawBuffer(GL.GL_NONE)
-		
+
 		if not resizing:
 			err = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
 			if err != GL.GL_FRAMEBUFFER_COMPLETE:
@@ -116,7 +122,7 @@ class Framebuffer(object):
 
 	def Delete(self) -> None:
 		textures = self.__colorAttachments
-		if self.__depthAttachment != -1:
+		if self.__depthAttachment:
 			textures.append(self.__depthAttachment)
 		
 		GL.glDeleteTextures(len(textures), textures)

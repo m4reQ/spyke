@@ -1,3 +1,4 @@
+from .contextInfo import ContextInfo
 from .texturing import *
 from .rendering.renderer import Renderer
 from .rendering.renderStats import RenderStats

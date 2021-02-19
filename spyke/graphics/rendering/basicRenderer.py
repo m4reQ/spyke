@@ -1,36 +1,30 @@
 #region Import
-from .renderBatch import RenderBatch
 from .renderStats import RenderStats
-from .rendererComponent import RendererComponent
 from .rendererSettings import RendererSettings
 from ..shader import Shader
 from ..vertexArray import VertexArray
 from ..buffers import VertexBuffer, IndexBuffer
 from ..texturing.textureUtils import GetWhiteTexture
 from ..texturing.texture import Texture
-from ...managers import TextureManager
-from ...transform import CreateQuadIndices, Matrix4
-from ...debugging import Log, LogLevel, Timed
-from ...utils import GL_FLOAT_SIZE
+from ...debugging import Log, LogLevel
+from ...constants import _GL_FLOAT_SIZE
 
 from OpenGL import GL
 import glm
-import numpy
 #endregion
 
-VERTEX_SIZE = (3 + 4 + 2 + 1 + 2 + 16) * GL_FLOAT_SIZE
-POS_VERTEX_SIZE = 3 * GL_FLOAT_SIZE
-INSTANCE_DATA_VERTEX_SIZE = (4 + 2 + 1 + 16) * GL_FLOAT_SIZE
-VERTEX_DATA_VERTEX_SIZE = 2 * GL_FLOAT_SIZE
+VERTEX_SIZE = (3 + 4 + 2 + 1 + 2 + 16) * _GL_FLOAT_SIZE
+POS_VERTEX_SIZE = 3 * _GL_FLOAT_SIZE
+INSTANCE_DATA_VERTEX_SIZE = (4 + 2 + 1 + 16) * _GL_FLOAT_SIZE
+VERTEX_DATA_VERTEX_SIZE = 2 * _GL_FLOAT_SIZE
 
-class BasicRenderer(RendererComponent):
+class BasicRenderer(object):
 	__QuadVertices = [
 		0.0, 0.0, 0.0,
 		0.0, 1.0, 0.0,
 		1.0, 1.0, 0.0,
 		1.0, 0.0, 0.0]
 
-	@Timed("BasicRenderer.__init__")
 	def __init__(self):
 		self.shader = Shader()
 		self.shader.AddStage(GL.GL_VERTEX_SHADER, "spyke/graphics/shaderSources/basicInstanced.vert")
@@ -41,7 +35,7 @@ class BasicRenderer(RendererComponent):
 		self.instanceDataVbo = VertexBuffer(INSTANCE_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount)
 		self.vertexDataVbo = VertexBuffer(VERTEX_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount * 4)
 
-		self.ibo = IndexBuffer(CreateQuadIndices(RendererSettings.MaxQuadsCount))
+		self.ibo = IndexBuffer(IndexBuffer.CreateQuadIndices(RendererSettings.MaxQuadsCount))
 
 		self.vao = VertexArray()
 		self.vao.Bind()
@@ -50,7 +44,7 @@ class BasicRenderer(RendererComponent):
 		self.vao.SetVertexSize(POS_VERTEX_SIZE)
 		self.vao.ClearVertexOffset()
 		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False)
-		self.posVbo.AddDataDirect(BasicRenderer.__QuadVertices, len(BasicRenderer.__QuadVertices) * GL_FLOAT_SIZE)
+		self.posVbo.AddDataDirect(BasicRenderer.__QuadVertices, len(BasicRenderer.__QuadVertices) * _GL_FLOAT_SIZE)
 
 		self.vertexDataVbo.Bind()
 		self.vao.SetVertexSize(VERTEX_DATA_VERTEX_SIZE)
@@ -74,6 +68,8 @@ class BasicRenderer(RendererComponent):
 
 		self.__textures = [0] * (RendererSettings.MaxTextures - 1)
 		self.__lastTexture = 1
+		
+		self.drawType = GL.GL_TRIANGLES
 
 		self.__whiteTexture = Texture(GetWhiteTexture())
 
@@ -93,16 +89,16 @@ class BasicRenderer(RendererComponent):
 
 		GL.glBindTextureUnit(0, self.__whiteTexture.ID)
 
-		for i in range(self.__lastTexture):
+		for i in range(1, self.__lastTexture):
 			GL.glBindTextureUnit(i, self.__textures[i])
 
 		self.vao.Bind()
 		self.ibo.Bind()
 
-		self.instanceDataVbo.AddDataDirect(self.__instanceData, len(self.__instanceData) * GL_FLOAT_SIZE)
-		self.vertexDataVbo.AddDataDirect(self.__vertexData, len(self.__vertexData) * GL_FLOAT_SIZE)
+		self.instanceDataVbo.AddDataDirect(self.__instanceData, len(self.__instanceData) * _GL_FLOAT_SIZE)
+		self.vertexDataVbo.AddDataDirect(self.__vertexData, len(self.__vertexData) * _GL_FLOAT_SIZE)
 
-		GL.glDrawElementsInstanced(GL.GL_TRIANGLES, self.__indexCount, GL.GL_UNSIGNED_INT, None, self.__indexCount // 6)
+		GL.glDrawElementsInstanced(self.drawType, self.__indexCount, GL.GL_UNSIGNED_INT, None, self.__indexCount // 6)
 
 		RenderStats.DrawsCount += 1
 
@@ -111,8 +107,8 @@ class BasicRenderer(RendererComponent):
 		self.__indexCount = 0
 		self.__lastTexture = 1
 		
-	def RenderQuad(self, transform: Matrix4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2):
-		if self.__indexCount // 6 >= RendererSettings.MaxQuadsCount:
+	def RenderQuad(self, transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2):
+		if RenderStats.QuadsCount >= RendererSettings.MaxQuadsCount:
 			self.__Flush()
 
 		texIdx = 0.0

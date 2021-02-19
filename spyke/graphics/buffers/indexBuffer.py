@@ -1,13 +1,32 @@
 #region Import
 from ...managers.objectManager import ObjectManager
-from ...constants import _INT_SIZE, PROFILE_ENABLE
-from ...debugging import Timed
+from ...constants import _INT_SIZE
 
 from OpenGL import GL
 import numpy
 #endregion
 
 class IndexBuffer(object):
+	@staticmethod
+	def CreateQuadIndices(count: int) -> list:
+		data = []
+
+		offset = 0
+		i = 0
+		while i < count:
+			data.extend([
+				0 + offset,
+				1 + offset,
+				2 + offset,
+				2 + offset,
+				3 + offset,
+				0 + offset])
+			
+			offset += 4
+			i += 6
+		
+		return data
+		
 	def __init__(self, data: list):
 		self.__size = len(data) * _INT_SIZE
 		self.__id = GL.glGenBuffers(1)
@@ -38,6 +57,3 @@ class IndexBuffer(object):
 	@staticmethod
 	def UnbindAll() -> None:
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
-	
-	if PROFILE_ENABLE:
-		Timed("IndexBuffer.__init__")(__init__)

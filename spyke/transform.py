@@ -18,25 +18,6 @@ QuadVerticesFloat = [
 	1.0, 1.0, 0.0,
 	1.0, 0.0, 0.0]
 
-def CreateQuadIndices(count: int) -> list:
-	data = []
-
-	offset = 0
-	i = 0
-	while i < count:
-		data.extend([
-			0 + offset,
-			1 + offset,
-			2 + offset,
-			2 + offset,
-			3 + offset,
-			0 + offset])
-		
-		offset += 4
-		i += 6
-	
-	return data
-
 #region Transform
 def CreateTranslation(pos: tuple) -> glm.mat4:
     return glm.translate(glm.mat4(1.0), glm.vec3(pos))

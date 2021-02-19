@@ -2,7 +2,6 @@
 Changes made by m4reQ:
 - changed time measurement function from time.process_time to time.perf_counter
 - changed names of public functions to use PascalCase naming convention
-- added World.GetFrameTime function that returns sum of all processing times from previous frame
 - changed World.AddComponent function ability to set component's reference to a parent entity and scene if component type is ScriptComponent
 - using ints casted to str as ids for entities (this is mainly because an internal CPython optimization for string dictionary keys)
 - added type hint to 'world' member in Processor class
@@ -62,9 +61,6 @@ class World:
 		self._components.clear()
 		self._entities.clear()
 		self.clear_cache()
-	
-	def GetFrameTime(self) -> float:
-		return sum(self.process_times.values())
 
 	def AddProcessor(self, processor_instance: Processor, priority=0) -> None:
 		"""Add a Processor instance to the World.

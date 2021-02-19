@@ -21,6 +21,6 @@ class SceneManager(Static):
 		s = Scene(timed)
 		SceneManager.Current = s
 		SceneManager.SceneName = name
-		
+
 		return s
 	

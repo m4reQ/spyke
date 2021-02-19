@@ -5,7 +5,7 @@ from .renderBatch import RenderBatch
 from ..shader import Shader
 from ..vertexArray import VertexArray
 from ..buffers import VertexBuffer
-from ...utils import GL_FLOAT_SIZE, Timer
+from ...constants import _GL_FLOAT_SIZE
 from ...enums import VertexAttribType, ShaderType
 from ...debugging import Log, LogLevel
 from ...transform import Matrix4, Vector3
@@ -14,7 +14,7 @@ from OpenGL import GL
 import glm
 #endregion
 
-VERTEX_SIZE = (3 + 4) * GL_FLOAT_SIZE
+VERTEX_SIZE = (3 + 4) * _GL_FLOAT_SIZE
 
 class LineRenderer(RendererComponent):
 	MaxLinesCount = 500
@@ -67,7 +67,7 @@ class LineRenderer(RendererComponent):
 			endPos.x, endPos.y, endPos.z, 		color.x, color.y, color.z, color.w]
 
 		try:
-			batch = next(x for x in self.__batches if x.WouldAccept(len(data) * GL_FLOAT_SIZE))
+			batch = next(x for x in self.__batches if x.WouldAccept(len(data) * _GL_FLOAT_SIZE))
 		except StopIteration:
 			batch = RenderBatch(LineRenderer.MaxVertexCount * VERTEX_SIZE)
 			self.__batches.append(batch)

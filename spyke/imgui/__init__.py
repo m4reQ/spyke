@@ -58,41 +58,49 @@ class ImGui:
 		ImGui.__IsRunning = True
 		ImGui.__Thread = threading.Thread(target = ImGui.__Run, name = "spyke.imgui")
 
+		ImGui.__Initialized = True
+
 		ImGui.__Thread.start()
 		Log("Imgui started.", LogLevel.Info)
 	
-	def Close():
+	def TryClose():
+		if not ImGui.__IsRunning:
+			return
+			
 		ImGui.__IsRunning = False
+		ImGui.__Thread.join()
 	
 	#region Callbacks
 	def __Close():
-		ImGui.__Initialized = False
+		if not ImGui.__Initialized:
+			return
+
 		ImGui.__IsRunning = False
+		ImGui.__Initialized = False
 
-		try:
-			ImGui.__Window.destroy()
-		except tk.TclError:
-			pass
+		ImGui.__Window.quit()
 
+		del ImGui.__Window
 		gc.collect()
+
 		Log("ImGui closed", LogLevel.Info)
 	
 	def __SaveScene():
-		f = filedialog.asksaveasfilename(parent = ImGui.MainWindow, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+		f = filedialog.asksaveasfilename(parent = ImGui.__Window, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
 		if not f:
 			return
 		
 		SaveScene(SceneManager.Current, f)
 
 	def __OpenScene() -> None:
-		f = filedialog.askopenfilename(parent = ImGui.MainWindow, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+		f = filedialog.askopenfilename(parent = ImGui.__Window, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
 		if not f:
 			return
 		
 		LoadScene(f)
 
 	def __AddEntity():
-		win = DialogWindow(ImGui.MainWindow, "Create Enitity", "Entity name: ")
+		win = DialogWindow(ImGui.__Window, "Create Enitity", "Entity name: ")
 		win.AwaitWindow()
 
 		SceneManager.Current.CreateEntity(TagComponent(win.value))

@@ -1,6 +1,4 @@
 from ...managers.objectManager import ObjectManager
-from ...debugging import Timed
-from ...constants import PROFILE_ENABLE
 
 from OpenGL import GL
 import numpy
@@ -52,6 +50,3 @@ class VertexBuffer(object):
 	@staticmethod
 	def UnbindAll() -> None:
 		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
-	
-	if PROFILE_ENABLE:
-		Timed("VertexBuffer.__init__")(__init__)

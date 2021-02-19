@@ -3,7 +3,7 @@ from .renderStats import RenderStats
 from ..shader import Shader
 from ..buffers import VertexBuffer, Framebuffer
 from ..vertexArray import VertexArray
-from ...utils import GL_FLOAT_SIZE, Timer
+from ...constants import _GL_FLOAT_SIZE
 from ...transform import Matrix4, CreateTransform3D, QuadVertices
 from ...enums import VertexAttribType, ShaderType
 
@@ -11,9 +11,9 @@ from OpenGL import GL
 import glm
 #endregion
 
-VERTEX_SIZE = (3 + 4 + 2) * GL_FLOAT_SIZE
-VERTEX_DATA_VERTEX_SIZE = (3 + 2) * GL_FLOAT_SIZE
-INSTANCE_DATA_VERTEX_SIZE = 4 * GL_FLOAT_SIZE
+VERTEX_SIZE = (3 + 4 + 2) * _GL_FLOAT_SIZE
+VERTEX_DATA_VERTEX_SIZE = (3 + 2) * _GL_FLOAT_SIZE
+INSTANCE_DATA_VERTEX_SIZE = 4 * _GL_FLOAT_SIZE
 
 class PostRenderer(object):
 	__VertexCount = 6
@@ -30,18 +30,16 @@ class PostRenderer(object):
 		self.vao = VertexArray()
 		self.vao.Bind()
 
+		self.vertexDataVbo.Bind()
 		self.vao.SetVertexSize(VERTEX_DATA_VERTEX_SIZE)
 		self.vao.ClearVertexOffset()
-		self.vertexDataVbo.Bind()
 		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False)
 		self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), 2, GL.GL_FLOAT, False)
 
+		self.instanceDataVbo.Bind()
 		self.vao.SetVertexSize(INSTANCE_DATA_VERTEX_SIZE)
 		self.vao.ClearVertexOffset()
-		self.instanceDataVbo.Bind()
-		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False)
-
-		self.vao.AddDivisor(self.shader.GetAttribLocation("aColor"), 1)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False, 1)
 
 	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer, passIdx = 0) -> None:
 		transform = CreateTransform3D(pos, size, rotation)
@@ -78,8 +76,8 @@ class PostRenderer(object):
 
 		self.vao.Bind()
 		
-		self.vertexDataVbo.AddDataDirect(vertexData, len(vertexData) * GL_FLOAT_SIZE)
-		self.instanceDataVbo.AddDataDirect(instanceData, len(instanceData) * GL_FLOAT_SIZE)
+		self.vertexDataVbo.AddDataDirect(vertexData, len(vertexData) * _GL_FLOAT_SIZE)
+		self.instanceDataVbo.AddDataDirect(instanceData, len(instanceData) * _GL_FLOAT_SIZE)
 
 		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, 6, 1)
 

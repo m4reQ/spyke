@@ -4,12 +4,6 @@ import gc
 import threading
 import pickle
 
-FLOAT_SIZE = ctypes.sizeof(ctypes.c_float)
-INT_SIZE = ctypes.sizeof(ctypes.c_int)
-
-GL_FLOAT_SIZE = 4
-GL_INT_SIZE = 4
-
 __GL_TYPE_SIZES = {
 	GL.GL_DOUBLE: 8,
 	GL.GL_FIXED: 4,
@@ -24,8 +18,6 @@ __GL_TYPE_SIZES = {
 
 def __ThreadedGC():
 	__GC_FLAG.wait()
-
-	objCount = gc.get_count()[0]
 	gc.collect()
 	__GC_FLAG.clear()
 

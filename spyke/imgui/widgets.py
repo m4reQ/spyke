@@ -30,7 +30,7 @@ class StatsWidget(tk.Frame):
 		self.fpsLabel.grid(row = 3, column = 1, sticky = "we")
 	
 	def Update(self):
-		if not RenderStats.DrawTime:
+		if not RenderStats.FrameEnded:
 			return
 
 		self.drawsLabel["text"] = str(RenderStats.DrawsCount)

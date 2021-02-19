@@ -1,7 +1,7 @@
 #region Import
 from .textureData import TextureData
 from .textureHandle import TextureHandle
-from ...debugging import Log, LogLevel, Timed
+from ...debugging import Log, LogLevel
 from ...managers.objectManager import ObjectManager
 
 import numpy
@@ -21,7 +21,6 @@ class TexArraySpec(object):
 class TextureArray(object):
 	__MaxLayersCount = 0
 
-	@Timed("TextureArray.__init__")
 	def __init__(self, spec: TexArraySpec):
 		start = time.perf_counter()
 
@@ -47,7 +46,6 @@ class TextureArray(object):
 		ObjectManager.AddObject(self)
 		Log(f"Texture array of size ({self.__spec.width}x{self.__spec.height}x{self.__spec.layers}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 	
-	@Timed("TextureArray.UploadTexture")
 	def UploadTexture(self, texData: TextureData) -> TextureHandle:
 		if self.__currentLayer + 1 > self.__spec.layers:
 			raise RuntimeError("Max texture array layers count exceeded.")
