@@ -39,13 +39,13 @@ class Renderer(Static):
 
 	ClearColor = (0.0, 0.0, 0.0, 0.0)
 
-	def __DrawTypeGeneratorFn():
+	def __PolygonModeGeneratorFn():
 		while True:
-			yield GL.GL_LINES
-			yield GL.GL_POINTS
-			yield GL.GL_TRIANGLES
+			yield GL.GL_LINE
+			yield GL.GL_POINT
+			yield GL.GL_FILL
 	
-	__DrawTypeGenerator = __DrawTypeGeneratorFn()
+	__PolygonModeGenerator = __PolygonModeGeneratorFn()
 
 	def Initialize(initialWidth: int, initialHeight: int) -> None:
 		if Renderer.__Initialized:
@@ -177,17 +177,16 @@ class Renderer(Static):
 	
 	def KeyDownCallback(key: int, _, repeated: bool) -> bool:
 		if key == Keys.KeyGrave:
-			drawType = next(Renderer.__DrawTypeGenerator)
+			mode = next(Renderer.__PolygonModeGenerator)
+
+			GL.glPolygonMode(GL.GL_FRONT_AND_BACK, mode)
 			
-			Renderer.__BasicRenderer.drawType = drawType
-			Renderer.__TextRenderer.drawType = drawType
-			
-			if drawType == GL.GL_TRIANGLES:
-				Log("Renderer draw type set to: FILL", LogLevel.Info)
-			elif drawType == GL.GL_LINES:
-				Log("Renderer draw type set to: WIREFRAME", LogLevel.Info)
-			elif drawType == GL.GL_POINTS:
-				Log("Renderer draw type set to: POINTS", LogLevel.Info)
+			if mode == GL.GL_FILL:
+				Log("Renderer drawing mode set to: FILL", LogLevel.Info)
+			elif mode == GL.GL_LINE:
+				Log("Renderer drawing mode set to: WIREFRAME", LogLevel.Info)
+			elif mode == GL.GL_POINT:
+				Log("Renderer drawing mode set to: POINTS", LogLevel.Info)
 
 		return False
 

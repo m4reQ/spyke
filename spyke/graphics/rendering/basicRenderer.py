@@ -68,8 +68,6 @@ class BasicRenderer(object):
 
 		self.__textures = [0] * (RendererSettings.MaxTextures - 1)
 		self.__lastTexture = 1
-		
-		self.drawType = GL.GL_TRIANGLES
 
 		self.__whiteTexture = Texture(GetWhiteTexture())
 
@@ -98,7 +96,7 @@ class BasicRenderer(object):
 		self.instanceDataVbo.AddDataDirect(self.__instanceData, len(self.__instanceData) * _GL_FLOAT_SIZE)
 		self.vertexDataVbo.AddDataDirect(self.__vertexData, len(self.__vertexData) * _GL_FLOAT_SIZE)
 
-		GL.glDrawElementsInstanced(self.drawType, self.__indexCount, GL.GL_UNSIGNED_INT, None, self.__indexCount // 6)
+		GL.glDrawElementsInstanced(GL.GL_TRIANGLES, self.__indexCount, GL.GL_UNSIGNED_INT, None, self.__indexCount // 6)
 
 		RenderStats.DrawsCount += 1
 
