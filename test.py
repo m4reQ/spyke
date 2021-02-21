@@ -80,7 +80,6 @@ class Window(GlfwWindow):
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0, zNear = -1.0, zFar = 10.0)
 
-		TextureManager.LoadTexture("Tests/test1.jpg")
 		FontManager.CreateFont("tests/ArialNative.fnt", "tests/ArialNative.png", "arial")
 		SceneManager.CreateScene("TEST", False)
 		InitializeDefaultProcessors(SceneManager.Current)
@@ -93,14 +92,26 @@ class Window(GlfwWindow):
 
 		SceneManager.Current.CreateEntity(
 			TagComponent("violet"),
-			TransformComponent(Vector3(0.0), Vector3(0.3, 0.2, 0.0), Vector3(0.0)),
+			TransformComponent(Vector3(0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0)),
 			SpriteComponent("", Vector2(1.0), Color(1.0, 0.0, 0.7, 0.5))
+		)
+
+		SceneManager.Current.CreateEntity(
+			TagComponent("yellow"),
+			TransformComponent(Vector3(0.1), Vector3(0.2, 0.4, 0.0), Vector3(0.0)),
+			SpriteComponent("", Vector2(1.0), Color(1.0, 1.0, 0.2, 0.3))
+		)
+
+		SceneManager.Current.CreateEntity(
+			TagComponent("green"),
+			TransformComponent(Vector3(-0.75), Vector3(0.3, 0.3, 0.0), Vector3(0.0)),
+			SpriteComponent("", Vector2(1.0), Color(0.0, 1.0, 0.0, 1.0))
 		)
 		
 		SceneManager.Current.CreateEntity(
 			TagComponent("text"),
 			TransformComponent(Vector3(0.5, 0.5, 0.0), Vector3(0.0), Vector3(0.0)),
-			TextComponent("Test", 30, "arial", Color(1.0, 1.0, 1.0, 1.0))
+			TextComponent("chuj", 30, "arial", Color(1.0, 1.0, 1.0, 1.0))
 		)
 
 		#SaveScene("test.scn")

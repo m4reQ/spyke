@@ -12,7 +12,7 @@ from ...constants import USE_FAST_NV_MULTISAMPLE, _GL_FLOAT_SIZE
 from ...enums import Hint, Vendor, Keys
 from ...utils import Static
 from ...ecs import components
-from ...debugging import Log, LogLevel, GetGLError
+from ...debugging import Log, LogLevel
 
 from OpenGL import GL
 import glm
@@ -36,6 +36,8 @@ class Renderer(Static):
 	__Framebuffer = None
 
 	__Initialized = False
+
+	ClearColor = (0.0, 0.0, 0.0, 0.0)
 
 	def __DrawTypeGeneratorFn():
 		while True:
@@ -81,18 +83,23 @@ class Renderer(Static):
 				else:
 					GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)
 		
-		if RendererSettings.BlendingEnabled:
-			GL.glEnable(GL.GL_BLEND)
-			GL.glBlendFunc(*RendererSettings.BlendingFunc)
+		GL.glEnable(GL.GL_BLEND)
+		GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+
+		GL.glEnable(GL.GL_DEPTH_TEST)
+		GL.glDepthFunc(GL.GL_LEQUAL)
 		
 		GL.glCullFace(GL.GL_FRONT)
 		GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-		GL.glPointSize(3)
-		GL.glLineWidth(2)
 
-		GL.glEnable(GL.GL_DEPTH_TEST)
+		GL.glPointSize(3.0)
 
-		GL.glClearColor(*RendererSettings.ClearColor)
+		lineWidth = 2.0
+		lineRange = GL.glGetFloatv(GL.GL_LINE_WIDTH_RANGE)
+		if lineWidth <= lineRange[1] and lineWidth >= lineRange[0]:
+			GL.glLineWidth(lineWidth)
+
+		GL.glClearColor(0.0, 0.0, 0.0, 1.0)
 
 		GL.glScissor(0, 0, initialWidth, initialHeight)
 		GL.glViewport(0, 0, initialWidth, initialHeight)
@@ -129,16 +136,17 @@ class Renderer(Static):
 
 		for (sprite, transform) in opaque:
 			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
-		
 		Renderer.__BasicRenderer.EndScene()
-		
-		GL.glDepthMask(GL.GL_FALSE)
+
+		GL.glDisable(GL.GL_DEPTH_TEST)
 		for (sprite, transform) in alpha:
 			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
-		GL.glDepthMask(GL.GL_TRUE)
+		Renderer.__BasicRenderer.EndScene()
+		GL.glEnable(GL.GL_DEPTH_TEST)
 
 		# for _, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
 		# 	Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor)
+		# Renderer.__BasicRenderer.EndScene()
 		
 		# for _, line in scene.GetComponent(components.LineComponent):
 		# 	#REIMPLEMENT LINE RENDERER
@@ -155,7 +163,6 @@ class Renderer(Static):
 		for _, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
 			Renderer.__TextRenderer.RenderText(transform.Position, text.Color, text.Font, text.Size, text.Text)
 
-		Renderer.__BasicRenderer.EndScene()
 		Renderer.__TextRenderer.EndScene()
 		# Renderer.__ParticleRenderer.EndScene()
 
@@ -188,6 +195,9 @@ class Renderer(Static):
 		GL.glScissor(0, 0, width, height)
 		GL.glViewport(0, 0, width, height)
 
-		Renderer.__Framebuffer.Resize(width, height)
+		#Renderer.__Framebuffer.Resize(width, height)
 
 		return False
+	
+	def SetClearColor(r: float, g: float, b: float, a: float):
+		GL.glClearColor(r, g, b, a)

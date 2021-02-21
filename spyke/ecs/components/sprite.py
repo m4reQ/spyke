@@ -15,9 +15,17 @@ class SpriteComponent(Serializable):
 
 		return cls(data[0], tf, col)
 
-	def __init__(self, textureName: str, tilingFactor: glm.vec2, color: glm.vec4):
-		self.Texture = TextureManager.Textures[textureName] if textureName != "" else None
-		self.TextureName = textureName
+	def __init__(self, texFilepath: str, tilingFactor: glm.vec2, color: glm.vec4):
+		if not texFilepath:
+			self.Texture = None
+		else:
+			try:
+				self.Texture = TextureManager.Textures[texFilepath]
+			except KeyError:
+				TextureManager.LoadTexture(texFilepath)
+				self.Texture = TextureManager.Textures[texFilepath]
+
+		self.TextureName = texFilepath
 		self.TilingFactor = tilingFactor
 		self.Color = color
 	

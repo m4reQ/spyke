@@ -1,25 +1,17 @@
 #region Import
-from . import objectManager
-from ..utils import Static, Timer
+from ..utils import Static
 from ..debugging import Log, LogLevel
 from ..loaders.texture import LoadTexture
-from ..graphics.texturing.texture import Texture, TextureData
+from ..graphics.texturing.texture import Texture
 #endregion
 
 class TextureManager(Static):
 	Textures = {}
 
-	def LoadTexture(filepath: str, alias: str = None):
-		name = alias if alias else filepath
-
-		if name in TextureManager.Textures.keys():
-			Log("Texture with given name already exists. Texture will be overwritten.", LogLevel.Warning)
-
-			tex = TextureManager.Textures[name]
-			objectManager.ObjectManager.DeleteObject(tex)
-
-			del TextureManager.Textures[name]
+	def LoadTexture(filepath: str,):
+		if filepath in TextureManager.Textures.keys():
+			Log("Texture already loaded.", LogLevel.Warning)
+			return
 
 		textureData = LoadTexture(filepath)
-
-		TextureManager.Textures[name] = Texture(textureData)
+		TextureManager.Textures[filepath] = Texture(textureData)

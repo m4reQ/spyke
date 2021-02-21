@@ -27,17 +27,6 @@ class RendererSettings:
     Max number of font textures that can be loaded.
     """
 
-    BlendingEnabled = True
-    """
-    Indicates that blending should be enabled.
-    """
-
-    BlendingFunc = (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-    """
-    Function that will be used by rasterizer when applying blending if
-    it is enabled. The variable has form of (fource factor, destination factor).
-    """
-
     MultisamplingEnabled = True
     """
     Indicates that renderer should use multisampling.
