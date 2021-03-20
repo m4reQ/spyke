@@ -1,11 +1,10 @@
+from ..rectangle import RectangleF
+
 class Glyph(object):
-	def __init__(self, x: float, y: float, width: int, height: int, texWidth: float, texHeight: float, bearingX: int, bearingY: int, advance: int, _ord: int):
-		self.x = x
-		self.y = y
+	def __init__(self, width: int, height: int, bearingX: int, bearingY: int, advance: int, texRect: RectangleF, _ord: int):
+		self.texRect = texRect
 		self.width = width
 		self.height = height
-		self.texWidth = texWidth
-		self.texHeight = texHeight
 		self.bearingX = bearingX
 		self.bearingY = bearingY
 		self.advance = advance

@@ -1,5 +1,5 @@
 #region Import
-from ...managers.objectManager import ObjectManager
+from ...memory import GLMarshal
 from ...constants import _INT_SIZE
 
 from OpenGL import GL
@@ -35,7 +35,7 @@ class IndexBuffer(object):
 		GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, self.__size, numpy.asarray(data, dtype=numpy.int32), GL.GL_STATIC_DRAW)
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
 
-		ObjectManager.AddObject(self)
+		GLMarshal.AddObjectRef(self)
 	
 	def Bind(self) -> None:
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.__id)
@@ -43,8 +43,11 @@ class IndexBuffer(object):
 	def Unbind(self) -> None:
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
 	
-	def Delete(self) -> None:
+	def Delete(self, removeRef: bool) -> None:
 		GL.glDeleteBuffers(1, [self.__id])
+		
+		if removeRef:
+			GLMarshal.RemoveObjectRef(self)
 	
 	@property
 	def Size(self):

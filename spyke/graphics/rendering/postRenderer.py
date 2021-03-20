@@ -4,7 +4,6 @@ from ..shader import Shader
 from ..buffers import VertexBuffer, Framebuffer
 from ..vertexArray import VertexArray
 from ...constants import _GL_FLOAT_SIZE
-from ...transform import Matrix4, CreateTransform3D, QuadVertices
 from ...enums import VertexAttribType, ShaderType
 
 from OpenGL import GL
@@ -17,6 +16,12 @@ INSTANCE_DATA_VERTEX_SIZE = 4 * _GL_FLOAT_SIZE
 
 class PostRenderer(object):
 	__VertexCount = 6
+
+	QuadVertices = [
+		glm.vec4(0.0, 0.0, 0.0, 1.0),
+		glm.vec4(0.0, 1.0, 0.0, 1.0),
+		glm.vec4(1.0, 1.0, 0.0, 1.0),
+		glm.vec4(1.0, 0.0, 0.0, 1.0)]
 
 	def __init__(self):
 		self.shader = Shader()
@@ -42,13 +47,17 @@ class PostRenderer(object):
 		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False, 1)
 
 	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer, passIdx = 0) -> None:
-		transform = CreateTransform3D(pos, size, rotation)
+		transform = glm.translate(glm.mat4(1.0), pos)
+		transform = glm.scale(transform, size)
+		transform = glm.rotate(transform, rotation.x, glm.vec3(1.0, 0.0, 0.0))
+		transform = glm.rotate(transform, rotation.y, glm.vec3(0.0, 1.0, 0.0))
+		transform = glm.rotate(transform, rotation.z, glm.vec3(0.0, 0.0, 1.0))
 		
 		translatedVerts = [
-			transform * QuadVertices[0],
-			transform * QuadVertices[1],
-			transform * QuadVertices[2],
-			transform * QuadVertices[3]]
+			transform * PostRenderer.QuadVertices[0],
+			transform * PostRenderer.QuadVertices[1],
+			transform * PostRenderer.QuadVertices[2],
+			transform * PostRenderer.QuadVertices[3]]
 
 		vertexData = [
 			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 0.0,

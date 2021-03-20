@@ -1,9 +1,8 @@
 from ..enums import *
-from ..utils import Static
 
 from OpenGL import GL
 
-class GLCommand(Static):
+class GLCommand:
 	def Clear(masks: ClearMask):
 		GL.glClear(masks)
 	

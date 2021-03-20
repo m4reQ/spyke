@@ -1,16 +1,19 @@
 #region Import
 from .glyph import Glyph
-from ...managers import TextureManager
-from ...debugging import Log, LogLevel
-from ...utils import Timer
+from ..rectangle import RectangleF
+from ...debugging import Debug, LogLevel
+from ...exceptions import NovaException
+from ..texturing.texture import Texture
 
 from functools import lru_cache
+import time
 #endregion
 
 class Font(object):
 	@staticmethod
 	def __LoadFont(filepath: str, texSize: tuple) -> list:
-		Timer.Start()
+		start = time.perf_counter()
+
 		characters = {}
 		base = 1
 
@@ -30,42 +33,39 @@ class Font(object):
 			lineData = line[5:len(line) - 20]
 			lineData = lineData.split(' ')
 			lineData = [e for e in lineData if e != '' and e != ' ']
-			data = [0] * 10
 
-			data[0] = int(lineData[1][2:]) / texSize[0]
-			data[1] = int(lineData[2][2:]) / texSize[1]
-			data[2] = int(lineData[3][6:])
-			data[3] = int(lineData[4][7:])
-			data[4] = int(lineData[3][6:]) / texSize[0]
-			data[5] = int(lineData[4][7:]) / texSize[1]
-			data[6] = int(lineData[5][8:])
-			data[7] = int(lineData[6][8:])
-			data[8] = int(lineData[7][9:])
-			data[9] = int(lineData[0][3:])
+			width = int(lineData[3][6:])
+			height = int(lineData[4][7:])
+			bearX = int(lineData[5][8:])
+			bearY = int(lineData[6][8:])
+			adv = int(lineData[7][9:])
+			_ord = int(lineData[0][3:])
 
-			characters[data[9]] = Glyph(*data)
+			texX = int(lineData[1][2:]) / texSize[0]
+			texY = int(lineData[2][2:]) / texSize[1]
+			texWidth = int(lineData[3][6:]) / texSize[0]
+			texHeight = int(lineData[4][7:]) / texSize[1]
+			texRect = RectangleF(texX, texY, texWidth, texHeight)
+
+			characters[_ord] = Glyph(width, height, bearX, bearY, adv, texRect, _ord)
 		
-		if None in characters:
+		if None in characters: #?????????
 			raise RuntimeError("Cannot generate font.")
 			
-		Log(f"Font generated in {Timer.Stop()} seconds.", LogLevel.Info)
+		Debug.Log(f"Font generated in {time.perf_counter() - start} seconds.", LogLevel.Info)
 
 		return (characters, base)
 
-	def __init__(self, fontFilepath: str, handle):
+	def __init__(self, fontFilepath: str, texture: Texture):
 		self.FontFilepath = fontFilepath
 		self.ImageFilepath = ""
 
-		self.__texId = handle.layer
-		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (handle.width, handle.height))
+		self.characters, self.baseSize = Font.__LoadFont(fontFilepath, (texture.width, texture.height))
+		self.texture = texture
 
 	@lru_cache
 	def GetGlyph(self, charId: int) -> Glyph:
 		try:
 			return self.characters[charId]
 		except KeyError:
-			raise RuntimeError(f"Cannot find glyph with id: {charId}.")
-	
-	@property
-	def TextureIndex(self):
-		return self.__texId
+			raise NovaException(f"Cannot find glyph with id: {charId}.")

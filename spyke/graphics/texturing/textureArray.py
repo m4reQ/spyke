@@ -1,8 +1,9 @@
 #region Import
 from .textureData import TextureData
 from .textureHandle import TextureHandle
-from ...debugging import Log, LogLevel
-from ...managers.objectManager import ObjectManager
+from ...debugging import Debug, LogLevel
+from ...memory import GLMarshal
+from ...exceptions import GraphicsException
 
 import numpy
 import time
@@ -28,7 +29,7 @@ class TextureArray(object):
 			TextureArray.__MaxLayersCount = int(GL.glGetInteger(GL.GL_MAX_ARRAY_TEXTURE_LAYERS))
 		
 		if spec.layers > TextureArray.__MaxLayersCount:
-			raise RuntimeError(f"Cannot create texture array with {spec.layers} layers (max layers count: {TextureArray.__MaxLayersCount}).")
+			raise GraphicsException(f"Cannot create texture array with {spec.layers} layers (max layers count: {TextureArray.__MaxLayersCount}).")
 
 		self.__spec = spec
 		self.__currentLayer = 0
@@ -43,8 +44,9 @@ class TextureArray(object):
 
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, 0)
 
-		ObjectManager.AddObject(self)
-		Log(f"Texture array of size ({self.__spec.width}x{self.__spec.height}x{self.__spec.layers}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
+		Debug.GetGLError()
+		GLMarshal.AddObjectRef(self)
+		Debug.Log(f"Texture array of size ({self.__spec.width}x{self.__spec.height}x{self.__spec.layers}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 	
 	def UploadTexture(self, texData: TextureData) -> TextureHandle:
 		if self.__currentLayer + 1 > self.__spec.layers:
@@ -75,8 +77,11 @@ class TextureArray(object):
 	def Bind(self):
 		GL.glBindTexture(GL.GL_TEXTURE_2D_ARRAY, self.__id)
 	
-	def Delete(self):
+	def Delete(self, removeRef: bool):
 		GL.glDeleteTextures(1, [self.__id])
+
+		if removeRef:
+			GLMarshal.RemoveObjectRef(self)
 	
 	#region Getters
 	@property

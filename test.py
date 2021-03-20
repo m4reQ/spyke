@@ -1,7 +1,7 @@
 import spyke
 spyke.Init()
 
-from spyke.debugging import Log, LogLevel, GetGLError
+from spyke.debugging import Debug, LogLevel
 
 from spyke.ecs.components import *
 from spyke.ecs.processors import *
@@ -12,7 +12,7 @@ from spyke.graphics import *
 from spyke.enums import *
 from spyke.managers import *
 from spyke.utils import *
-from spyke.transform import *
+from spyke.math import *
 from spyke.input import *
 
 #RendererSettings.ClearColor = Vector4(0.8, 0.9, 0.3, 1.0)
@@ -23,7 +23,8 @@ class UserProcessor(Processor):
 		self.system = None
 	
 	def LateInit(self):
-		self.system = self.scene.ComponentForEntity(EntityManager.GetEntity("Particles"), ParticleSystemComponent)
+		#self.system = self.scene.ComponentForEntity(EntityManager.GetEntity("Particles"), ParticleSystemComponent)
+		pass
 
 	def Process(self, *args, **kwargs):
 		if not self.delayer.IsWaiting():
@@ -111,19 +112,19 @@ class Window(GlfwWindow):
 		SceneManager.Current.CreateEntity(
 			TagComponent("text"),
 			TransformComponent(Vector3(0.5, 0.5, 0.0), Vector3(0.0), Vector3(0.0)),
-			TextComponent("chuj", 30, "arial", Color(1.0, 1.0, 1.0, 1.0))
+			TextComponent("test", 120, "arial", Color(0.0, 1.0, 1.0, 1.0))
 		)
 
 		#SaveScene("test.scn")
-
+		
 	def OnFrame(self):
 		SceneManager.Current.Process(dt = self.frameTime)
 		Renderer.RenderScene(SceneManager.Current, self.camera.viewProjectionMatrix)
 
 if __name__ == "__main__":
-	specs = WindowSpecs(512, 512, "TestWindow", 4, 5)
+	specs = WindowSpecs(512, 512, "TestWindow")
 	specs.Samples = 1
 	specs.Vsync = False
 	
-	win = Window(specs, True)
+	win = Window(specs, False)
 	win.Run()

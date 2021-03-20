@@ -1,8 +1,3 @@
-from ...utils import Static
-
-from OpenGL import GL
-import glm
-
 class RendererSettings:
     """
     A class that stores set of rules about how renderer
@@ -35,7 +30,4 @@ class RendererSettings:
     framebuffer specifications.
     """
 
-    ClearColor = glm.vec4(0.0)
-    """
-    Default color that will be used when clearing screen or framebuffer.
-    """
+    ScreenCaptureDirectory = "screenshots"

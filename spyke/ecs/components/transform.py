@@ -1,4 +1,4 @@
-from ...utils import Serializable
+from ...memory import Serializable
 
 import glm
 

@@ -1,5 +1,5 @@
 from ...managers.textureManager import TextureManager
-from ...utils import Serializable
+from ...memory import Serializable
 
 import glm
 

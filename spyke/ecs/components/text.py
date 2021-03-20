@@ -1,5 +1,6 @@
 from ...managers.fontManager import FontManager
-from ...utils import Serializable, SecureSpaces, RestoreSpaces
+from ...memory import Serializable
+from ...utils import SecureSpaces, RestoreSpaces
 
 import glm
 

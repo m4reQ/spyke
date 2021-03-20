@@ -1,5 +1,5 @@
-from ...debugging import Log, LogLevel
-from ...utils import Serializable
+from ...debugging import Debug, LogLevel
+from ...memory import Serializable
 
 import os
 import importlib.util
@@ -34,7 +34,7 @@ class ScriptComponent(Serializable):
 				break
 
 		if not func or not callable(func):
-			Log("OnInit function not found. Object members may not be properly initialized.", LogLevel.Warning)
+			Debug.Log("OnInit function not found. Object members may not be properly initialized.", LogLevel.Warning)
 		else:
 			if callable(func):
 				func(self)
@@ -57,7 +57,7 @@ class ScriptComponent(Serializable):
 		if onProcessFound:
 			self.Process = self.OnProcess
 		else:
-			Log("OnProcess function not found. Process function won't be called.", LogLevel.Warning)
+			Debug.Log("OnProcess function not found. Process function won't be called.", LogLevel.Warning)
 	
 	def GetComponent(self, componentType):
 		return self.world.ComponentForEntity(self.entity, componentType)

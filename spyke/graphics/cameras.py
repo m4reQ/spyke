@@ -1,21 +1,6 @@
-from ..utils import Abstract
-
 import glm
 
-class Camera(Abstract):
-	def Move(self, direction: glm.vec3, dt: float) -> None:
-		pass
-	
-	def MoveTo(self, pos: glm.vec3) -> None:
-		pass
-	
-	def ReinitProjectionMatrix(self, left: float, right: float, bottom: float, top: float, zNear: float = -1.0, zFar: float = 10.0) -> None:
-		pass
-
-	def RecalculateMatrices(self) -> None:
-		pass
-
-class OrthographicCamera(Camera):
+class OrthographicCamera(object):
 	CameraSpeed = 13.0
 
 	def __init__(self, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 10.0):
@@ -56,7 +41,7 @@ class OrthographicCamera(Camera):
 		self.viewMatrix = glm.inverse(transform)
 		self.viewProjectionMatrix = self.projectionMatrix * self.viewMatrix
 
-class PerspectiveCamera(Camera):
+class PerspectiveCamera(object):
 	CameraSpeed = 13.0
 
 	def __init__(self, fov, aspect, zNear = -1.0, zFar = 10.0):

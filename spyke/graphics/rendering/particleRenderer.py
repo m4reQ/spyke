@@ -6,7 +6,7 @@ from ..vertexArray import VertexArray
 from ..texturing.textureHandle import TextureHandle
 from .rendererSettings import RendererSettings
 from ...constants import _GL_FLOAT_SIZE
-from ...debugging import Log, LogLevel
+from ...debugging import Debug, LogLevel
 
 from OpenGL import GL
 import glm
@@ -43,7 +43,7 @@ class ParticleRenderer(object):
 		self.__vertexData = []
 		self.__vertexCount = 0
 
-		Log("Particle renderer initialized.", LogLevel.Info)
+		Debug.Log("Particle renderer initialized.", LogLevel.Info)
 	
 	def RenderParticle(self, pos: glm.vec3, size: glm.vec3, rot: glm.vec3, color: glm.vec4, texHandle: TextureHandle):
 		if RenderStats.QuadsCount >= RendererSettings.MaxQuadsCount:

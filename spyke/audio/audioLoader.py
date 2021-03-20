@@ -1,6 +1,6 @@
 from .soundData import SoundData
 from .audioUtils import FORMAT_MAP
-from ..debugging import Log, LogLevel
+from ..debugging import Debug, LogLevel
 
 import wave
 import time
@@ -22,6 +22,6 @@ def LoadSound(filepath: str):
 
 	wavObj.close()
 
-	Log(f"Sound file '{filepath}' loaded in {time.perf_counter() - start} seconds.", LogLevel.Info)
+	Debug.Log(f"Sound file '{filepath}' loaded in {time.perf_counter() - start} seconds.", LogLevel.Info)
 
 	return data

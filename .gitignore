@@ -134,3 +134,6 @@ dmypy.json
 
 # test files
 tests/
+
+# screenshots folder
+screenshots/

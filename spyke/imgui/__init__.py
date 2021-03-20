@@ -1,12 +1,10 @@
 #region Import
 from .widgets import *
 from .dialogWindow import DialogWindow
-from ..debugging import Log, LogLevel
+from ..debugging import Debug, LogLevel
 from ..ecs.components import *
 from ..graphics import Renderer
 from ..graphics.contextInfo import ContextInfo
-from ..utils import RequestGC
-from ..managers import SceneManager, EntityManager
 #from ..sceneLoader import SaveScene
 
 import tkinter as tk
@@ -61,7 +59,7 @@ class ImGui:
 		ImGui.__Initialized = True
 
 		ImGui.__Thread.start()
-		Log("Imgui started.", LogLevel.Info)
+		Debug.Log("Imgui started.", LogLevel.Info)
 	
 	def TryClose():
 		if not ImGui.__IsRunning:
@@ -168,6 +166,6 @@ class ImGui:
 			except tk.TclError:
 				pass
 			except Exception as e:
-				Log(f"ImGui error: {e}.", LogLevel.Error)
+				Debug.Log(f"ImGui error: {e}.", LogLevel.Error)
 		
 		ImGui.__Close()

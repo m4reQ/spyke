@@ -1,5 +1,4 @@
-from ..utils import GetGLTypeSize, GetPointer
-from ..managers.objectManager import ObjectManager
+from ..memory import GLMarshal, GetGLTypeSize, GetPointer
 
 from OpenGL import GL
 
@@ -10,7 +9,7 @@ class VertexArray(object):
 		self.__id = GL.glGenVertexArrays(1)
 		self.__offset = 0
 
-		ObjectManager.AddObject(self)
+		GLMarshal.AddObjectRef(self)
 	
 	def SetVertexSize(self, size: int):
 		self.__vertexSize = size
@@ -33,8 +32,11 @@ class VertexArray(object):
 	def Bind(self):
 		GL.glBindVertexArray(self.__id)
 	
-	def Delete(self):
+	def Delete(self, removeRef: bool):
 		GL.glDeleteVertexArrays(1, [self.__id])
+
+		if removeRef:
+			GLMarshal.RemoveObjectRef(self)
 	
 	@property
 	def ID(self):

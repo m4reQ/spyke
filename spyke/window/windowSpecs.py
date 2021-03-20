@@ -1,9 +1,7 @@
 class WindowSpecs(object):
-	def __init__(self, width: int, height: int, title: str, glMajor: int, glMinor: int):
+	def __init__(self, width: int, height: int, title: str):
 		self.Width = width
 		self.Height = height
-		self.GlVersionMajor = glMajor
-		self.GlVersionMinor = glMinor
 		self.Samples = 1
 		self.Title = title
 		self.Vsync = False

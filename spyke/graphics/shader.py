@@ -1,7 +1,8 @@
 #region Import
-from ..debugging import Log, LogLevel
-from ..managers.objectManager import ObjectManager
+from ..debugging import Debug, LogLevel
+from ..memory import GLMarshal
 from ..utils import EnsureString
+from ..exceptions import GraphicsException, NovaException
 
 from OpenGL import GL
 import numpy
@@ -18,18 +19,18 @@ class Shader(object):
 
 		self.__compiled = False
 
-		ObjectManager.AddObject(self)
+		GLMarshal.AddObjectRef(self)
 	
 	def AddStage(self, stage: int, filepath: str) -> None:
 		if self.__compiled:
-			Log("Tried to add shader stage to already compiled shader.", LogLevel.Warning)
+			Debug.Log("Tried to add shader stage to already compiled shader.", LogLevel.Warning)
 			return
 
 		try:
 			with open(filepath, "r") as f:
 				source = f.read()
 		except FileNotFoundError as e:
-			raise RuntimeError(f"Cannot find shader file named '{e.filename}'")
+			raise NovaException(f"Cannot find shader file named '{e.filename}'")
 
 		shader = GL.glCreateShader(stage)
 		self.__stages.append(shader)
@@ -39,8 +40,7 @@ class Shader(object):
 		
 		infoLog = GL.glGetShaderInfoLog(shader)
 		if len(infoLog) != 0:
-			GL.glDeleteShader(shader)
-			raise RuntimeError(f"Shader (file: '{filepath}') compilation error:\n{EnsureString(infoLog)}.")
+			raise GraphicsException(f"Shader (file: '{filepath}') compilation error:\n{EnsureString(infoLog)}.")
 
 		GL.glAttachShader(self.__id, shader)
 	
@@ -58,9 +58,9 @@ class Shader(object):
 
 		infoLog = GL.glGetProgramInfoLog(self.__id)
 		if len(infoLog) != 0:
-			raise RuntimeError(f"Shader program (id: {self.__id}) compilation error:\n{EnsureString(infoLog)}.")
+			raise GraphicsException(f"Shader program (id: {self.__id}) compilation error:\n{EnsureString(infoLog)}.")
 		else:
-			Log(f"Shader program (id: {self.__id}) compiled succesfully.", LogLevel.Info)
+			Debug.Log(f"Shader program (id: {self.__id}) compiled succesfully.", LogLevel.Info)
 
 		self.__stages.clear()
 		self.__compiled = True
@@ -68,37 +68,39 @@ class Shader(object):
 	def Use(self) -> None:
 		GL.glUseProgram(self.__id)
 
-	def Delete(self) -> None:
+	def Delete(self, removeRef: bool) -> None:
 		GL.glDeleteProgram(self.__id)
+
+		if removeRef:
+			GLMarshal.RemoveObjectRef(self)
 
 	@lru_cache
 	def GetAttribLocation(self, name: str) -> int:
 		loc = GL.glGetAttribLocation(self.__id, name)
 		if loc == -1:
-			Log(f"Cannot find attribute named '{name}'.", LogLevel.Warning)
+			raise GraphicsException(f"Cannot find attribute named '{name}'.")
 
 		return loc
 	
 	@lru_cache
 	def GetUniformLocation(self, name: str) -> int:
-		if name in self.uniforms.keys():
+		try:
 			return self.uniforms[name]
-
-		loc = GL.glGetUniformLocation(self.__id, name)
-
-		if loc == -1:
-			Log(f"cannot find uniform named '{name}'.", LogLevel.Warning)
-		else:
-			self.uniforms[name] = loc
-			self.GetUniformLocation.cache_clear()
-		
-		return loc
+		except KeyError:
+			loc = GL.glGetUniformLocation(self.__id, name)
+			if loc == -1:
+				raise GraphicsException(f"Cannot find uniform named '{name}'.")
+			else:
+				self.uniforms[name] = loc
+				self.GetUniformLocation.cache_clear()
+			
+			return loc
 	
+	@lru_cache
 	def GetUniformBlockLocation(self, name: str) -> int:
 		loc = GL.glGetUniformBlockIndex(self.__id, name)
-		
 		if loc == -1:
-			Log(f"Cannot find uniform block named '{name}'.", LogLevel.Warning)
+			raise GraphicsException(f"Cannot find uniform block named '{name}'.")
 		
 		return loc
 	

@@ -1,5 +1,4 @@
 from ..graphics.rendering.renderStats import RenderStats
-from ..utils import Abstract
 
 import tkinter as tk
 

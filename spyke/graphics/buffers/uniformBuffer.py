@@ -1,5 +1,5 @@
 #region Import
-from ...managers.objectManager import ObjectManager
+from ...memory import GLMarshal
 
 from OpenGL import GL
 import numpy
@@ -16,10 +16,13 @@ class UniformBuffer(object):
 		self.__size = size
 		self.__usageFlag = usage
 
-		ObjectManager.AddObject(self)
+		GLMarshal.AddObjectRef(self)
 
-	def Delete(self):
+	def Delete(self, removeRef: bool):
 		GL.glDeleteBuffers(1, [self.__id])
+
+		if removeRef:
+			GLMarshal.RemoveObjectRef(self)
 
 	def Bind(self):
 		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self.__id)

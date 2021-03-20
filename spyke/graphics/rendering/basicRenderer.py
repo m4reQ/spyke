@@ -3,14 +3,15 @@ from .renderStats import RenderStats
 from .rendererSettings import RendererSettings
 from ..shader import Shader
 from ..vertexArray import VertexArray
-from ..buffers import VertexBuffer, IndexBuffer
-from ..texturing.textureUtils import GetWhiteTexture
+from ..buffers import VertexBuffer
 from ..texturing.texture import Texture
-from ...debugging import Log, LogLevel
+from ..rectangle import RectangleF
+from ...debugging import Debug, LogLevel
 from ...constants import _GL_FLOAT_SIZE
 
 from OpenGL import GL
 import glm
+import numpy as np
 #endregion
 
 VERTEX_SIZE = (3 + 4 + 2 + 1 + 2 + 16) * _GL_FLOAT_SIZE
@@ -23,7 +24,9 @@ class BasicRenderer(object):
 		0.0, 0.0, 0.0,
 		0.0, 1.0, 0.0,
 		1.0, 1.0, 0.0,
-		1.0, 0.0, 0.0]
+		1.0, 1.0, 0.0,
+		1.0, 0.0, 0.0,
+		0.0, 0.0, 0.0]
 
 	def __init__(self):
 		self.shader = Shader()
@@ -31,11 +34,9 @@ class BasicRenderer(object):
 		self.shader.AddStage(GL.GL_FRAGMENT_SHADER, "spyke/graphics/shaderSources/basicInstanced.frag")
 		self.shader.Compile()
 
-		self.posVbo = VertexBuffer(POS_VERTEX_SIZE * 4, GL.GL_STATIC_DRAW)
+		self.posVbo = VertexBuffer(POS_VERTEX_SIZE * 6, GL.GL_STATIC_DRAW)
 		self.instanceDataVbo = VertexBuffer(INSTANCE_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount)
-		self.vertexDataVbo = VertexBuffer(VERTEX_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount * 4)
-
-		self.ibo = IndexBuffer(IndexBuffer.CreateQuadIndices(RendererSettings.MaxQuadsCount))
+		self.vertexDataVbo = VertexBuffer(VERTEX_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount * 6)
 
 		self.vao = VertexArray()
 		self.vao.Bind()
@@ -64,22 +65,23 @@ class BasicRenderer(object):
 
 		self.__vertexData = []
 		self.__instanceData = []
-		self.__indexCount = 0
+		self.__vertexCount = 0
 
 		self.__textures = [0] * (RendererSettings.MaxTextures - 1)
 		self.__lastTexture = 1
 
-		self.__whiteTexture = Texture(GetWhiteTexture())
+		self.__whiteTexture = Texture.CreateWhiteTexture()
 
 		samplers = [x for x in range(RendererSettings.MaxTextures)]
 
 		self.shader.Use()
 		self.shader.SetUniformIntArray("uTextures", samplers)
 
-		Log("2D renderer initialized", LogLevel.Info)
+		Debug.GetGLError()
+		Debug.Log("2D renderer initialized", LogLevel.Info)
 	
 	def EndScene(self) -> None:
-		if self.__indexCount != 0:
+		if self.__vertexCount != 0:
 			self.__Flush()
 
 	def __Flush(self) -> None:
@@ -91,21 +93,21 @@ class BasicRenderer(object):
 			GL.glBindTextureUnit(i, self.__textures[i])
 
 		self.vao.Bind()
-		self.ibo.Bind()
 
 		self.instanceDataVbo.AddDataDirect(self.__instanceData, len(self.__instanceData) * _GL_FLOAT_SIZE)
 		self.vertexDataVbo.AddDataDirect(self.__vertexData, len(self.__vertexData) * _GL_FLOAT_SIZE)
 
-		GL.glDrawElementsInstanced(GL.GL_TRIANGLES, self.__indexCount, GL.GL_UNSIGNED_INT, None, self.__indexCount // 6)
+		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, self.__vertexCount, self.__vertexCount // 6)
 
 		RenderStats.DrawsCount += 1
+		RenderStats.VertexCount += self.__vertexCount
 
 		self.__vertexData.clear()
 		self.__instanceData.clear()
-		self.__indexCount = 0
+		self.__vertexCount = 0
 		self.__lastTexture = 1
 		
-	def RenderQuad(self, transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2):
+	def RenderQuad(self, transform: glm.mat4 or np.array, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2, texRect: RectangleF = None):
 		if RenderStats.QuadsCount >= RendererSettings.MaxQuadsCount:
 			self.__Flush()
 
@@ -125,17 +127,34 @@ class BasicRenderer(object):
 				self.__textures[self.__lastTexture] = texture.ID
 				self.__lastTexture += 1
 
-		vertexData = [
-			0.0, 1.0,
-			0.0, 0.0,
-			1.0, 0.0,
-			1.0, 1.0
-		]
+		if not texRect:
+			vertexData = [
+				0.0, 1.0,
+				0.0, 0.0,
+				1.0, 0.0,
+				1.0, 0.0,
+				1.0, 1.0,
+				0.0, 1.0
+			]
+		else:
+			vertexData = [
+				texRect.left, texRect.top,
+				texRect.left, texRect.bottom,
+				texRect.right, texRect.bottom,
+				texRect.right, texRect.bottom,
+				texRect.right, texRect.top,
+				texRect.left, texRect.top
+			]
 		
-		instanceData = [color.x, color.y, color.z, color.w, tilingFactor.x, tilingFactor.y, texIdx] + list(transform[0]) + list(transform[1]) + list(transform[2]) + list(transform[3])
+		instanceData = [color.x, color.y, color.z, color.w, tilingFactor.x, tilingFactor.y, texIdx]
+		
+		if isinstance(transform, glm.mat4):
+			instanceData.extend(list(transform[0]) + list(transform[1]) + list(transform[2]) + list(transform[3]))
+		elif isinstance(transform, np.ndarray):
+			instanceData.extend(transform.flat)
 
 		self.__vertexData.extend(vertexData)
 		self.__instanceData.extend(instanceData)
 		
 		RenderStats.QuadsCount += 1
-		self.__indexCount += 6
+		self.__vertexCount += 6

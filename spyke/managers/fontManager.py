@@ -1,49 +1,27 @@
 #region Import
-from ..graphics.texturing.textureArray import TextureArray, TexArraySpec
+from .textureManager import TextureManager
+from ..graphics.texturing.textureSpec import TextureSpec
 from ..graphics.text.font import Font
-from ..graphics.rendering.rendererSettings import RendererSettings
-from ..loaders.texture import LoadTexture
-from ..debugging import Log, LogLevel
-from ..utils import Static
 
 from functools import lru_cache
 from OpenGL import GL
 #endregion
 
-class FontManager(Static):
-	__TextureWidth = 512
-	__TextureHeight = 512
-
+class FontManager:
 	__Fonts = {}
-
-	__TextureArray = None
-
-	def Initialize():
-		if not FontManager.__TextureArray:
-			spec = TexArraySpec(FontManager.__TextureWidth, FontManager.__TextureHeight, RendererSettings.MaxFontTextures)
-			spec.minFilter = GL.GL_NEAREST_MIPMAP_NEAREST
-			spec.magFilter = GL.GL_NEAREST
-			spec.mipLevels = 1
-
-			FontManager.__TextureArray = TextureArray(spec)
-		else:
-			Log("Font manager already intialized.", LogLevel.Warning)
-
-	def Reload() -> None:
-		FontManager.__Fonts.clear()
-	
-	def Use() -> None:
-		FontManager.__TextureArray.Bind()
 	
 	def CreateFont(fontFilepath: str, imageFilepath: str, fontName: str) -> None:
-		if not FontManager.__TextureArray:
-			FontManager.Initialize()
-		
-		data = LoadTexture(imageFilepath)
-		handle = FontManager.__TextureArray.UploadTexture(data)
+		tSpec = TextureSpec()
+		tSpec.minFilter = GL.GL_NEAREST
+		tSpec.magFilter = GL.GL_NEAREST
+		tSpec.mipmaps = 1
+		tSpec.wrapMode = GL.GL_CLAMP_TO_EDGE
 
-		FontManager.__Fonts[fontName] = Font(fontFilepath, handle)
-		FontManager.__Fonts[fontName].ImageFilepath = imageFilepath
+		texture = TextureManager.LoadTexture(imageFilepath, tSpec)
+		font = Font(fontFilepath, texture)
+		font.ImageFilepath = imageFilepath
+
+		FontManager.__Fonts[fontName] = font
 
 		FontManager.GetFont.cache_clear()
 	

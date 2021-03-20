@@ -1,20 +1,24 @@
 #region Import
 #from . import enginePreview
+from .windowSpecs import WindowSpecs
 from ..graphics.rendering.renderer import Renderer
 from ..graphics.contextInfo import ContextInfo
-from .windowSpecs import WindowSpecs
+from ..graphics.screenInfo import ScreenInfo
 from ..input.eventHandler import EventHandler, EventType
-from ..debugging import Log, LogLevel
+from ..debugging import Debug, LogLevel
+from ..exceptions import GraphicsException
 from ..imgui import ImGui
-from ..managers import ObjectManager, FontManager
+from ..memory import GLMarshal
 
 import glfw
 import time
-import gc
 import sys
 #endregion
 
 class GlfwWindow(object):
+	GLMajor = 4
+	GLMinor = 5
+
 	def __init__(self, specification: WindowSpecs, startImgui: bool = False):
 		start = time.perf_counter()
 
@@ -22,14 +26,17 @@ class GlfwWindow(object):
 		self.height = specification.Height
 		self.baseTitle = specification.Title
 
+		ScreenInfo.Width = specification.Width
+		ScreenInfo.Height = specification.Height
+
 		if not glfw.init():
-			raise RuntimeError("Cannot initialize GLFW.")
+			raise GraphicsException("Cannot initialize GLFW.")
 		
 		ver = ".".join(str(x) for x in glfw.get_version())
-		Log(f"GLFW version: {ver}", LogLevel.Info)
+		Debug.Log(f"GLFW version: {ver}", LogLevel.Info)
 		
-		glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, specification.GlVersionMajor)
-		glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, specification.GlVersionMinor)
+		glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, GlfwWindow.GLMajor)
+		glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, GlfwWindow.GLMinor)
 		glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
 		glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 		glfw.window_hint(glfw.SAMPLES, specification.Samples)
@@ -47,7 +54,7 @@ class GlfwWindow(object):
 
 			self.width, self.height = glfw.get_framebuffer_size(self.__handle)
 
-			Log("Window started in fulscreen mode.", LogLevel.Info)
+			Debug.Log("Window started in fulscreen mode.", LogLevel.Info)
 		else:
 			glfw.window_hint(glfw.RESIZABLE, specification.Resizable)
 			glfw.window_hint(glfw.DECORATED, not specification.Borderless)
@@ -55,7 +62,7 @@ class GlfwWindow(object):
 			self.__handle = glfw.create_window(self.width, self.height, self.baseTitle, None, None)
 
 		if not self.__handle:
-			raise RuntimeError("Cannot create window.")
+			raise GraphicsException("Cannot create window.")
 
 		glfw.make_context_current(self.__handle)
 
@@ -75,8 +82,8 @@ class GlfwWindow(object):
 		glfw.set_window_pos_callback(self.__handle, self.__WindowPosCallback)
 		glfw.set_window_focus_callback(self.__handle, self.__WindowFocusCallback)
 
-		glfw.swap_interval(1 if specification.Vsync else 0)
-		Log(f"Vsync set to: {specification.Vsync}.", LogLevel.Info)
+		glfw.swap_interval(int(specification.Vsync))
+		Debug.Log(f"Vsync set to: {specification.Vsync}.", LogLevel.Info)
 
 		self.isRunning = True
 		self.isActive = True
@@ -84,16 +91,13 @@ class GlfwWindow(object):
 		self.positionX, self.positionY = glfw.get_window_pos(self.__handle)
 
 		Renderer.Initialize(self.width, self.height)
-		FontManager.Initialize()
 
 		self.OnLoad()
 
 		if startImgui:
 			ImGui.Initialize()
-		
-		gc.collect()
 
-		Log(f"GLFW window initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
+		Debug.Log(f"GLFW window initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 	
 	def OnFrame(self):
 		pass
@@ -107,6 +111,9 @@ class GlfwWindow(object):
 	def __ResizeCb(self, _, width, height):
 		self.width = width
 		self.height = height
+
+		ScreenInfo.Width = width
+		ScreenInfo.Height = height
 
 		EventHandler.PostEvent(EventType.WindowResize, width, height)
 	
@@ -159,9 +166,9 @@ class GlfwWindow(object):
 		glfw.swap_buffers(self.__handle)
 	
 	def SetVsync(self, value: bool) -> None:
-		glfw.swap_interval(1 if value else 0)
+		glfw.swap_interval(int(value))
 		
-		Log(f"Vsync set to: {value}.", LogLevel.Info)
+		Debug.Log(f"Vsync set to: {value}.", LogLevel.Info)
 
 	def Run(self):
 		#enginePreview.CleanupPreview()
@@ -185,15 +192,16 @@ class GlfwWindow(object):
 		self.OnClose()
 
 		ImGui.TryClose()
-		ObjectManager.DeleteAll()
-
+		GLMarshal.ReleaseAll()
+		
 		glfw.destroy_window(self.__handle)
-		Log("Window destroyed.", LogLevel.Info)
+		Debug.Log("Window destroyed.", LogLevel.Info)
 		
 		glfw.terminate()
-		Log("Glfw terminated.", LogLevel.Info)
+		Debug.Log("Glfw terminated.", LogLevel.Info)
 
-		gc.collect()
+		Debug.CloseLogFile()
+
 		sys.exit()
 	
 	@property

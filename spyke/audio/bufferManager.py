@@ -1,6 +1,6 @@
 from .buffer import SoundBuffer
 from .audioLoader import LoadSound
-from ..debugging import Log, LogLevel
+from ..debugging import Debug, LogLevel
 
 class BufferManager(object):
     Buffers = {}
@@ -9,7 +9,7 @@ class BufferManager(object):
     def AddBuffer(name: str, buffer: SoundBuffer):
         if name in BufferManager.Buffers.keys():
             if buffer != BufferManager.Buffers[name]:
-                Log(f"Buffer '{name}' (id: {BufferManager.Buffers[name].ID}) overwritten with buffer with id {buffer.ID}", LogLevel.Warning)
+                Debug.Log(f"Buffer '{name}' (id: {BufferManager.Buffers[name].ID}) overwritten with buffer with id {buffer.ID}", LogLevel.Warning)
 
                 BufferManager.Buffers[name] = buffer
         

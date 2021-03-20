@@ -16,6 +16,9 @@ class ContextInfo:
 
 	@staticmethod
 	def TryGetInfo():
+		if ContextInfo.__Checked:
+			return
+			
 		ContextInfo.Renderer = EnsureString(GL.glGetString(GL.GL_RENDERER))
 		ContextInfo.Version = EnsureString(GL.glGetString(GL.GL_VERSION))
 		ContextInfo.GLSLVersion = EnsureString(GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION))
