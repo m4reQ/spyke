@@ -1,4 +1,6 @@
 #version 450 core
+const int VERTICES_PER_INSTANCE = 6;
+
 layout(location=0) in vec3 aPosition;
 
 layout(location=1) in vec4 aColor;
@@ -19,7 +21,7 @@ uniform samplerBuffer uTexCoordsBuffer;
 
 void main()
 {
-    vTexCoord = texelFetch(uTexCoordsBuffer, gl_InstanceID * 6 + gl_VertexID).rg * aTilingFactor;
+    vTexCoord = texelFetch(uTexCoordsBuffer, gl_InstanceID * VERTICES_PER_INSTANCE + gl_VertexID).rg * aTilingFactor;
 
     vColor = aColor;
     vTexIdx = aTexIdx;

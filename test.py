@@ -64,10 +64,10 @@ class Window(GlfwWindow):
 
 		# ecs.CurrentScene.AddProcessor(UserProcessor())
 
-		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0, zNear = -1.0, zFar = 10.0)
+		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
 
 		FontManager.CreateFont("tests/ArialNative.fnt", "tests/ArialNative.png", "arial")
-		ecs.CreateScene("Test Scene", False).MakeCurrent()
+		ecs.CreateScene("Test Scene").MakeCurrent()
 
 		ecs.Scene.Current.CreateEntity(
 			ecs.components.TagComponent("tex"),
@@ -102,7 +102,7 @@ class Window(GlfwWindow):
 		ecs.Scene.Current.CreateEntity(
 			ecs.components.TagComponent("text"),
 			ecs.components.TransformComponent(Vector3(0.5, 0.5, 0.0), Vector3(0.0), Vector3(0.0)),
-			ecs.components.TextComponent("Hello", 40, "arial", Color(0.0, 1.0, 1.0, 1.0))
+			ecs.components.TextComponent("Hello world!", 40, "arial", Color(0.0, 1.0, 1.0, 1.0))
 		)
 
 		#SaveScene("test.scn")
@@ -125,7 +125,7 @@ class Window(GlfwWindow):
 			self.camera.RecalculateMatrices()
 
 		ecs.Scene.Current.Process(dt = self.frameTime)
-		Renderer.RenderScene(ecs.Scene.Current, self.camera.viewProjectionMatrix)
+		Renderer.RenderScene(ecs.Scene.Current, Matrix4(1.0))
 
 		self.SetTitle(f"{self.baseTitle} | FrameTime: {self.frameTime:.5F} | FPS: {int(1 / self.frameTime)}")
 

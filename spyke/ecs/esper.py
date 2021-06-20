@@ -390,8 +390,8 @@ class Processor:
 
 from .processors import TransformProcessor, ScriptProcessor, ParticleProcessor
 
-def CreateScene(name: str, timed: bool = False):
-	s = Scene(timed)
+def CreateScene(name: str):
+	s = Scene(name)
 	s.AddProcessor(TransformProcessor())
 	s.AddProcessor(ParticleProcessor())
 	s.AddProcessor(ScriptProcessor())

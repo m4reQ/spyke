@@ -1,6 +1,7 @@
 import glm
 
 _DEFAULT_CAMERA_SPEED = 15.0
+_DEFAULT_Z_NEAR_CLIP = 0.001
 
 class ACamera(object):
 	def __init__(self):
@@ -17,7 +18,7 @@ class ACamera(object):
 		pass
 
 class OrthographicCamera(ACamera):
-	def __init__(self, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 10.0):
+	def __init__(self, left: float, right: float, bottom: float, top: float, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 10.0):
 		super().__init__()
 		self.left = left
 		self.right = right
@@ -38,7 +39,7 @@ class OrthographicCamera(ACamera):
 		self.position = pos
 		self.shouldRecalculate = True
 	
-	def ReinitProjectionMatrix(self, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 1.0):
+	def ReinitProjectionMatrix(self, left: float, right: float, bottom: float, top: float, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 1.0):
 		self.left = left
 		self.right = right
 		self.bottom = bottom
@@ -57,7 +58,7 @@ class OrthographicCamera(ACamera):
 		self.shouldRecalculate = False
 
 class PerspectiveCamera(object):
-	def __init__(self, fov, aspect, zNear = -1.0, zFar = 10.0):
+	def __init__(self, fov, aspect, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 10.0):
 		super().__init__()
 		self.fov = fov
 		self.aspect = aspect
@@ -76,7 +77,7 @@ class PerspectiveCamera(object):
 		self.position = pos
 		self.shouldRecalculate = True
 	
-	def ReinitProjectionMatrix(self, fov, aspect, zNear = -1.0, zFar = 10.0):
+	def ReinitProjectionMatrix(self, fov, aspect, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 10.0):
 		self.fov = fov
 		self.aspect = aspect
 		self.zNear = zNear

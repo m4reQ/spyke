@@ -9,6 +9,8 @@ from functools import lru_cache
 import time
 #endregion
 
+INVALID_GLYPH_ID = 0
+
 class Font(object):
 	@staticmethod
 	def __LoadFont(filepath: str, texSize: tuple) -> list:
@@ -62,7 +64,7 @@ class Font(object):
 
 	@lru_cache
 	def GetGlyph(self, charId: int) -> Glyph:
-		try:
+		if charId not in self.characters:
+			return self.characters[INVALID_GLYPH_ID]
+		else:
 			return self.characters[charId]
-		except KeyError:
-			raise NovaException(f"Cannot find glyph with id: {charId}.")
