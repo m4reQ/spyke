@@ -19,7 +19,7 @@ uniform samplerBuffer uTexCoordsBuffer;
 
 void main()
 {
-    vTexCoord = texelFetch(uTexCoordsBuffer, gl_VertexID).rg * aTilingFactor;
+    vTexCoord = texelFetch(uTexCoordsBuffer, gl_InstanceID * 6 + gl_VertexID).rg * aTilingFactor;
 
     vColor = aColor;
     vTexIdx = aTexIdx;

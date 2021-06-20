@@ -102,7 +102,7 @@ class Window(GlfwWindow):
 		ecs.Scene.Current.CreateEntity(
 			ecs.components.TagComponent("text"),
 			ecs.components.TransformComponent(Vector3(0.5, 0.5, 0.0), Vector3(0.0), Vector3(0.0)),
-			ecs.components.TextComponent("H", 120, "arial", Color(0.0, 1.0, 1.0, 1.0))
+			ecs.components.TextComponent("Hello", 40, "arial", Color(0.0, 1.0, 1.0, 1.0))
 		)
 
 		#SaveScene("test.scn")
