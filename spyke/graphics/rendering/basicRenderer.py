@@ -78,6 +78,7 @@ class BasicRenderer(object):
 		self.__whiteTexture = Texture.CreateWhiteTexture()
 
 		samplers = [x for x in range(AVAILABLE_USER_TEXTURES_COUNT)]
+		samplers.append(WHITE_TEXTURE_SAMPLER)
 
 		self.shader.Use()
 		self.shader.SetUniformIntArray("uTextures", samplers)
