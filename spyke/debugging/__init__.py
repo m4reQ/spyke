@@ -32,9 +32,9 @@ class LogLevel:
 	Error = "ERROR"
 
 _LEVEL_COLOR_MAP = {
-	LogLevel.Info: colorama.Fore.WHITE,
-	LogLevel.Warning: colorama.Fore.YELLOW,
-	LogLevel.Error: colorama.Fore.RED
+	LogLevel.Info:		colorama.Fore.WHITE,
+	LogLevel.Warning:	colorama.Fore.YELLOW,
+	LogLevel.Error: 	colorama.Fore.RED
 }
 
 class Debug:
@@ -56,8 +56,7 @@ class Debug:
 
 		err = GL.glGetError()
 		if err != GL.GL_NO_ERROR:
-			ex = GraphicsException(f"GLError: {_GL_ERROR_CODE_NAMES_MAP[err]} ({err})")
-			raise ex
+			raise GraphicsException(f"GLError: {_GL_ERROR_CODE_NAMES_MAP[err]} ({err})")
 	
 	def WriteToLogFile(msg):
 		Debug.__LogFile.write(msg + "\n")

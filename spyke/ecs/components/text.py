@@ -16,11 +16,11 @@ class TextComponent(Serializable):
 		return cls(RestoreSpaces(data[0]), int(data[1]), data[2], col)
 
 	def __init__(self, text: str, size: int, font: str, color: glm.vec4):
-		self.Text = text
-		self.Size = size
-		self.Font = FontManager.GetFont(font)
-		self.FontName = font
-		self.Color = color
+		self.text = text
+		self.size = size
+		self.font = FontManager.GetFont(font)
+		self.fontName = font
+		self.color = color
 	
 	def Serialize(self):
 		s = f"{SecureSpaces(self.Text)} {self.Size} {self.FontName} "

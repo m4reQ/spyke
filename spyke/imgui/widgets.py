@@ -32,8 +32,8 @@ class StatsWidget(tk.Frame):
 		if not RenderStats.FrameEnded:
 			return
 
-		self.drawsLabel["text"] = str(RenderStats.DrawsCount)
-		self.quadsLabel["text"] = str(RenderStats.QuadsCount)
+		self.drawsLabel["text"] = str(RenderStats.drawsCount)
+		self.quadsLabel["text"] = str(RenderStats.quadsCount)
 		self.timeLabel["text"] = "{0:.5f}".format(RenderStats.DrawTime)
 		if RenderStats.DrawTime:
 			self.fpsLabel["text"] = "{0:.2f}".format(1.0 / RenderStats.DrawTime)

@@ -10,9 +10,8 @@ import OpenGL
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
 OpenGL.UNSIGNED_BYTE_IMAGES_AS_STRING = True
-#OpenGL.ERROR_CHECKING = False
-
-import glfw
+OpenGL.ERROR_CHECKING = False
+OpenGL.ERROR_ON_COPY = True
 
 def Init():
     global START_TIME, _MAIN_PROCESS
@@ -24,4 +23,4 @@ def Init():
         from .debugging import Debug, LogLevel
         Debug._Init()
 
-        Debug.Log(f"Engine initialized in {perf_counter() - START_TIME} seconds.", LogLevel.Info)
+    Debug.Log(f"Engine initialized in {perf_counter() - START_TIME} seconds.", LogLevel.Info)

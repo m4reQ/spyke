@@ -1,17 +1,20 @@
 """
 Changes made by m4reQ:
+- renamed Scene to Scene
 - changed time measurement function from time.process_time to time.perf_counter
 - changed names of public functions to use PascalCase naming convention
-- changed World.AddComponent function ability to set component's reference to a parent entity and scene if component type is ScriptComponent
+- changed Scene.AddComponent function ability to set component's reference to a parent entity and scene if component type is ScriptComponent
 - using ints casted to str as ids for entities (this is mainly because an internal CPython optimization for string dictionary keys)
 - added type hint to 'world' member in Processor class
-- moved Processor class below World class
-- added 'Timed' memeber in World class that indicates if it uses timed processing
-- Renamed 'world' Processors, class attribute to 'scene'
-- Added 'LateInit' method to Processor class. It is called after an object gets it's scene reference and is generally initialized.
+- moved Processor class below Scene class
+- added 'timed' memeber in Scene class that indicates if it uses timed processing
+- renamed 'world' Processors, class attribute to 'scene'
+- added 'LateInit' method to Processor class. It is called after an object gets it's scene reference and is generally initialized.
+- added Current global variable that indicates current scene
+- added Scene.MakeCurrent method that sets scene as the current
+- added Scene.name member that is just a scene name
+- removed timing methods of Scene class
 """
-
-import time as _time
 
 from functools import lru_cache as _lru_cache
 from typing import List as _List
@@ -31,31 +34,30 @@ P = _TypeVar('P')
 class Processor:
 	pass
 
-class World:
-	"""A World object keeps track of all Entities, Components, and Processors.
+class Scene:
+	"""A Scene object keeps track of all Entities, Components, and Processors.
 
-	A World contains a database of all Entity/Component assignments. The World
+	A Scene contains a database of all Entity/Component assignments. The Scene
 	is also responsible for executing all Processors assigned to it for each
 	frame of your game.
 	"""
-	def __init__(self, timed = False):
+
+	Current = None
+
+	def __init__(self, name = ""):
 		self._processors = []
 		self._next_entity_id = 0
 		self._components = {}
 		self._entities = {}
 		self._dead_entities = set()
-		if timed:
-			self.process_times = {}
-			self._process = self._timed_process
-		
-		self.Timed = timed
+		self.name = name
 
 	def clear_cache(self) -> None:
 		self.GetComponent.cache_clear()
 		self.GetComponents.cache_clear()
 
 	def ClearDatabase(self) -> None:
-		"""Remove all Entities and Components from the World."""
+		"""Remove all Entities and Components from the Scene."""
 		self._next_entity_id = 0
 		self._dead_entities.clear()
 		self._components.clear()
@@ -63,7 +65,7 @@ class World:
 		self.clear_cache()
 
 	def AddProcessor(self, processor_instance: Processor, priority=0) -> None:
-		"""Add a Processor instance to the World.
+		"""Add a Processor instance to the Scene.
 
 		:param processor_instance: An instance of a Processor,
 			   subclassed from the Processor class
@@ -77,7 +79,7 @@ class World:
 		self._processors.sort(key=lambda proc: proc.priority, reverse=True)
 
 	def RemoveProcessor(self, processor_type: Processor) -> None:
-		"""Remove a Processor from the World, by type.
+		"""Remove a Processor from the Scene, by type.
 
 		:param processor_type: The class type of the Processor to remove.
 		"""
@@ -94,7 +96,7 @@ class World:
 		Processor, from within another Processor.
 
 		:param processor_type: The type of the Processor you wish to retrieve.
-		:return: A Processor instance that has previously been added to the World.
+		:return: A Processor instance that has previously been added to the Scene.
 		"""
 		for processor in self._processors:
 			if type(processor) == processor_type:
@@ -126,13 +128,13 @@ class World:
 		return entId
 
 	def DeleteEntity(self, entity: str, immediate=False) -> None:
-		"""Delete an Entity from the World.
+		"""Delete an Entity from the Scene.
 
 		Delete an Entity and all of it's assigned Component instances from
 		the world. By default, Entity deletion is delayed until the next call
-		to *World.process*. You can request immediate deletion, however, by
+		to *Scene.process*. You can request immediate deletion, however, by
 		passing the "immediate=True" parameter. This should generally not be
-		done during Entity iteration (calls to World.get_component/s).
+		done during Entity iteration (calls to Scene.get_component/s).
 
 		Raises a KeyError if the given entity does not exist in the database.
 		:param entity: The Entity ID you wish to delete.
@@ -180,7 +182,7 @@ class World:
 
 		Retrieve all Components for a specific Entity. The method is probably
 		not appropriate to use in your Processors, but might be useful for
-		saving state, or passing specific Components between World instances.
+		saving state, or passing specific Components between Scene instances.
 		Unlike most other methods, this returns all of the Components as a
 		Tuple in one batch, instead of returning a Generator for iteration.
 
@@ -350,46 +352,47 @@ class World:
 		self._dead_entities.clear()
 		self.clear_cache()
 
-	def _process(self, *args, **kwargs):
-		for processor in self._processors:
-			processor.Process(*args, **kwargs)
-
-	def _timed_process(self, *args, **kwargs):
-		"""Track Processor execution time for benchmarking."""
-		for processor in self._processors:
-			start_time = _time.perf_counter()
-			processor.Process(*args, **kwargs)
-			process_time = _time.perf_counter() - start_time
-			self.process_times[processor.__class__.__name__] = process_time
-
 	def Process(self, *args, **kwargs):
 		"""Call the process method on all Processors, in order of their priority.
 
 		Call the *process* method on all assigned Processors, respecting their
 		optional priority setting. In addition, any Entities that were marked
-		for deletion since the last call to *World.process*, will be deleted
+		for deletion since the last call to *Scene.process*, will be deleted
 		at the start of this method call.
 
 		:param args: Optional arguments that will be passed through to the
 					 *process* method of all Processors.
 		"""
 		self._clear_dead_entities()
-		self._process(*args, **kwargs)
+		for processor in self._processors:
+			processor.Process(*args, **kwargs)
+	
+	def MakeCurrent(self):
+		Scene.Current = self
 
 class Processor:
 	"""Base class for all Processors to inherit from.
 
-	Processor instances must contain a `process` method. Other than that,
+	Processor instances must contain a `Process` method. Other than that,
 	you are free to add any additional methods that are necessary. The process
-	method will be called by each call to `World.process`, so you will
+	method will be called by each call to `Scene.Process`, so you will
 	generally want to iterate over entities with one (or more) calls to the
 	appropriate world methods there, such as
 	`for ent, (rend, vel) in self.world.get_components(Renderable, Velocity):`
 	"""
-	scene: World = None
+	scene: Scene = None
 
 	def LateInit(self, *args, **kwargs):
 		pass
 
 	def Process(self, *args, **kwargs):
 		raise NotImplementedError
+
+from .processors import TransformProcessor, ScriptProcessor, ParticleProcessor
+
+def CreateScene(name: str, timed: bool = False):
+	s = Scene(timed)
+	s.AddProcessor(TransformProcessor())
+	s.AddProcessor(ParticleProcessor())
+	s.AddProcessor(ScriptProcessor())
+	return s

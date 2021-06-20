@@ -12,14 +12,9 @@ class RendererSettings:
     Max quads count that can be renderer within one batch.
     """
 
-    MaxTextures = 32
+    MaxTextures = 16
     """
     Max number of textures that can be used within one draw batch.
-    """
-
-    MaxFontTextures = 5
-    """
-    Max number of font textures that can be loaded.
     """
 
     MultisamplingEnabled = True

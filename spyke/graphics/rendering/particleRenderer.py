@@ -3,7 +3,6 @@ from .renderStats import RenderStats
 from ..shader import Shader
 from ..buffers import VertexBuffer
 from ..vertexArray import VertexArray
-from ..texturing.textureHandle import TextureHandle
 from .rendererSettings import RendererSettings
 from ...constants import _GL_FLOAT_SIZE
 from ...debugging import Debug, LogLevel
@@ -45,8 +44,9 @@ class ParticleRenderer(object):
 
 		Debug.Log("Particle renderer initialized.", LogLevel.Info)
 	
-	def RenderParticle(self, pos: glm.vec3, size: glm.vec3, rot: glm.vec3, color: glm.vec4, texHandle: TextureHandle):
-		if RenderStats.QuadsCount >= RendererSettings.MaxQuadsCount:
+	def RenderParticle(self, pos: glm.vec3, size: glm.vec3, rot: glm.vec3, color: glm.vec4, texHandle):
+		raise NotImplementedError()
+		if RenderStats.quadsCount >= RendererSettings.MaxQuadsCount:
 			self.__Flush()
 
 		data = [
@@ -59,7 +59,7 @@ class ParticleRenderer(object):
 		
 		self.__vertexData.extend(data)
 
-		RenderStats.QuadsCount += 1
+		RenderStats.quadsCount += 1
 		self.__vertexCount += 1
 
 		# try:
@@ -79,9 +79,9 @@ class ParticleRenderer(object):
 		self.shader.Use()
 		self.vao.Bind()
 
-		self.vbo.AddDataDirect(self.__vertexData, len(self.__vertexData) * _GL_FLOAT_SIZE)
+		self.vbo.AddData(self.__vertexData, len(self.__vertexData) * _GL_FLOAT_SIZE)
 		GL.glDrawArrays(GL.GL_POINTS, 0, self.__vertexCount)
 
-		RenderStats.DrawsCount += 1
+		RenderStats.drawsCount += 1
 		self.__vertexData.clear()
 		self.__vertexCount = 0

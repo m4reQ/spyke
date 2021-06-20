@@ -1,6 +1,6 @@
 #region Import
 from .textureManager import TextureManager
-from ..graphics.texturing.textureSpec import TextureSpec
+from ..graphics.texturing.texture import TextureSpec
 from ..graphics.text.font import Font
 
 from functools import lru_cache

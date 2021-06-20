@@ -1,11 +1,9 @@
 from OpenGL import GL
-import ctypes
 from PIL import Image
-import numpy
 from pathlib import Path
-import os
-import gc
 from ..loaders import dds_loader
+import numpy as np
+import gc, os, ctypes
 
 VBO = None
 VAO = None

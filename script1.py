@@ -1,5 +1,5 @@
 from spyke.ecs.components import ColorComponent, TextComponent
-from spyke.input import InputHandler, EventHandler, EventType, Keys
+from spyke.input import InputHandler, EventHandler
 from spyke.utils import Delayer
 
 def OnInit(self):

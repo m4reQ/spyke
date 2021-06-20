@@ -1,9 +1,24 @@
-from ...enums import CameraType
-from ...graphics.cameras import OrthographicCamera
+from ...graphics.cameras import ACamera
+import glm
 
 class CameraComponent(object):
-	def __init__(self, cameraType: CameraType, left: float, right: float, bottom: float, top: float, zNear = -1.0, zFar = 10.0):
-		if cameraType == CameraType.Orthographic:
-			self.Camera = OrthographicCamera(left, right, bottom, top, zNear, zFar)
+	def __init__(self, cameraObject: ACamera):
+		if not isinstance(cameraObject, ACamera):
+			raise ValueError("Invalid camera object given.")
 		else:
-			raise RuntimeError("Invalid camera type")
+			self.camera = cameraObject
+
+class NEW___CameraComponent(object):
+	def __init__(self, cameraObject: ACamera):
+		if not isinstance(cameraObject, ACamera):
+			raise ValueError("Invalid camera object given.")
+		else:
+			self.camera = cameraObject
+
+		self.isPrimary = False
+		
+		self.shouldRecalculate = False
+
+		self._projectionMatrix = glm.mat4(1.0)
+		self._viewMatrix = glm.mat4(1.0)
+		self._viewProjectionMatrix = glm.mat4(1.0)

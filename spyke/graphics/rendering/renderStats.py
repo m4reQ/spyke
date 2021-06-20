@@ -1,16 +1,12 @@
-from ...utils import StaticProperty
-
 class RenderStats:
-	QuadsCount = 0
-	DrawsCount = 0
-	VertexCount = 0
-	DrawTime = 0.0
-	FrameEnded = False
+	quadsCount = 0
+	drawsCount = 0
+	vertexCount = 0
+	frameEnded = False
 	
 	@staticmethod
 	def Clear():
-		RenderStats.QuadsCount = 0
-		RenderStats.DrawsCount = 0
-		RenderStats.VertexCount = 0
-		RenderStats.DrawTime = 0.0
-		RenderStats.FrameEnded = False
+		RenderStats.quadsCount = 0
+		RenderStats.drawsCount = 0
+		RenderStats.vertexCount = 0
+		RenderStats.frameEnded = False

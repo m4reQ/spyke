@@ -17,17 +17,17 @@ class SpriteComponent(Serializable):
 
 	def __init__(self, texFilepath: str, tilingFactor: glm.vec2, color: glm.vec4):
 		if not texFilepath:
-			self.Texture = None
+			self.texture = None
 		else:
 			try:
-				self.Texture = TextureManager.Textures[texFilepath]
+				self.texture = TextureManager.Textures[texFilepath]
 			except KeyError:
 				TextureManager.LoadTexture(texFilepath)
-				self.Texture = TextureManager.Textures[texFilepath]
+				self.texture = TextureManager.Textures[texFilepath]
 
-		self.TextureName = texFilepath
-		self.TilingFactor = tilingFactor
-		self.Color = color
+		self.textureName = texFilepath
+		self.tilingFactor = tilingFactor
+		self.color = color
 	
 	def Serialize(self):
 		s = f"{self.TextureName} "

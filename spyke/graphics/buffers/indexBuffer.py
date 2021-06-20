@@ -1,12 +1,10 @@
-#region Import
-from ...memory import GLMarshal
-from ...constants import _INT_SIZE
+from ..gl import GLObject, GLHelper
+from ...constants import _INT_SIZE, _NP_INT
 
 from OpenGL import GL
-import numpy
-#endregion
+import numpy as np
 
-class IndexBuffer(object):
+class IndexBuffer(GLObject):
 	@staticmethod
 	def CreateQuadIndices(count: int) -> list:
 		data = []
@@ -28,35 +26,24 @@ class IndexBuffer(object):
 		return data
 		
 	def __init__(self, data: list):
+		super().__init__()
 		self.__size = len(data) * _INT_SIZE
-		self.__id = GL.glGenBuffers(1)
+		self._id = GLHelper.CreateBuffer()
 		
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.__id)
-		GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, self.__size, numpy.asarray(data, dtype=numpy.int32), GL.GL_STATIC_DRAW)
+		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self._id)
+		GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, self.__size, np.asarray(data, dtype=_NP_INT), GL.GL_STATIC_DRAW)
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
-
-		GLMarshal.AddObjectRef(self)
 	
 	def Bind(self) -> None:
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.__id)
+		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self._id)
 	
 	def Unbind(self) -> None:
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
 	
 	def Delete(self, removeRef: bool) -> None:
-		GL.glDeleteBuffers(1, [self.__id])
+		super().Delete(removeRef)
+		GL.glDeleteBuffers(1, [self._id])
 		
-		if removeRef:
-			GLMarshal.RemoveObjectRef(self)
-	
 	@property
 	def Size(self):
 		return self.__size
-	
-	@property
-	def ID(self):
-		return self.__id
-	
-	@staticmethod
-	def UnbindAll() -> None:
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)

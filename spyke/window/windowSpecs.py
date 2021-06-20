@@ -1,11 +1,11 @@
 class WindowSpecs(object):
 	def __init__(self, width: int, height: int, title: str):
-		self.Width = width
-		self.Height = height
-		self.Samples = 1
-		self.Title = title
-		self.Vsync = False
-		self.Resizable = True
-		self.Fullscreen = False
-		self.Borderless = False
-		self.CursorVisible = True
+		self.width = width
+		self.height = height
+		self.samples = 1
+		self.title = title
+		self.vsync = False
+		self.resizable = True
+		self.fullscreen = False
+		self.borderless = False
+		self.cursorVisible = True

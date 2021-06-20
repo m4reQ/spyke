@@ -1,53 +1,27 @@
-from ...memory import GLMarshal
+from ..gl import GLObject, GLHelper
+from ...constants import _NP_FLOAT
 
 from OpenGL import GL
-import numpy
+import numpy as np
 
-class VertexBuffer(object):
+class VertexBuffer(GLObject):
 	def __init__(self, size: int, usage = GL.GL_STREAM_DRAW):
+		super().__init__()
 		self.__size = size
-		self.__id = GL.glGenBuffers(1)
+		self._id = GLHelper.CreateBuffer()
 
-		self.__usageFlag = usage
-		
-		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.__id)
-		GL.glBufferData(GL.GL_ARRAY_BUFFER, self.__size, None, self.__usageFlag)
-		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+		GL.glNamedBufferData(self._id, self.__size, None, usage)
 
-		GLMarshal.AddObjectRef(self)
-
-	def AddData(self, data: list, size: int) -> None:
-		GL.glBufferSubData(GL.GL_ARRAY_BUFFER, 0, size, numpy.asarray(data, dtype=numpy.float32))
-	
 	def Bind(self) -> None:
-		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.__id)
-	
-	def Unbind(self) -> None:
-		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._id)
 	
 	def Delete(self, removeRef: bool) -> None:
-		GL.glDeleteBuffers(1, [self.__id])
+		super().Delete(removeRef)
+		GL.glDeleteBuffers(1, [self._id])
 
-		if removeRef:
-			GLMarshal.RemoveObjectRef(self)
-	
-	def Clear(self) -> None:
-		GL.glBufferData(GL.GL_ARRAY_BUFFER, self.__size, None, self.__usageFlag)
-
-	def AddDataDirect(self, data: list, size: int) -> None:
-		GL.glNamedBufferSubData(self.__id, 0, size, numpy.asarray(data, dtype=numpy.float32))
-	
-	def ClearDirect(self) -> None:
-		GL.glNamedBufferData(self.__id, self.__size, None, self.__usageFlag)
+	def AddData(self, data: list, size: int) -> None:
+		GL.glNamedBufferSubData(self._id, 0, size, np.asarray(data, dtype=_NP_FLOAT))
 	
 	@property
 	def Size(self):
 		return self.__size
-	
-	@property
-	def ID(self):
-		return self.__id
-	
-	@staticmethod
-	def UnbindAll() -> None:
-		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)

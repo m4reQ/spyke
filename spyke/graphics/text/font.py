@@ -48,9 +48,6 @@ class Font(object):
 			texRect = RectangleF(texX, texY, texWidth, texHeight)
 
 			characters[_ord] = Glyph(width, height, bearX, bearY, adv, texRect, _ord)
-		
-		if None in characters: #?????????
-			raise RuntimeError("Cannot generate font.")
 			
 		Debug.Log(f"Font generated in {time.perf_counter() - start} seconds.", LogLevel.Info)
 

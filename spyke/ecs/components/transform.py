@@ -29,15 +29,15 @@ class TransformComponent(Serializable):
 		self.__sizeChanged = True
 		self.__rotChanged = True
 
-		self.Matrix = glm.mat4(1.0)
+		self.matrix = glm.mat4(1.0)
 		
-		self.Recalculate()
+		self.RecalculateMatrices()
 
 		self.__transMatrix = glm.mat4(1.0)
 		self.__scaleMatrix = glm.mat4(1.0)
 		self.__rotQuat = glm.quat(self.__rot)
 
-	def Recalculate(self):
+	def RecalculateMatrices(self):
 		if self.__posChanged:
 			self.__transMatrix = glm.translate(glm.mat4(1.0), self.__pos)
 			self.__posChanged = False
@@ -50,7 +50,7 @@ class TransformComponent(Serializable):
 			self.__scaleMatrix = glm.scale(glm.mat4(1.0), self.__size)
 			self.__sizeChanged = False
 		
-		self.Matrix = self.__transMatrix * glm.mat4_cast(self.__rotQuat) * self.__scaleMatrix
+		self.matrix = self.__transMatrix * glm.mat4_cast(self.__rotQuat) * self.__scaleMatrix
 
 	def Serialize(self):
 		s = f"{self.__pos.x} {self.__pos.y} {self.__pos.z} "
@@ -60,7 +60,7 @@ class TransformComponent(Serializable):
 		return s
 
 	@property
-	def ShouldRecalculate(self):
+	def shouldRecalculate(self):
 		return any([self.__posChanged, self.__sizeChanged, self.__rotChanged])
 
 	@property

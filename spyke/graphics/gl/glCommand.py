@@ -1,4 +1,4 @@
-from ..enums import *
+from ...enums import *
 
 from OpenGL import GL
 

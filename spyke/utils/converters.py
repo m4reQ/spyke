@@ -1,4 +1,13 @@
 import glm
+from typing import Union, TypeVar, NoReturn
+
+T = TypeVar('T')
+
+def EnsureObjectOfType(_type: T, obj: object) -> Union[T, NoReturn]:
+	if isinstance(obj, _type):
+		return obj
+	else:
+		raise TypeError(f"Object '{obj}' is of invalid type '{type(obj)}' (expected {_type}).")
 
 def StrToBool(string: str) -> bool:
 	_s = string.lower()
@@ -10,7 +19,7 @@ def StrToBool(string: str) -> bool:
 	else:
 		raise ValueError(f"Invalid string for conversion '{string}'.")
 
-def IsArrayLike(obj: object) -> True:
+def IsArrayLike(obj: object) -> bool:
 	return "__getitem__" in dir(obj)
 
 def Mat4ToTuple(mat: glm.mat4) -> tuple:

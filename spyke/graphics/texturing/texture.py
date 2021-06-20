@@ -1,48 +1,54 @@
-from .textureData import TextureData
-from .textureSpec import TextureSpec
 from ...debugging import Debug, LogLevel
-from ...memory import GLMarshal
+from ...constants import _NP_BYTE
+from ..gl import GLObject, GLHelper
 
 from OpenGL import GL
 import numpy as np
 import time
-import ctypes
 
-class Texture(object):
+class TextureData(object):
+	def __init__(self, width, height):
+		self.width = width
+		self.height = height
+		self.data = []
+		self.format = GL.GL_RGB
+
+class TextureSpec(object):
+    def __init__(self):
+        self.mipmaps = 2
+        self.minFilter = GL.GL_LINEAR_MIPMAP_LINEAR
+        self.magFilter = GL.GL_LINEAR
+        self.wrapMode = GL.GL_REPEAT
+		
+class Texture(GLObject):
 	def __init__(self, tData: TextureData, tSpec: TextureSpec):
 		start = time.perf_counter()
+
+		super().__init__()
 
 		self.width = tData.width
 		self.height = tData.height
 
-		self.__id = np.empty(1, dtype=np.uint32)
-		GL.glCreateTextures(GL.GL_TEXTURE_2D, 1, self.__id)
-		GL.glTextureStorage2D(self.__id, tSpec.mipmaps, GL.GL_RGBA8, tData.width, tData.height)
+		self._id = GLHelper.CreateTexture(GL.GL_TEXTURE_2D)
+		GL.glTextureStorage2D(self._id, tSpec.mipmaps, GL.GL_RGBA8, tData.width, tData.height)
 		
-		GL.glTextureParameteri(self.__id, GL.GL_TEXTURE_WRAP_S, tSpec.wrapMode)
-		GL.glTextureParameteri(self.__id, GL.GL_TEXTURE_WRAP_T, tSpec.wrapMode)
-		GL.glTextureParameteri(self.__id, GL.GL_TEXTURE_MIN_FILTER, tSpec.minFilter)
-		GL.glTextureParameteri(self.__id, GL.GL_TEXTURE_MAG_FILTER, tSpec.magFilter)
+		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_WRAP_S, tSpec.wrapMode)
+		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_WRAP_T, tSpec.wrapMode)
+		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_MIN_FILTER, tSpec.minFilter)
+		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_MAG_FILTER, tSpec.magFilter)
 
-		GL.glTextureSubImage2D(self.__id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, np.asarray(tData.data, dtype = np.uint8))
-		GL.glGenerateTextureMipmap(self.__id)
+		GL.glTextureSubImage2D(self._id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, np.asarray(tData.data, dtype = _NP_BYTE))
+		GL.glGenerateTextureMipmap(self._id)
 
 		Debug.GetGLError()
-		GLMarshal.AddObjectRef(self)
-		Debug.Log(f"Texture (id: {self.__id}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
+		Debug.Log(f"Texture (id: {self._id}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 
-	def BindToUnit(self, slot):
-		GL.glBindTextureUnit(slot, self.__id)
+	def BindToUnit(self, slot) -> None:
+		GL.glBindTextureUnit(slot, self._id)
 
-	def Delete(self, removeRef: bool):
-		GL.glDeleteTextures(1, [self.__id])
-
-		if removeRef:
-			GLMarshal.RemoveObjectRef(self)
-	
-	@property
-	def ID(self):
-		return self.__id
+	def Delete(self, removeRef: bool) -> None:
+		super().Delete(removeRef)
+		GL.glDeleteTextures(1, [self._id])
 	
 	@classmethod
 	def CreateWhiteTexture(cls):

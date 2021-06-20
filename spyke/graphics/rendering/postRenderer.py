@@ -1,14 +1,12 @@
-#region Import
 from .renderStats import RenderStats
 from ..shader import Shader
 from ..buffers import VertexBuffer, Framebuffer
 from ..vertexArray import VertexArray
 from ...constants import _GL_FLOAT_SIZE
-from ...enums import VertexAttribType, ShaderType
+from ...debugging import Debug, LogLevel
 
 from OpenGL import GL
 import glm
-#endregion
 
 VERTEX_SIZE = (3 + 4 + 2) * _GL_FLOAT_SIZE
 VERTEX_DATA_VERTEX_SIZE = (3 + 2) * _GL_FLOAT_SIZE
@@ -45,6 +43,11 @@ class PostRenderer(object):
 		self.vao.SetVertexSize(INSTANCE_DATA_VERTEX_SIZE)
 		self.vao.ClearVertexOffset()
 		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False, 1)
+		
+		self.shader.Validate()
+		Debug.GetGLError()
+		Debug.Log("Post processing renderer initialized succesfully.", LogLevel.Info)
+
 
 	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer, passIdx = 0) -> None:
 		transform = glm.translate(glm.mat4(1.0), pos)
@@ -85,10 +88,10 @@ class PostRenderer(object):
 
 		self.vao.Bind()
 		
-		self.vertexDataVbo.AddDataDirect(vertexData, len(vertexData) * _GL_FLOAT_SIZE)
-		self.instanceDataVbo.AddDataDirect(instanceData, len(instanceData) * _GL_FLOAT_SIZE)
+		self.vertexDataVbo.AddData(vertexData, len(vertexData) * _GL_FLOAT_SIZE)
+		self.instanceDataVbo.AddData(instanceData, len(instanceData) * _GL_FLOAT_SIZE)
 
 		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, 6, 1)
 
-		RenderStats.DrawsCount += 1
-		RenderStats.QuadsCount += 1
+		RenderStats.drawsCount += 1
+		RenderStats.quadsCount += 1

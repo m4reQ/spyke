@@ -12,7 +12,7 @@ from ...enums import Hint, Vendor, Keys
 from ...utils import Static
 from ...ecs import components
 from ...debugging import Debug, LogLevel
-from ...input import EventHook, EventHandler, EventType
+from ...input import EventHook, EventHandler
 
 from OpenGL import GL
 from PIL import Image
@@ -95,18 +95,18 @@ class Renderer(Static):
 
 		GL.glPointSize(3.0)
 
-		lineWidth = 2.0
-		lineRange = GL.glGetFloatv(GL.GL_LINE_WIDTH_RANGE)
-		if lineWidth <= lineRange[1] and lineWidth >= lineRange[0]:
-			GL.glLineWidth(lineWidth)
+		# lineWidth = 2.0
+		# lineRange = GL.glGetFloatv(GL.GL_LINE_WIDTH_RANGE)
+		# if lineWidth <= lineRange[1] and lineWidth >= lineRange[0]:
+		# 	GL.glLineWidth(lineWidth)
 
 		GL.glClearColor(0.0, 0.0, 0.0, 1.0)
 
 		GL.glScissor(0, 0, initialWidth, initialHeight)
 		GL.glViewport(0, 0, initialWidth, initialHeight)
 
-		EventHandler.BindHook(EventHook(Renderer.ResizeCallback, -1), EventType.WindowResize)
-		EventHandler.BindHook(EventHook(Renderer.KeyDownCallback, -1), EventType.KeyDown)
+		EventHandler.WindowResize += EventHook(Renderer.ResizeCallback, -1)
+		EventHandler.KeyDown += EventHook(Renderer.KeyDownCallback, -1)
 
 		Renderer.__Initialized = True
 
@@ -118,7 +118,6 @@ class Renderer(Static):
 
 	def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 		RenderStats.Clear()
-		start = time.perf_counter()
 
 		Renderer.__Ubo.Bind()
 
@@ -131,35 +130,32 @@ class Renderer(Static):
 		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
 		drawables = [x[1] for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
-		opaque = [x for x in drawables if x[0].Color.w == 1.0]
+		opaque = [x for x in drawables if x[0].color.w == 1.0]
 		alpha = [x for x in drawables if x not in opaque]
 
-		alpha.sort(key = lambda x: x[0].Color.w, reverse = True)
+		alpha.sort(key = lambda x: x[0].color.w, reverse = True)
 
 		for (sprite, transform) in opaque:
-			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor, None)
+			Renderer.__BasicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
 		Renderer.__BasicRenderer.EndScene()
 
 		GL.glDisable(GL.GL_DEPTH_TEST)
 		for (sprite, transform) in alpha:
-			Renderer.__BasicRenderer.RenderQuad(transform.Matrix, sprite.Color, sprite.Texture, sprite.TilingFactor, None)
+			Renderer.__BasicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
+	
+		transformNp = np.zeros((4, 4))
+		transformNp[3, 3] = 1.0
 		
 		for _, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
-			transformNp = np.zeros((4, 4))
-			transformNp[0, 0] = 1.0
-			transformNp[1, 1] = 1.0
-			transformNp[2, 2] = 1.0
-			transformNp[3, 3] = 1.0
-
 			advSum = 0.0
 
-			for char in text.Text:
-				glyph = text.Font.GetGlyph(ord(char))
+			for char in text.text:
+				glyph = text.font.GetGlyph(ord(char))
 
-				adv = advSum / ScreenInfo.Width * (text.Size / text.Font.baseSize)
+				adv = advSum / ScreenInfo.width * (text.size / text.font.baseSize)
 
-				scWidth = glyph.width / ScreenInfo.Width * (text.Size / text.Font.baseSize)
-				scHeight = glyph.height / ScreenInfo.Height * (text.Size / text.Font.baseSize)
+				scWidth = glyph.width / ScreenInfo.width * (text.size / text.font.baseSize)
+				scHeight = glyph.height / ScreenInfo.height * (text.size / text.font.baseSize)
 
 				advSum += glyph.advance
 
@@ -169,7 +165,7 @@ class Renderer(Static):
 				transformNp[0, 0] = scWidth
 				transformNp[1, 1] = scHeight
 
-				Renderer.__BasicRenderer.RenderQuad(transformNp, text.Color, text.Font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
+				Renderer.__BasicRenderer.RenderQuad(glm.mat4(transformNp), text.color, text.font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
 			
 		Renderer.__BasicRenderer.EndScene()
 		GL.glEnable(GL.GL_DEPTH_TEST)
@@ -187,8 +183,7 @@ class Renderer(Static):
 		#GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
 		#Renderer.__PostRenderer.Render(glm.vec3(0.0, 0.0, 0.0), glm.vec3(1.0, 1.0, 0.0), glm.vec3(0.0), Renderer.__Framebuffer, passIdx=0)
-
-		RenderStats.DrawTime = time.perf_counter() - start
+		
 		RenderStats.FrameEnded = True
 	
 	def KeyDownCallback(key: int, _, repeated: bool) -> bool:
@@ -223,10 +218,11 @@ class Renderer(Static):
 		GL.glClearColor(r, g, b, a)
 	
 	def CaptureFrame():
-		pixels = GL.glReadPixels(0, 0, ScreenInfo.Width, ScreenInfo.Height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
+		pixels = GL.glReadPixels(0, 0, ScreenInfo.width, ScreenInfo.height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
 		
-		img = Image.frombytes("RGB", (ScreenInfo.Width, ScreenInfo.Height), pixels)
+		img = Image.frombytes("RGB", (ScreenInfo.width, ScreenInfo.height), pixels)
 		img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
 		filename = os.path.join(RendererSettings.ScreenCaptureDirectory, "screenshot_" + str(int(time.time()))) + ".jpg"
 		img.save(filename, "JPEG")
+		Debug.Log(f"Screenshot was saved as '{filename}'.", LogLevel.Info)

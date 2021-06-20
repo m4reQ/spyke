@@ -16,9 +16,6 @@ class Vendor:
 	Intel = 						"INTEL"
 	Amd = 							"AMD"
 	Unknown = 						"UNKNOWN"
-
-class CameraType:
-	Orthographic, Perspective = range(2)
 #endregion
 
 #region OpenGL

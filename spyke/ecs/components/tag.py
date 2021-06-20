@@ -9,7 +9,7 @@ class TagComponent(Serializable):
 		return cls(RestoreSpaces(data[0]))
 
 	def __init__(self, name):
-		self.Name = name
+		self.name = name
 	
 	def Serialize(self):
 		return f"{SecureSpaces(self.Name)}"

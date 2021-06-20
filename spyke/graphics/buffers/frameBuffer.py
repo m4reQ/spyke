@@ -1,5 +1,5 @@
 from ...debugging import Debug, LogLevel
-from ...memory import GLMarshal
+from ..gl import GLObject
 
 from OpenGL import GL
 import glm
@@ -50,13 +50,14 @@ class FramebufferColorTexture(FramebufferAttachmentSpec):
 
 		self.samples = samples
 
-class Framebuffer(object):
+class Framebuffer(GLObject):
 	__PixelFormat = GL.GL_RGBA
 	__PixelType = GL.GL_UNSIGNED_BYTE
 
 	__MaxColorAttachments = 0
 
 	def __init__(self, specification: FramebufferSpec):
+		super().__init__()
 		if not Framebuffer.__MaxColorAttachments:
 			Framebuffer.__MaxColorAttachments = GL.glGetInteger(GL.GL_MAX_COLOR_ATTACHMENTS)
 			
@@ -69,8 +70,6 @@ class Framebuffer(object):
 		self.__lastColorAttachment = 0
 
 		self.__Invalidate(False)
-
-		GLMarshal.AddObjectRef(self)
 	
 	def __CreateDepthAttachment(self, _format: FramebufferDepthTexture):
 		multisampled = True if _format.samples > 1 else False
@@ -143,8 +142,8 @@ class Framebuffer(object):
 			self.__depthAttachment = 0
 			self.__lastColorAttachment = 0
 		
-		self.__id = GL.glGenFramebuffers(1)
-		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.__id)
+		self._id = GL.glGenFramebuffers(1)
+		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._id)
 
 		for f in self.spec.attachmentsSpecs:
 			if f._isDepthTexture:
@@ -165,9 +164,9 @@ class Framebuffer(object):
 		if not resizing:
 			err = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
 			if err != GL.GL_FRAMEBUFFER_COMPLETE:
-				raise RuntimeError(f"Framebuffer (id: {self.__id} incomplete: {err}.")
+				raise RuntimeError(f"Framebuffer (id: {self._id} incomplete: {err}.")
 			else:
-				Debug.Log(f"Framebuffer (id: {self.__id}) created succesfully", LogLevel.Info)
+				Debug.Log(f"Framebuffer (id: {self._id}) created succesfully", LogLevel.Info)
 		
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 	
@@ -178,13 +177,14 @@ class Framebuffer(object):
 		self.__Invalidate(True)
 
 	def Bind(self) -> None:
-		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.__id)
+		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._id)
 		GL.glViewport(0, 0, self.spec.width, self.spec.height)
 	
 	def Unbind(self) -> None:
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
 	def Delete(self, removeRef: bool) -> None:
+		super().Delete(removeRef)
 		textures = self.__colorAttachments
 
 		if self.__isDepthAttachmentBuffer:
@@ -193,21 +193,10 @@ class Framebuffer(object):
 			textures.append(self.__depthAttachment)
 			
 		GL.glDeleteTextures(len(textures), textures)
-		GL.glDeleteFramebuffers(1, [self.__id])
+		GL.glDeleteFramebuffers(1, [self._id])
 
-		if removeRef:
-			GLMarshal.RemoveObjectRef(self)
-	
 	def GetColorAttachment(self, idx) -> int:
 		return self.__colorAttachments[idx]
 	
 	def GetDepthAttachment(self) -> int:
 		return self.__depthAttachment
-	
-	@staticmethod
-	def UnbindAll() -> None:
-		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
-	
-	@property
-	def ID(self) -> int:
-		return self.__id

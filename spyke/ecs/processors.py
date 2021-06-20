@@ -1,22 +1,18 @@
 #region Import
-from .esper import Processor, World as Scene
+from .esper import Processor
 from .components import *
 from ..math import LerpVec2, LerpVec4, LerpFloat
 #endregion
 
-def InitializeDefaultProcessors(scene: Scene):
-	scene.AddProcessor(TransformProcessor())
-	scene.AddProcessor(ParticleProcessor())
-	scene.AddProcessor(ScriptProcessor())
-
 class TransformProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		for _, transform in self.scene.GetComponent(TransformComponent):
-			if transform.ShouldRecalculate:
-				transform.Recalculate()
-
-		# if renderTarget.Camera.shouldRecalculate:
-		# 	renderTarget.Camera.RecalculateMatrices()
+			if transform.shouldRecalculate:
+				transform.RecalculateMatrices()
+		
+		for _, cameraComponent in self.scene.GetComponent(CameraComponent):
+			if cameraComponent.shouldRecalculate:
+				cameraComponent.RecalculateMatrices()
 
 class ScriptProcessor(Processor):
 	def Process(self, *args, **kwargs):

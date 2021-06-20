@@ -1,14 +1,8 @@
-from ..graphics.texturing.textureData import TextureData
+from ..graphics.texturing.texture import TextureData
+from ..constants import _IMAGE_FORMAT_MAP
 
 from PIL import Image
 from OpenGL import GL
-
-_IMAGE_FORMAT_MAP = {
-	"JPEG": GL.GL_RGB,
-	"JPG": GL.GL_RGB,
-	"PNG": GL.GL_RGBA,
-	"RGB": GL.GL_RGB,
-	"RGBA": GL.GL_RGBA}
 
 def LoadTexture(filepath: str):
 	try:

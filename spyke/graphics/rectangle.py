@@ -52,3 +52,7 @@ class RectangleF(object):
     @property
     def top(self):
         return self.y + self.height
+    
+    @classmethod
+    def One(cls):
+        return cls(0.0, 0.0, 1.0, 1.0)

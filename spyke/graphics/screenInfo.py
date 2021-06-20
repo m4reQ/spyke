@@ -1,3 +1,5 @@
 class ScreenInfo:
-    Width = 0
-    Height = 0
+    width = 0
+    height = 0
+    vsync = True
+    refreshRate = 60.0
