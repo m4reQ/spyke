@@ -1,6 +1,6 @@
 from .renderStats import RenderStats
 from ..shader import Shader
-from ..buffers import VertexBuffer, Framebuffer
+from ..buffers import VertexBuffer, Framebuffer, IndexBuffer
 from ..vertexArray import VertexArray
 from ...constants import _GL_FLOAT_SIZE
 from ...debugging import Debug, LogLevel
@@ -9,11 +9,10 @@ from OpenGL import GL
 import glm
 
 VERTEX_SIZE = (3 + 4 + 2) * _GL_FLOAT_SIZE
-VERTEX_DATA_VERTEX_SIZE = (3 + 2) * _GL_FLOAT_SIZE
-INSTANCE_DATA_VERTEX_SIZE = 4 * _GL_FLOAT_SIZE
+VERTEX_DATA_BUFFER_BINDING = 0
 
 class PostRenderer(object):
-	__VertexCount = 6
+	__VertexCount = 4
 
 	QuadVertices = [
 		glm.vec4(0.0, 0.0, 0.0, 1.0),
@@ -27,22 +26,27 @@ class PostRenderer(object):
 		self.shader.AddStage(GL.GL_FRAGMENT_SHADER, "spyke/graphics/shaderSources/post.frag")
 		self.shader.Compile()
 
-		self.vertexDataVbo = VertexBuffer(VERTEX_DATA_VERTEX_SIZE * PostRenderer.__VertexCount)
-		self.instanceDataVbo = VertexBuffer(INSTANCE_DATA_VERTEX_SIZE)
+		self.vbo = VertexBuffer(VERTEX_SIZE * PostRenderer.__VertexCount)
+		self.ibo = IndexBuffer(IndexBuffer.CreateQuadIndices(1), GL.GL_UNSIGNED_BYTE)
 
 		self.vao = VertexArray()
-		self.vao.Bind()
+		self.vao.BindVertexBuffer(VERTEX_DATA_BUFFER_BINDING, self.vbo.ID, 0, VERTEX_SIZE)
+		self.vao.BindElementBuffer(self.ibo.ID)
 
-		self.vertexDataVbo.Bind()
-		self.vao.SetVertexSize(VERTEX_DATA_VERTEX_SIZE)
-		self.vao.ClearVertexOffset()
-		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False)
-		self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), 2, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), VERTEX_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), VERTEX_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), VERTEX_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False)
 
-		self.instanceDataVbo.Bind()
-		self.vao.SetVertexSize(INSTANCE_DATA_VERTEX_SIZE)
-		self.vao.ClearVertexOffset()
-		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False, 1)
+		# self.vbo.Bind()
+		# self.vao.SetVertexSize(VERTEX_DATA_VERTEX_SIZE)
+		# self.vao.ClearVertexOffset()
+		# self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False)
+		# self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), 2, GL.GL_FLOAT, False)
+
+		# self.instanceDataVbo.Bind()
+		# self.vao.SetVertexSize(INSTANCE_DATA_VERTEX_SIZE)
+		# self.vao.ClearVertexOffset()
+		# self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False, 1)
 		
 		self.shader.Validate()
 		Debug.GetGLError()
@@ -63,14 +67,10 @@ class PostRenderer(object):
 			transform * PostRenderer.QuadVertices[3]]
 
 		vertexData = [
-			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 0.0,
-			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, 0.0, 1.0,
-			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, 1.0, 1.0,
-			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, 1.0, 1.0,
-			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, 1.0, 0.0,
-			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 0.0]
-		
-		instanceData = [framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w]
+			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 0.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
+			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, 0.0, 1.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
+			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, 1.0, 1.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
+			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, 1.0, 0.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,]
 
 		self.shader.Use()
 
@@ -81,17 +81,17 @@ class PostRenderer(object):
 
 		if samples > 1:
 			GL.glBindTextureUnit(1, attachment)
-			GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, attachment)
+			# GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, attachment)
 		else:
 			GL.glBindTextureUnit(0, attachment)
-			GL.glBindTexture(GL.GL_TEXTURE_2D, attachment)
+			# GL.glBindTexture(GL.GL_TEXTURE_2D, attachment)
 
 		self.vao.Bind()
 		
-		self.vertexDataVbo.AddData(vertexData, len(vertexData) * _GL_FLOAT_SIZE)
-		self.instanceDataVbo.AddData(instanceData, len(instanceData) * _GL_FLOAT_SIZE)
+		self.vbo.AddData(vertexData, len(vertexData) * _GL_FLOAT_SIZE)
 
-		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, 6, 1)
+		GL.glDrawElements(GL.GL_TRIANGLES, 4, self.ibo.Type)
 
 		RenderStats.drawsCount += 1
 		RenderStats.quadsCount += 1
+		RenderStats.vertexCount += PostRenderer.__VertexCount

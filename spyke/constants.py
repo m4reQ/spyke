@@ -25,6 +25,12 @@ _NP_FLOAT = np.float32
 _NP_DOUBLE = np.float64
 _NP_UINT = np.uint32
 
+_GL_INDEX_TYPE_NUMPY_TYPE_MAP = {
+	GL.GL_UNSIGNED_BYTE: np.uint8,
+	GL.GL_UNSIGNED_SHORT: np.uint16,
+	GL.GL_UNSIGNED_INT: np.uint32
+}
+
 _GL_TYPE_SIZE_MAP = {
 	GL.GL_DOUBLE: 8,
 	GL.GL_FIXED: 4,

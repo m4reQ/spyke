@@ -2,7 +2,7 @@ from .renderStats import RenderStats
 from .rendererSettings import RendererSettings
 from ..shader import Shader
 from ..vertexArray import VertexArray
-from ..buffers import VertexBuffer, TextureBuffer
+from ..buffers import VertexBuffer, TextureBuffer, IndexBuffer
 from ..texturing.texture import Texture
 from ..rectangle import RectangleF
 from ...debugging import Debug, LogLevel
@@ -18,10 +18,15 @@ POS_VERTEX_SIZE = 3 * _GL_FLOAT_SIZE
 INSTANCE_DATA_VERTEX_SIZE = (4 + 2 + 1 + 16) * _GL_FLOAT_SIZE
 VERTEX_DATA_VERTEX_SIZE = 2 * _GL_FLOAT_SIZE
 
+VERTICES_PER_QUAD = 6
+
 WHITE_TEXTURE_SAMPLER = 14
 BUFFER_TEXTURE_SAMPLER = 15
 
 AVAILABLE_USER_TEXTURES_COUNT = RendererSettings.MaxTextures - 2
+
+POS_DATA_BUFFER_BINDING = 0
+INSTANCE_DATA_BUFFER_BINDING = 1
 
 class BasicRenderer(object):
 	__QuadVertices = [
@@ -38,35 +43,23 @@ class BasicRenderer(object):
 		self.shader.AddStage(GL.GL_FRAGMENT_SHADER, "spyke/graphics/shaderSources/basicInstanced.frag")
 		self.shader.Compile()
 
-		self.posVbo = VertexBuffer(POS_VERTEX_SIZE * 6, GL.GL_STATIC_DRAW)
+		self.posVbo = VertexBuffer(POS_VERTEX_SIZE * VERTICES_PER_QUAD, GL.GL_STATIC_DRAW)
 		self.instanceDataVbo = VertexBuffer(INSTANCE_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount)
-		self.vertexDataTbo = TextureBuffer(VERTEX_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount * 6, GL.GL_RG32F)
-		#self.vertexDataVbo = VertexBuffer(VERTEX_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount * 6)
+		self.vertexDataTbo = TextureBuffer(VERTEX_DATA_VERTEX_SIZE * RendererSettings.MaxQuadsCount * VERTICES_PER_QUAD, GL.GL_RG32F)
 
-		self.vao = VertexArray()
-		self.vao.Bind()
-
-		self.posVbo.Bind()
-		self.vao.SetVertexSize(POS_VERTEX_SIZE)
-		self.vao.ClearVertexOffset()
-		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), 3, GL.GL_FLOAT, False)
 		self.posVbo.AddData(BasicRenderer.__QuadVertices, len(BasicRenderer.__QuadVertices) * _GL_FLOAT_SIZE)
 
-		# self.vertexDataVbo.Bind()
-		# self.vao.SetVertexSize(VERTEX_DATA_VERTEX_SIZE)
-		# self.vao.ClearVertexOffset()
-		# self.vao.AddLayout(self.shader.GetAttribLocation("aTexCoord"), 2, GL.GL_FLOAT, False)
+		self.vao = VertexArray()
 
-		self.instanceDataVbo.Bind()
-		self.vao.SetVertexSize(INSTANCE_DATA_VERTEX_SIZE)
-		self.vao.ClearVertexOffset()
-		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), 4, GL.GL_FLOAT, False, 1)
-		self.vao.AddLayout(self.shader.GetAttribLocation("aTilingFactor"), 2, GL.GL_FLOAT, False, 1)
-		self.vao.AddLayout(self.shader.GetAttribLocation("aTexIdx"), 1, GL.GL_FLOAT, False, 1)
+		self.vao.BindVertexBuffer(POS_DATA_BUFFER_BINDING, self.posVbo.ID, 0, POS_VERTEX_SIZE)
+		self.vao.BindVertexBuffer(INSTANCE_DATA_BUFFER_BINDING, self.instanceDataVbo.ID, 0, INSTANCE_DATA_VERTEX_SIZE)
 
-		matLoc = self.shader.GetAttribLocation("aTransform")
-		for i in range(4):
-			self.vao.AddLayout(matLoc + i, 4, GL.GL_FLOAT, False, 1)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aPosition"), POS_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
+
+		self.vao.AddLayout(self.shader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False, 1)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aTilingFactor"), INSTANCE_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False, 1)
+		self.vao.AddLayout(self.shader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_FLOAT, False, 1)
+		self.vao.AddMatrixLayout(self.shader.GetAttribLocation("aTransform"), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GL.GL_FLOAT, False, 1)
 
 		self.__vertexData = []
 		self.__instanceData = []
@@ -104,10 +97,9 @@ class BasicRenderer(object):
 		self.vao.Bind()
 
 		self.instanceDataVbo.AddData(self.__instanceData, len(self.__instanceData) * _GL_FLOAT_SIZE)
-		#self.vertexDataVbo.AddData(self.__vertexData, len(self.__vertexData) * _GL_FLOAT_SIZE)
 		self.vertexDataTbo.AddData(self.__vertexData, len(self.__vertexData) * _GL_FLOAT_SIZE)
 
-		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, self.__vertexCount, self.__vertexCount // 6)
+		GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, self.__vertexCount, self.__vertexCount // VERTICES_PER_QUAD)
 
 		RenderStats.drawsCount += 1
 		RenderStats.vertexCount += self.__vertexCount
@@ -152,4 +144,4 @@ class BasicRenderer(object):
 		self.__instanceData.extend(instanceData)
 		
 		RenderStats.quadsCount += 1
-		self.__vertexCount += 6
+		self.__vertexCount += VERTICES_PER_QUAD

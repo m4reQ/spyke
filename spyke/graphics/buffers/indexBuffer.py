@@ -1,17 +1,17 @@
 from ..gl import GLObject, GLHelper
-from ...constants import _INT_SIZE, _NP_INT
+from ...constants import _INT_SIZE, _NP_INT, _GL_INDEX_TYPE_NUMPY_TYPE_MAP
 
 from OpenGL import GL
 import numpy as np
 
 class IndexBuffer(GLObject):
 	@staticmethod
-	def CreateQuadIndices(count: int) -> list:
+	def CreateQuadIndices(quadsCount: int) -> list:
 		data = []
 
 		offset = 0
 		i = 0
-		while i < count:
+		while i < quadsCount:
 			data.extend([
 				0 + offset,
 				1 + offset,
@@ -25,14 +25,13 @@ class IndexBuffer(GLObject):
 		
 		return data
 		
-	def __init__(self, data: list):
+	def __init__(self, data: list, indicesType: GL.GLenum):
 		super().__init__()
-		self.__size = len(data) * _INT_SIZE
+		self._size = len(data) * _INT_SIZE
 		self._id = GLHelper.CreateBuffer()
+		self._type = indicesType
 		
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self._id)
-		GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, self.__size, np.asarray(data, dtype=_NP_INT), GL.GL_STATIC_DRAW)
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
+		GL.glNamedBufferData(self._id, self._size, np.asarray(data, dtype=_GL_INDEX_TYPE_NUMPY_TYPE_MAP[indicesType]), GL.GL_STATIC_DRAW)
 	
 	def Bind(self) -> None:
 		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self._id)
@@ -46,4 +45,8 @@ class IndexBuffer(GLObject):
 		
 	@property
 	def Size(self):
-		return self.__size
+		return self._size
+	
+	@property
+	def Type(self):
+		return self._type
