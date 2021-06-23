@@ -11,8 +11,7 @@ uniform int uSamples;
 vec4 textureMultisample(sampler2DMS texSampler, vec2 coord, int samples)
 {
     vec4 color;
-    ivec2 texSize = textureSize(texSampler);
-    ivec2 texCoord = ivec2(coord * texSize);
+    ivec2 texCoord = ivec2(coord * textureSize(texSampler));
 
     for (int i = 0; i < samples; i++)
         color += texelFetch(texSampler, texCoord, i);

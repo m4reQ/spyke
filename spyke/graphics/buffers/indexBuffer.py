@@ -1,10 +1,12 @@
 from ..gl import GLObject, GLHelper
-from ...constants import _INT_SIZE, _NP_INT, _GL_INDEX_TYPE_NUMPY_TYPE_MAP
+from ...constants import _INT_SIZE, _GL_INDEX_TYPE_NUMPY_TYPE_MAP
 
 from OpenGL import GL
 import numpy as np
 
 class IndexBuffer(GLObject):
+	_BufferStorageFlags = 0
+
 	@staticmethod
 	def CreateQuadIndices(quadsCount: int) -> list:
 		data = []
@@ -28,16 +30,10 @@ class IndexBuffer(GLObject):
 	def __init__(self, data: list, indicesType: GL.GLenum):
 		super().__init__()
 		self._size = len(data) * _INT_SIZE
-		self._id = GLHelper.CreateBuffer()
 		self._type = indicesType
-		
-		GL.glNamedBufferData(self._id, self._size, np.asarray(data, dtype=_GL_INDEX_TYPE_NUMPY_TYPE_MAP[indicesType]), GL.GL_STATIC_DRAW)
-	
-	def Bind(self) -> None:
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self._id)
-	
-	def Unbind(self) -> None:
-		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
+		self._id = GLHelper.CreateBuffer()
+
+		GL.glNamedBufferStorage(self._id, self._size, np.asarray(data, dtype=_GL_INDEX_TYPE_NUMPY_TYPE_MAP[indicesType]), IndexBuffer._BufferStorageFlags)
 	
 	def Delete(self, removeRef: bool) -> None:
 		super().Delete(removeRef)

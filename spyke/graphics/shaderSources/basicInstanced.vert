@@ -1,5 +1,5 @@
 #version 450 core
-const int VERTICES_PER_INSTANCE = 6;
+const int VERTICES_PER_INSTANCE = 4;
 
 layout(location=0) in vec3 aPosition;
 

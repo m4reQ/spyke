@@ -5,15 +5,17 @@ from OpenGL import GL
 import numpy as np
 
 class TextureBuffer(GLObject):
+	_BufferUsageFlags = GL.GL_DYNAMIC_STORAGE_BIT
+	
 	def __init__(self, size: int, format: GL.GLenum, usage = GL.GL_STREAM_DRAW):
 		super().__init__()
 		
-		self.__size = size
+		self._size = size
 
 		self._id = GLHelper.CreateBuffer()
 		self._texId = GLHelper.CreateTexture(GL.GL_TEXTURE_BUFFER)
 
-		GL.glNamedBufferData(self._id, size, None, usage)
+		GL.glNamedBufferStorage(self._id, size, None, TextureBuffer._BufferUsageFlags)
 		GL.glTextureBuffer(self._texId, format, self._id)
 	
 	def AddData(self, data: list, size: int) -> None:
@@ -26,7 +28,7 @@ class TextureBuffer(GLObject):
 	
 	@property
 	def Size(self):
-		return self.__size
+		return self._size
 	
 	@property
 	def TextureID(self):

@@ -1,4 +1,3 @@
-#region Import
 from .basicRenderer import BasicRenderer
 from .postRenderer import PostRenderer
 from .particleRenderer import ParticleRenderer
@@ -9,7 +8,6 @@ from ..screenInfo import ScreenInfo
 from ..contextInfo import ContextInfo
 from ...constants import USE_FAST_NV_MULTISAMPLE, _GL_FLOAT_SIZE
 from ...enums import Hint, Vendor, Keys
-from ...utils import Static
 from ...ecs import components
 from ...debugging import Debug, LogLevel
 from ...input import EventHook, EventHandler
@@ -20,60 +18,60 @@ import glm
 import time
 import numpy as np
 import os
-import ctypes
-#endregion
 
 UNIFORM_BLOCK_SIZE = 16 * _GL_FLOAT_SIZE
 UNIFORM_BLOCK_INDEX = 0
 
+SCREENSHOT_DIRECTORY = "screenshots"
+
 ######################################################
 # RESTORE PARTICLE RENDERER (REFACTORIZE IT)
 
-class Renderer(Static):
-	__BasicRenderer: BasicRenderer = None
-	__ParticleRenderer: ParticleRenderer = None
-	__PostRenderer: PostRenderer = None
-
-	__Ubo: UniformBuffer = None
-	__Framebuffer: Framebuffer = None
-
-	__Initialized = False
-
+class _Renderer(object):
+	@staticmethod
 	def __PolygonModeGeneratorFn():
 		while True:
 			yield GL.GL_LINE
 			yield GL.GL_POINT
 			yield GL.GL_FILL
-	
-	__PolygonModeGenerator = __PolygonModeGeneratorFn()
+			
+	def __init__(self):
+		self.basicRenderer: BasicRenderer = None
+		self.particleRenderer: ParticleRenderer = None
+		self.postRenderer: PostRenderer = None
 
-	def Initialize(initialWidth: int, initialHeight: int) -> None:
-		if Renderer.__Initialized:
+		self.ubo: UniformBuffer = None
+		self.framebuffer: Framebuffer = None
+
+		self._isInitialized = False
+
+		self._polygonModeGenerator = _Renderer.__PolygonModeGeneratorFn()
+
+	def Initialize(self, initialWidth: int, initialHeight: int, samples: int) -> None:
+		if self._isInitialized:
 			Debug.Log("Master renderer already initialized.", LogLevel.Warning)
 			return
-		
-		if not os.path.exists(RendererSettings.ScreenCaptureDirectory):
-			os.mkdir(RendererSettings.ScreenCaptureDirectory)
 
-		Renderer.__BasicRenderer = BasicRenderer()
-		# Renderer.__ParticleRenderer = ParticleRenderer()
-		Renderer.__PostRenderer = PostRenderer()
-		
-		Renderer.__Ubo = UniformBuffer(UNIFORM_BLOCK_SIZE)
+		self.basicRenderer = BasicRenderer()
+		self.postRenderer = PostRenderer()
+
+		self.ubo = UniformBuffer(UNIFORM_BLOCK_SIZE)
 
 		fbSpec = FramebufferSpec(initialWidth, initialHeight)
-		fbSpec.color = glm.vec4(1.0, 0.0, 1.0, 1.0)
+		fbSpec.color = glm.vec4(1.0)
 		fbSpec.attachmentsSpecs = [
-			FramebufferColorTexture(FramebufferTextureFormat.Rgba8),
-			FramebufferDepthTexture(True)]
+			FramebufferColorTexture(FramebufferTextureFormat.Rgba8, samples),
+			FramebufferDepthTexture(False)
+		]
 
-		Renderer.__Framebuffer = Framebuffer(fbSpec)
+		self.framebuffer = Framebuffer(fbSpec)
 
-		Renderer.__BasicRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
-		# Renderer.__ParticleRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
-		Renderer.__PostRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+		self.basicRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+		self.postRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
+		self.ubo.BindToUniform(UNIFORM_BLOCK_INDEX)
 
-		Renderer.__Ubo.BindToUniform(UNIFORM_BLOCK_INDEX)
+		if not os.path.exists(SCREENSHOT_DIRECTORY):
+			os.mkdir(SCREENSHOT_DIRECTORY)
 
 		if RendererSettings.MultisamplingEnabled:
 			GL.glEnable(GL.GL_MULTISAMPLE)
@@ -89,45 +87,44 @@ class Renderer(Static):
 
 		GL.glEnable(GL.GL_DEPTH_TEST)
 		GL.glDepthFunc(GL.GL_LEQUAL)
-		
+			
 		GL.glCullFace(GL.GL_FRONT)
 		GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
-		GL.glPointSize(3.0)
+		GL.glPointSize(4.0)
 
-		# lineWidth = 2.0
-		# lineRange = GL.glGetFloatv(GL.GL_LINE_WIDTH_RANGE)
-		# if lineWidth <= lineRange[1] and lineWidth >= lineRange[0]:
-		# 	GL.glLineWidth(lineWidth)
+		GL.glEnable(GL.GL_LINE_SMOOTH)
 
 		GL.glClearColor(0.0, 0.0, 0.0, 1.0)
 
 		GL.glScissor(0, 0, initialWidth, initialHeight)
 		GL.glViewport(0, 0, initialWidth, initialHeight)
 
-		EventHandler.WindowResize += EventHook(Renderer.ResizeCallback, -1)
-		EventHandler.KeyDown += EventHook(Renderer.KeyDownCallback, -1)
+		EventHandler.WindowResize += EventHook(self.__ResizeCallback, -1)
+		EventHandler.KeyDown += EventHook(self.__KeyDownCallback, -1)
 
-		Renderer.__Initialized = True
+		self._isInitialized = True
 
 		Debug.GetGLError()
 		Debug.Log("Master renderer fully initialized.", LogLevel.Info)
 
-	def ClearScreen() -> None:
-		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+	def ClearScreen(self) -> None:
+		clearMask = GL.GL_COLOR_BUFFER_BIT
+		if self.framebuffer.GetDepthAttachment():
+			clearMask |= GL.GL_DEPTH_BUFFER_BIT
+	
+		GL.glClear(clearMask)
 
-	def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
+	def RenderScene(self, scene, viewProjectionMatrix: glm.mat4) -> None:
 		RenderStats.Clear()
 
-		Renderer.__Ubo.Bind()
-
+		self.ubo.Bind()
 		data = list(viewProjectionMatrix[0]) + list(viewProjectionMatrix[1]) + list(viewProjectionMatrix[2]) + list(viewProjectionMatrix[3])
+		self.ubo.AddData(data, len(data) * _GL_FLOAT_SIZE)
 
-		Renderer.__Ubo.AddData(data, len(data) * _GL_FLOAT_SIZE)
-
-		#Renderer.__Framebuffer.Bind()
-	
-		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+		# self.framebuffer.Bind()
+		
+		self.ClearScreen()
 
 		drawables = [x[1] for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
 		opaque = [x for x in drawables if x[0].color.w == 1.0]
@@ -136,12 +133,12 @@ class Renderer(Static):
 		alpha.sort(key = lambda x: x[0].color.w, reverse = True)
 
 		for (sprite, transform) in opaque:
-			Renderer.__BasicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
-		Renderer.__BasicRenderer.EndScene()
+			self.basicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
+		self.basicRenderer.EndScene()
 
 		GL.glDisable(GL.GL_DEPTH_TEST)
 		for (sprite, transform) in alpha:
-			Renderer.__BasicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
+			self.basicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
 	
 		transformNp = np.zeros((4, 4))
 		transformNp[3, 3] = 1.0
@@ -165,9 +162,9 @@ class Renderer(Static):
 				transformNp[0, 0] = scWidth
 				transformNp[1, 1] = scHeight
 
-				Renderer.__BasicRenderer.RenderQuad(glm.mat4(transformNp), text.color, text.font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
+				self.basicRenderer.RenderQuad(glm.mat4(transformNp), text.color, text.font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
 			
-		Renderer.__BasicRenderer.EndScene()
+		self.basicRenderer.EndScene()
 		GL.glEnable(GL.GL_DEPTH_TEST)
 
 		# for _, system in scene.GetComponent(components.ParticleSystemComponent):
@@ -175,23 +172,22 @@ class Renderer(Static):
 		# 		if particle.isAlive:
 		# 			Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
 
-		# Renderer.__TextRenderer.EndScene()
 		# Renderer.__ParticleRenderer.EndScene()
 
-		#Renderer.__Framebuffer.Unbind()
+		# self.framebuffer.Unbind()
 
-		#GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-
-		#Renderer.__PostRenderer.Render(glm.vec3(0.0, 0.0, 0.0), glm.vec3(1.0, 1.0, 0.0), glm.vec3(0.0), Renderer.__Framebuffer, passIdx=0)
+		# GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+		# # Renderer.__PostRenderer.Render(glm.vec3(0.0, 0.0, 0.0), glm.vec3(1.0, 1.0, 0.0), glm.vec3(0.0), Renderer.__Framebuffer, passIdx=0)
+		# self.postRenderer.RenderFullscreen(self.framebuffer, passIdx=0)
 		
 		RenderStats.FrameEnded = True
 	
-	def KeyDownCallback(key: int, _, repeated: bool) -> bool:
+	def __KeyDownCallback(self, key: int, _, repeated: bool) -> bool:
 		if repeated:
 			return False
 
 		if key == Keys.KeyGrave:
-			mode = next(Renderer.__PolygonModeGenerator)
+			mode = next(self._polygonModeGenerator)
 
 			GL.glPolygonMode(GL.GL_FRONT_AND_BACK, mode)
 			
@@ -202,15 +198,15 @@ class Renderer(Static):
 			elif mode == GL.GL_POINT:
 				Debug.Log("Renderer drawing mode set to: POINTS", LogLevel.Info)
 		elif key == Keys.KeyF1:
-			Renderer.CaptureFrame()
+			self.CaptureFrame()
 
 		return False
 
-	def ResizeCallback(width: int, height: int) -> bool:
+	def __ResizeCallback(self, width: int, height: int) -> bool:
 		GL.glScissor(0, 0, width, height)
 		GL.glViewport(0, 0, width, height)
 
-		Renderer.__Framebuffer.Resize(width, height)
+		self.framebuffer.Resize(width, height)
 
 		return False
 	
@@ -223,6 +219,8 @@ class Renderer(Static):
 		img = Image.frombytes("RGB", (ScreenInfo.width, ScreenInfo.height), pixels)
 		img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
-		filename = os.path.join(RendererSettings.ScreenCaptureDirectory, "screenshot_" + str(int(time.time()))) + ".jpg"
+		filename = os.path.join(SCREENSHOT_DIRECTORY, "screenshot_" + str(int(time.time()))) + ".jpg"
 		img.save(filename, "JPEG")
 		Debug.Log(f"Screenshot was saved as '{filename}'.", LogLevel.Info)
+	
+Renderer = _Renderer()

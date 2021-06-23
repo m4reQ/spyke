@@ -1,23 +1,14 @@
 from ...constants import _NP_FLOAT
-from ..gl import GLObject, GLHelper
+from .aBuffer import ABuffer
 
 from OpenGL import GL
 import numpy as np
 
-class UniformBuffer(GLObject):
+class UniformBuffer(ABuffer):
+	_BufferStorageFlags = GL.GL_DYNAMIC_STORAGE_BIT
+
 	def __init__(self, size: int, usage = GL.GL_STREAM_DRAW):
-		super().__init__()
-		self._id = GLHelper.CreateBuffer()
-		
-		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._id)
-		GL.glBufferData(GL.GL_UNIFORM_BUFFER, size, None, usage)
-		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, 0)
-
-		self.__size = size
-
-	def Delete(self, removeRef: bool):
-		super().Delete(removeRef)
-		GL.glDeleteBuffers(1, [self._id])
+		super().__init__(size, None, _NP_FLOAT, UniformBuffer._BufferStorageFlags)
 
 	def Bind(self):
 		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._id)
@@ -27,7 +18,3 @@ class UniformBuffer(GLObject):
 
 	def AddData(self, data: list, size: int) -> None:
 		GL.glNamedBufferSubData(self._id, 0, size, np.asarray(data, dtype=_NP_FLOAT))
-
-	@property
-	def Size(self):
-		return self.__size

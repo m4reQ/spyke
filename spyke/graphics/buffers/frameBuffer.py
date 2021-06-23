@@ -2,6 +2,7 @@ from ...debugging import Debug, LogLevel
 from ..gl import GLObject
 
 from OpenGL import GL
+from enum import Enum
 import glm
 
 _ATTACHMENT_TARGET_MAP = {
@@ -12,6 +13,8 @@ _ATTACHMENT_TARGET_MAP = {
 }
 
 class FramebufferTextureFormat:
+	R8 = GL.GL_R8
+	R8UI = GL.GL_R8UI
 	Rgba8 = GL.GL_RGBA8
 	Depth24Stencil8 = GL.GL_DEPTH24_STENCIL8
 	Depth = Depth24Stencil8

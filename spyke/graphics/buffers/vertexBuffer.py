@@ -1,27 +1,20 @@
-from ..gl import GLObject, GLHelper
-from ...constants import _NP_FLOAT
+from .aVertexBuffer import AVertexBuffer
+from ...constants import _NP_FLOAT, _GL_FLOAT_SIZE
 
 from OpenGL import GL
 import numpy as np
 
-class VertexBuffer(GLObject):
-	def __init__(self, size: int, usage = GL.GL_STREAM_DRAW):
-		super().__init__()
-		self.__size = size
-		self._id = GLHelper.CreateBuffer()
+class StaticVertexBuffer(AVertexBuffer):
+	_BufferUsageFlags = 0
 
-		GL.glNamedBufferData(self._id, self.__size, None, usage)
-
-	def Bind(self) -> None:
-		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._id)
+	def __init__(self, data: list):
+		super().__init__(len(data) * _GL_FLOAT_SIZE, data, StaticVertexBuffer._BufferUsageFlags)
 	
-	def Delete(self, removeRef: bool) -> None:
-		super().Delete(removeRef)
-		GL.glDeleteBuffers(1, [self._id])
+class VertexBuffer(AVertexBuffer):
+	_BufferUsageFlags = GL.GL_DYNAMIC_STORAGE_BIT
 
-	def AddData(self, data: list, size: int) -> None:
+	def __init__(self, size: int, data=None):
+		super().__init__(size, data, VertexBuffer._BufferUsageFlags)
+	
+	def AddData(self, data: int, size: int) -> None:
 		GL.glNamedBufferSubData(self._id, 0, size, np.asarray(data, dtype=_NP_FLOAT))
-	
-	@property
-	def Size(self):
-		return self.__size

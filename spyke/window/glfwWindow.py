@@ -63,7 +63,7 @@ class GlfwWindow(object):
 
 		self.positionX, self.positionY = glfw.get_window_pos(self.__handle)
 
-		Renderer.Initialize(ScreenInfo.width, ScreenInfo.height)
+		Renderer.Initialize(ScreenInfo.width, ScreenInfo.height, specification.samples)
 
 		self.OnLoad()
 

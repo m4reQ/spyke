@@ -7,7 +7,7 @@ class RendererSettings:
     here if it is necessary.
     """
 
-    MaxQuadsCount = 300
+    MaxQuadsCount = 400
     """
     Max quads count that can be renderer within one batch.
     """
