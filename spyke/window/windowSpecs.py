@@ -9,3 +9,4 @@ class WindowSpecs(object):
 		self.fullscreen = False
 		self.borderless = False
 		self.cursorVisible = True
+		self.iconFilepath = ""

@@ -6,12 +6,13 @@ from ..graphics.screenInfo import ScreenInfo
 from ..graphics.gl import GLMarshal
 from ..input.eventHandler import EventHandler
 from ..debugging import Debug, LogLevel
-from ..exceptions import GraphicsException
+from ..exceptions import GraphicsException, NovaException
 from ..imgui import ImGui
-from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR
+from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
 from .windowSpecs import WindowSpecs
 
-import time, sys, atexit, glfw
+import time, sys, atexit, glfw, os
+from PIL import Image
 
 from spyke.input import eventHandler
 #endregion
@@ -58,6 +59,15 @@ class GlfwWindow(object):
 		glfw.set_key_callback(self.__handle, self.__KeyCb)
 		glfw.set_window_pos_callback(self.__handle, self.__WindowPosCallback)
 		glfw.set_window_focus_callback(self.__handle, self.__WindowFocusCallback)
+
+		#set icon
+		if specification.iconFilepath:
+			if not os.path.endswith(".ico"):
+				raise NovaException(f"Invalid icon extension: {os.path.splitext(specification.iconFilepath)}.")
+			
+			self.__LoadIcon(specification.iconFilepath)
+		else:
+			self.__LoadIcon(DEFAULT_ICON_FILEPATH)
 
 		self.SetVsync(specification.vsync)
 
@@ -114,7 +124,7 @@ class GlfwWindow(object):
 			self.frameTime = glfw.get_time() - start
 		
 		self.OnClose()
-		self._DefClose()
+		self.__DefClose()
 	
 	def __GlfwErrorCb(self, code: int, message: str) -> None:
 		raise GraphicsException(f"GLFW error: {message}")
@@ -168,8 +178,13 @@ class GlfwWindow(object):
 			EventHandler.KeyDown.Invoke(key, mods, True)
 		elif action == glfw.RELEASE:
 			EventHandler.KeyUp.Invoke(key)
+	
+	def __LoadIcon(self, filepath: str) -> None:
+		img = Image.open(filepath)
+		glfw.set_window_icon(self.__handle, 1, img)
+		img.close()
 
-	def _DefClose(self):
+	def __DefClose(self):
 		atexit.unregister(GLMarshal.ReleaseAll)
 		GLMarshal.ReleaseAll()
 
