@@ -1,4 +1,4 @@
-from ..debugging import Debug
+from ..debugging import Debug, LogLevel
 from .gl import GLObject, GLHelper
 from ..constants import _GL_TYPE_SIZE_MAP
 
@@ -15,7 +15,7 @@ class VertexArray(GLObject):
 	
 	def BindVertexBuffer(self, bindingIndex: int, bufferId: int, offset: int, stride: int) -> None:
 		if bindingIndex in self._bindings:
-			Debug.Log(f"Vertex buffer binding already exists at binding point {bindingIndex}. This binding will be overwritten by buffer with id {bufferId}.")
+			Debug.Log(f"Vertex buffer binding already exists at binding point {bindingIndex}. This binding will be overwritten by buffer with id {bufferId}.", LogLevel.Info)
 		self._bindings[bindingIndex] = bufferId
 
 		GL.glVertexArrayVertexBuffer(self._id, bindingIndex, bufferId, offset, stride)

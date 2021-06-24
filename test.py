@@ -71,8 +71,14 @@ class Window(GlfwWindow):
 
 		ecs.Scene.Current.CreateEntity(
 			ecs.components.TagComponent("tex"),
-			ecs.components.TransformComponent(Vector3(-0.3, -0.3, 0.0), Vector3(0.5, 0.5, 0.0), Vector3(0.0)),
+			ecs.components.TransformComponent(Vector3(-0.3, -0.3, 0.0), Vector3(1.0, 0.8, 0.0), Vector3(0.0)),
 			ecs.components.SpriteComponent("Tests/test1.jpg", Vector2(1.0), Color(1.0, 1.0, 1.0, 1.0))
+		)
+
+		ecs.Scene.Current.CreateEntity(
+			ecs.components.TagComponent("texLarge"),
+			ecs.components.TransformComponent(Vector3(-1.0, -1.0, 0.0), Vector3(1.2, 0.9, 0.0), Vector3(0.0)),
+			ecs.components.SpriteComponent("Tests/test3.jpg", Vector2(1.0), Color(0.0, 1.0, 1.0, 0.7))
 		)
 
 		ecs.Scene.Current.CreateEntity(
@@ -125,7 +131,7 @@ class Window(GlfwWindow):
 			self.camera.RecalculateMatrices()
 
 		ecs.Scene.Current.Process(dt = self.frameTime)
-		#Renderer.RenderScene(ecs.Scene.Current, self.camera.viewProjectionMatrix)
+		# Renderer.RenderScene(ecs.Scene.Current, self.camera.viewProjectionMatrix)
 		Renderer.RenderScene(ecs.Scene.Current, Matrix4(1.0))
 
 		self.SetTitle(f"{self.baseTitle} | FrameTime: {self.frameTime:.5F} | FPS: {int(1 / self.frameTime)}")

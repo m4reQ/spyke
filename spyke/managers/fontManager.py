@@ -16,6 +16,7 @@ class FontManager:
 		tSpec.magFilter = GL.GL_NEAREST
 		tSpec.mipmaps = 1
 		tSpec.wrapMode = GL.GL_CLAMP_TO_EDGE
+		tSpec.compress = False
 
 		texture = TextureManager.LoadTexture(imageFilepath, tSpec)
 		font = Font(fontFilepath, texture)

@@ -4,7 +4,7 @@ in vec2 vTexCoord;
 in vec4 vColor;
 in float vTexIdx;
 
-out vec4 Color;
+layout(location = 0) out vec4 Color;
 
 uniform sampler2DArray uTexture;
 

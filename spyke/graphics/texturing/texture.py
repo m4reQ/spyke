@@ -14,13 +14,17 @@ class TextureData(object):
 		self.format = GL.GL_RGB
 
 class TextureSpec(object):
-    def __init__(self):
-        self.mipmaps = 2
-        self.minFilter = GL.GL_LINEAR_MIPMAP_LINEAR
-        self.magFilter = GL.GL_LINEAR
-        self.wrapMode = GL.GL_REPEAT
+	def __init__(self):
+		self.mipmaps = 2
+		self.minFilter = GL.GL_LINEAR_MIPMAP_LINEAR
+		self.magFilter = GL.GL_LINEAR
+		self.wrapMode = GL.GL_REPEAT
+		self.compress = True
 		
 class Texture(GLObject):
+	_InternalFormat = GL.GL_RGBA8
+	_CompressedInternalFormat = GL.GL_COMPRESSED_RGBA
+
 	def __init__(self, tData: TextureData, tSpec: TextureSpec):
 		start = time.perf_counter()
 
@@ -30,7 +34,10 @@ class Texture(GLObject):
 		self.height = tData.height
 
 		self._id = GLHelper.CreateTexture(GL.GL_TEXTURE_2D)
-		GL.glTextureStorage2D(self._id, tSpec.mipmaps, GL.GL_RGBA8, tData.width, tData.height)
+
+		_format = Texture._CompressedInternalFormat if tSpec.compress else Texture._InternalFormat
+
+		GL.glTextureStorage2D(self._id, tSpec.mipmaps, _format, tData.width, tData.height)
 		
 		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_WRAP_S, tSpec.wrapMode)
 		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_WRAP_T, tSpec.wrapMode)

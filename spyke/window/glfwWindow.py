@@ -120,10 +120,12 @@ class GlfwWindow(object):
 		raise GraphicsException(f"GLFW error: {message}")
 
 	def __ResizeCb(self, _, width, height):
-		ScreenInfo.Width = width
-		ScreenInfo.Height = height
+		ScreenInfo.width = width
+		ScreenInfo.height = height
 
 		EventHandler.WindowResize.Invoke(width, height)
+
+		Debug.Log(f"Window resized to ({width}, {height})", LogLevel.Info)
 	
 	def __WindowFocusCallback(self, _, value):
 		if value:

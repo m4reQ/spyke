@@ -22,6 +22,8 @@ import os
 UNIFORM_BLOCK_SIZE = 16 * _GL_FLOAT_SIZE
 UNIFORM_BLOCK_INDEX = 0
 
+DEFAULT_RENDER_COLOR_ATTACHMENT = 0
+
 SCREENSHOT_DIRECTORY = "screenshots"
 
 ######################################################
@@ -59,9 +61,17 @@ class _Renderer(object):
 
 		fbSpec = FramebufferSpec(initialWidth, initialHeight)
 		fbSpec.color = glm.vec4(1.0)
-		fbSpec.attachmentsSpecs = [
-			FramebufferColorTexture(FramebufferTextureFormat.Rgba8, samples),
-			FramebufferDepthTexture(False)
+		fbSpec.samples = samples
+
+		colorAttachmentSpec = FramebufferAttachmentSpec(FramebufferTextureFormat.Rgba)
+		
+		depthAttachmentSpec = FramebufferAttachmentSpec(FramebufferTextureFormat.Depth24Stencil8)
+		depthAttachmentSpec.minFilter = GL.GL_NEAREST
+		depthAttachmentSpec.magFilter = GL.GL_NEAREST
+
+		fbSpec.attachmentSpecs = [
+			colorAttachmentSpec,
+			depthAttachmentSpec
 		]
 
 		self.framebuffer = Framebuffer(fbSpec)
@@ -82,6 +92,8 @@ class _Renderer(object):
 				else:
 					GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)
 		
+		GL.glHint(GL.GL_TEXTURE_COMPRESSION_HINT, GL.GL_NICEST)
+		
 		GL.glEnable(GL.GL_BLEND)
 		GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
 
@@ -101,6 +113,7 @@ class _Renderer(object):
 		GL.glViewport(0, 0, initialWidth, initialHeight)
 
 		EventHandler.WindowResize += EventHook(self.__ResizeCallback, -1)
+		EventHandler.WindowResize += EventHook(self.framebuffer.Resize, -1)
 		EventHandler.KeyDown += EventHook(self.__KeyDownCallback, -1)
 
 		self._isInitialized = True
@@ -109,22 +122,19 @@ class _Renderer(object):
 		Debug.Log("Master renderer fully initialized.", LogLevel.Info)
 
 	def ClearScreen(self) -> None:
-		clearMask = GL.GL_COLOR_BUFFER_BIT
-		if self.framebuffer.GetDepthAttachment():
-			clearMask |= GL.GL_DEPTH_BUFFER_BIT
-	
-		GL.glClear(clearMask)
+		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
 	def RenderScene(self, scene, viewProjectionMatrix: glm.mat4) -> None:
 		RenderStats.Clear()
 
-		self.ubo.Bind()
 		data = list(viewProjectionMatrix[0]) + list(viewProjectionMatrix[1]) + list(viewProjectionMatrix[2]) + list(viewProjectionMatrix[3])
 		self.ubo.AddData(data, len(data) * _GL_FLOAT_SIZE)
 
-		# self.framebuffer.Bind()
+		self.ubo.Bind()
+
+		self.framebuffer.Bind()
 		
-		self.ClearScreen()
+		GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
 		drawables = [x[1] for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
 		opaque = [x for x in drawables if x[0].color.w == 1.0]
@@ -165,7 +175,7 @@ class _Renderer(object):
 				self.basicRenderer.RenderQuad(glm.mat4(transformNp), text.color, text.font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
 			
 		self.basicRenderer.EndScene()
-		GL.glEnable(GL.GL_DEPTH_TEST)
+		
 
 		# for _, system in scene.GetComponent(components.ParticleSystemComponent):
 		# 	for particle in system.particlePool:
@@ -174,11 +184,14 @@ class _Renderer(object):
 
 		# Renderer.__ParticleRenderer.EndScene()
 
-		# self.framebuffer.Unbind()
+		self.framebuffer.Unbind()
 
-		# GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-		# # Renderer.__PostRenderer.Render(glm.vec3(0.0, 0.0, 0.0), glm.vec3(1.0, 1.0, 0.0), glm.vec3(0.0), Renderer.__Framebuffer, passIdx=0)
-		# self.postRenderer.RenderFullscreen(self.framebuffer, passIdx=0)
+		GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+		GL.glViewport(0, 0, ScreenInfo.width, ScreenInfo.height)
+
+		self.postRenderer.RenderFullscreen(self.framebuffer, self.framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
+
+		GL.glEnable(GL.GL_DEPTH_TEST)
 		
 		RenderStats.FrameEnded = True
 	

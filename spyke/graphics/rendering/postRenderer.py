@@ -14,9 +14,10 @@ VERTICES_PER_QUAD = 4
 
 VERTEX_DATA_BUFFER_BINDING = 0
 
-class PostRenderer(object):
-	__VertexCount = 4
+NORMAL_TEXTURE_SAMPLER_INDEX = 0
+MULTISAMPLE_TEXTURE_SAMPLER_INDEX = 1
 
+class PostRenderer(object):
 	QuadVertices = [
 		glm.vec4(0.0, 0.0, 0.0, 1.0),
 		glm.vec4(0.0, 1.0, 0.0, 1.0),
@@ -29,7 +30,7 @@ class PostRenderer(object):
 		self.shader.AddStage(GL.GL_FRAGMENT_SHADER, "spyke/graphics/shaderSources/post.frag")
 		self.shader.Compile()
 
-		self.vbo = VertexBuffer(VERTEX_SIZE * PostRenderer.__VertexCount)
+		self.vbo = VertexBuffer(VERTEX_SIZE * VERTICES_PER_QUAD * 1)
 		self.ibo = IndexBuffer(IndexBuffer.CreateQuadIndices(1), GL.GL_UNSIGNED_BYTE)
 
 		self.vao = VertexArray()
@@ -42,25 +43,26 @@ class PostRenderer(object):
 
 		self._vertexData = []
 		self._samplesToRender = 0
-		self._attachmentIdToRender = 0
+		self._textureIdToRender = 0
 
 		self.shader.Validate()
 		Debug.GetGLError()
 		Debug.Log("Post processing renderer initialized succesfully.", LogLevel.Info)
 
-	def RenderFullscreen(self, framebuffer: Framebuffer, passIdx=0) -> None:
+	def RenderFullscreen(self, framebuffer: Framebuffer, attachmentTextureId: int) -> None:
+		color = framebuffer.specification.color
 		self._vertexData = [
-			0.0, 0.0, 0.0, 0.0, 0.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
-			0.0, 1.0, 0.0, 0.0, 1.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
-			1.0, 1.0, 0.0, 1.0, 1.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
-			1.0, 0.0, 0.0, 1.0, 0.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w]
+			0.0, 0.0, 0.0, color.x, color.y, color.z, color.w, 0.0, 0.0, 
+			0.0, 1.0, 0.0, color.x, color.y, color.z, color.w, 0.0, 1.0, 
+			1.0, 1.0, 0.0, color.x, color.y, color.z, color.w, 1.0, 1.0, 
+			1.0, 0.0, 0.0, color.x, color.y, color.z, color.w, 1.0, 0.0]
 		
-		self._samplesToRender = framebuffer.spec.attachmentsSpecs[passIdx].samples
-		self._attachmentIdToRender = framebuffer.GetColorAttachment(passIdx)
+		self._samplesToRender = framebuffer.specification.samples
+		self._textureIdToRender = attachmentTextureId
 
 		self.__Flush()
 
-	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer, passIdx = 0) -> None:
+	def Render(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3, framebuffer: Framebuffer, attachmentTextureId: int) -> None:
 		transform = glm.translate(glm.mat4(1.0), pos)
 		transform = glm.rotate(transform, rotation.x, glm.vec3(1.0, 0.0, 0.0))
 		transform = glm.rotate(transform, rotation.y, glm.vec3(0.0, 1.0, 0.0))
@@ -73,14 +75,15 @@ class PostRenderer(object):
 			transform * PostRenderer.QuadVertices[2],
 			transform * PostRenderer.QuadVertices[3]]
 
+		color = framebuffer.specification.color
 		self._vertexData = [
-			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, 0.0, 0.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
-			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, 0.0, 1.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
-			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, 1.0, 1.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w,
-			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, 1.0, 0.0, framebuffer.spec.color.x, framebuffer.spec.color.y, framebuffer.spec.color.z, framebuffer.spec.color.w]
+			translatedVerts[0].x, translatedVerts[0].y, translatedVerts[0].z, color.x, color.y, color.z, color.w, 0.0, 0.0, 
+			translatedVerts[1].x, translatedVerts[1].y, translatedVerts[1].z, color.x, color.y, color.z, color.w, 0.0, 1.0, 
+			translatedVerts[2].x, translatedVerts[2].y, translatedVerts[2].z, color.x, color.y, color.z, color.w, 1.0, 1.0, 
+			translatedVerts[3].x, translatedVerts[3].y, translatedVerts[3].z, color.x, color.y, color.z, color.w, 1.0, 0.0]
 		
-		self._samplesToRender = framebuffer.spec.attachmentsSpecs[passIdx].samples
-		self._attachmentIdToRender = framebuffer.GetColorAttachment(passIdx)
+		self._samplesToRender = framebuffer.specification.samples
+		self._textureIdToRender = attachmentTextureId
 
 		self.__Flush()
 
@@ -89,18 +92,14 @@ class PostRenderer(object):
 
 		self.shader.SetUniform1i("uSamples", self._samplesToRender)
 
-		if self._samplesToRender > 1:
-			GL.glBindTextureUnit(1, self._attachmentIdToRender)
-			GL.glBindTexture(GL.GL_TEXTURE_2D_MULTISAMPLE, self._attachmentIdToRender)
-		else:
-			GL.glBindTextureUnit(0, self._attachmentIdToRender)
-			GL.glBindTexture(GL.GL_TEXTURE_2D, self._attachmentIdToRender)
-
+		sampler = MULTISAMPLE_TEXTURE_SAMPLER_INDEX if self._samplesToRender > 1 else NORMAL_TEXTURE_SAMPLER_INDEX
+		GL.glBindTextureUnit(sampler, self._textureIdToRender)
+		
 		self.vbo.AddData(self._vertexData, len(self._vertexData) * _GL_FLOAT_SIZE)
 		
 		self.vao.Bind()
 		
-		GL.glDrawElements(GL.GL_TRIANGLES, VERTICES_PER_QUAD, self.ibo.Type, None)
+		GL.glDrawElements(GL.GL_TRIANGLES, 6, self.ibo.Type, None)
 
 		RenderStats.drawsCount += 1
 		RenderStats.quadsCount += 1

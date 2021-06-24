@@ -108,15 +108,20 @@ class BasicRenderer(object):
 		self.__vertexCount = 0
 		self.__lastTexture = 0
 		
-	def RenderQuad(self, transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2, texRect: RectangleF = RectangleF.One()):
+	def RenderQuad(self, transform: glm.mat4, color: glm.vec4, texture: Texture or int, tilingFactor: glm.vec2, texRect: RectangleF = RectangleF.One()):
 		if RenderStats.quadsCount >= RendererSettings.MaxQuadsCount:
 			self.__Flush()
 
 		texIdx = WHITE_TEXTURE_SAMPLER
 
+		if isinstance(texture, Texture):
+			tId = texture.ID
+		else:
+			tId = texture
+
 		if texture:
 			for i in range(self.__lastTexture):
-				if self.__textures[i] == texture.ID:
+				if self.__textures[i] == tId:
 					texIdx = i
 					break
 			
@@ -125,7 +130,7 @@ class BasicRenderer(object):
 					self.__Flush()
 				
 				texIdx = self.__lastTexture
-				self.__textures[self.__lastTexture] = texture.ID
+				self.__textures[self.__lastTexture] = tId
 				self.__lastTexture += 1
 
 		vertexData = [

@@ -27,6 +27,6 @@ class GLHelper:
     @staticmethod
     def CreateFramebuffer() -> int:
         _id = GL.GLint()
-        GL.glCreateFrameBuffers(1, _id)
+        GL.glCreateFramebuffers(1, _id)
 
         return _id.value
