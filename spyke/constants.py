@@ -16,8 +16,12 @@ _MAIN_PROCESS = None
 
 _GL_FLOAT_SIZE = ctypes.sizeof(ctypes.c_float)
 _GL_INT_SIZE = ctypes.sizeof(ctypes.c_int)
+
 _FLOAT_SIZE = ctypes.sizeof(ctypes.c_float)
 _INT_SIZE = ctypes.sizeof(ctypes.c_int)
+
+_C_FLOAT_P = ctypes.POINTER(ctypes.c_float)
+_C_INT_P = ctypes.POINTER(ctypes.c_int)
 
 _NP_BYTE = np.int8
 _NP_INT = np.int32

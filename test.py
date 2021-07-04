@@ -77,7 +77,7 @@ class Window(GlfwWindow):
 
 		ecs.Scene.Current.CreateEntity(
 			ecs.components.TagComponent("texLarge"),
-			ecs.components.TransformComponent(Vector3(-1.0, -1.0, 0.0), Vector3(1.2, 0.9, 0.0), Vector3(0.0)),
+			ecs.components.TransformComponent(Vector3(-1.0, -1.0, 1.0), Vector3(1.2, 0.9, 0.0), Vector3(0.0)),
 			ecs.components.SpriteComponent("Tests/test3.jpg", Vector2(1.0), Color(0.0, 1.0, 1.0, 0.7))
 		)
 
@@ -108,7 +108,7 @@ class Window(GlfwWindow):
 		ecs.Scene.Current.CreateEntity(
 			ecs.components.TagComponent("text"),
 			ecs.components.TransformComponent(Vector3(0.5, 0.5, 0.0), Vector3(0.0), Vector3(0.0)),
-			ecs.components.TextComponent("Hello world!", 40, "arial", Color(0.0, 1.0, 1.0, 1.0))
+			ecs.components.TextComponent("Hello world!", 60, "arial", Color(1.0, 1.0, 1.0, 0.9))
 		)
 
 		#SaveScene("test.scn")
@@ -116,20 +116,17 @@ class Window(GlfwWindow):
 	
 	def MoveCamera(self, key: int, mods: int, repeated: bool):
 		if key == Keys.KeyW:
-			self.camera.Move(Vector3(0.0, 0.2, 0.0), self.frameTime)
+			self.camera.Move(Vector3(0.0, 0.1, 0.0), self.frameTime)
 		elif key == Keys.KeyS:
-			self.camera.Move(Vector3(0.0, -0.2, 0.0), self.frameTime)
+			self.camera.Move(Vector3(0.0, -0.1, 0.0), self.frameTime)
 		elif key == Keys.KeyA:
-			self.camera.Move(Vector3(-0.2, 0.0, 0.0), self.frameTime)
+			self.camera.Move(Vector3(-0.1, 0.0, 0.0), self.frameTime)
 		elif key == Keys.KeyD:
-			self.camera.Move(Vector3(0.2, 0.0, 0.0), self.frameTime)
+			self.camera.Move(Vector3(0.1, 0.0, 0.0), self.frameTime)
 		
 		return False
 		
 	def OnFrame(self):
-		if self.camera.shouldRecalculate:
-			self.camera.RecalculateMatrices()
-
 		ecs.Scene.Current.Process(dt = self.frameTime)
 		# Renderer.RenderScene(ecs.Scene.Current, self.camera.viewProjectionMatrix)
 		Renderer.RenderScene(ecs.Scene.Current, Matrix4(1.0))

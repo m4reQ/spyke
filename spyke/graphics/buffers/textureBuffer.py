@@ -1,34 +1,33 @@
-from ..gl import GLObject, GLHelper
+from .aBuffer import ABuffer
+from ..gl import GLHelper
 from ...constants import _NP_FLOAT
 
 from OpenGL import GL
 import numpy as np
 
-class TextureBuffer(GLObject):
+class TextureBuffer(ABuffer):
 	_BufferUsageFlags = GL.GL_DYNAMIC_STORAGE_BIT
 	
-	def __init__(self, size: int, format: GL.GLenum, usage = GL.GL_STREAM_DRAW):
-		super().__init__()
-		
-		self._size = size
-
-		self._id = GLHelper.CreateBuffer()
+	def __init__(self, size: int, format: GL.GLenum, dataStorageView: memoryview):
+		super().__init__(size)
+	
 		self._texId = GLHelper.CreateTexture(GL.GL_TEXTURE_BUFFER)
+		self._dataView = dataStorageView
 
-		GL.glNamedBufferStorage(self._id, size, None, TextureBuffer._BufferUsageFlags)
+		GL.glNamedBufferStorage(self._id, self._size, None, TextureBuffer._BufferUsageFlags)
 		GL.glTextureBuffer(self._texId, format, self._id)
 	
-	def AddData(self, data: list, size: int) -> None:
-		GL.glNamedBufferSubData(self._id, 0, size, np.asarray(data, dtype=_NP_FLOAT))
+	def TransferData(self, size: int) -> None:
+		"""
+		Transfer given amount of data from bound data storage
+		to buffer's memory.
+		"""
+
+		GL.glNamedBufferSubData(self._id, 0, size, self._dataView.obj)
 
 	def Delete(self, removeRef: bool) -> None:
 		super().Delete(removeRef)
-		GL.glDeleteBuffers(1, [self._id])
 		GL.glDeleteTextures(1, [self._texId])
-	
-	@property
-	def Size(self):
-		return self._size
 	
 	@property
 	def TextureID(self):

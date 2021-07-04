@@ -123,4 +123,4 @@ class Shader(GLObject):
 		GL.glUniform1f(self.GetUniformLocation(name), value)
 	
 	def SetUniformMat4(self, name: str, value: glm.mat4, transpose: bool) -> None:
-		GL.glUniformMatrix4fv(self.GetUniformLocation(name), 1, transpose, np.asarray(value, dtype=_NP_FLOAT))
+		GL.glUniformMatrix4fv(self.GetUniformLocation(name), 1, transpose, glm.value_ptr(value))

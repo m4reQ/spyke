@@ -8,7 +8,9 @@ class UniformBuffer(ABuffer):
 	_BufferStorageFlags = GL.GL_DYNAMIC_STORAGE_BIT
 
 	def __init__(self, size: int, usage = GL.GL_STREAM_DRAW):
-		super().__init__(size, None, _NP_FLOAT, UniformBuffer._BufferStorageFlags)
+		super().__init__(size)
+
+		GL.glNamedBufferStorage(self._id, self._size, None, UniformBuffer._BufferStorageFlags)
 
 	def Bind(self):
 		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._id)

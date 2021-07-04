@@ -6,11 +6,12 @@ from .rendererSettings import RendererSettings
 from ..buffers import *
 from ..screenInfo import ScreenInfo
 from ..contextInfo import ContextInfo
-from ...constants import USE_FAST_NV_MULTISAMPLE, _GL_FLOAT_SIZE
+from ...constants import USE_FAST_NV_MULTISAMPLE, _C_FLOAT_P, _GL_FLOAT_SIZE, _NP_FLOAT
 from ...enums import Hint, Vendor, Keys
 from ...ecs import components
 from ...debugging import Debug, LogLevel
 from ...input import EventHook, EventHandler
+from ...utils import Mat4ToTuple
 
 from OpenGL import GL
 from PIL import Image
@@ -77,7 +78,6 @@ class _Renderer(object):
 		self.framebuffer = Framebuffer(fbSpec)
 
 		self.basicRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
-		self.postRenderer.shader.SetUniformBlockBinding("uMatrices", UNIFORM_BLOCK_INDEX)
 		self.ubo.BindToUniform(UNIFORM_BLOCK_INDEX)
 
 		if not os.path.exists(SCREENSHOT_DIRECTORY):
@@ -118,6 +118,8 @@ class _Renderer(object):
 
 		self._isInitialized = True
 
+		self._currentFillMode = GL.GL_FILL
+
 		Debug.GetGLError()
 		Debug.Log("Master renderer fully initialized.", LogLevel.Info)
 
@@ -150,7 +152,7 @@ class _Renderer(object):
 		for (sprite, transform) in alpha:
 			self.basicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
 	
-		transformNp = np.zeros((4, 4))
+		transformNp = np.zeros((4, 4), dtype=_NP_FLOAT)
 		transformNp[3, 3] = 1.0
 		
 		for _, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
@@ -172,11 +174,10 @@ class _Renderer(object):
 				transformNp[0, 0] = scWidth
 				transformNp[1, 1] = scHeight
 
-				self.basicRenderer.RenderQuad(glm.mat4(transformNp), text.color, text.font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
+				self.basicRenderer.RenderQuad(glm.make_mat4x4(transformNp.ctypes.data_as(_C_FLOAT_P)), text.color, text.font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
 			
 		self.basicRenderer.EndScene()
 		
-
 		# for _, system in scene.GetComponent(components.ParticleSystemComponent):
 		# 	for particle in system.particlePool:
 		# 		if particle.isAlive:
@@ -188,9 +189,11 @@ class _Renderer(object):
 
 		GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 		GL.glViewport(0, 0, ScreenInfo.width, ScreenInfo.height)
+		GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
 		self.postRenderer.RenderFullscreen(self.framebuffer, self.framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
-
+		
+		GL.glPolygonMode(GL.GL_FRONT_AND_BACK, self._currentFillMode)
 		GL.glEnable(GL.GL_DEPTH_TEST)
 		
 		RenderStats.FrameEnded = True
@@ -200,15 +203,13 @@ class _Renderer(object):
 			return False
 
 		if key == Keys.KeyGrave:
-			mode = next(self._polygonModeGenerator)
-
-			GL.glPolygonMode(GL.GL_FRONT_AND_BACK, mode)
+			self._currentFillMode = next(self._polygonModeGenerator)
 			
-			if mode == GL.GL_FILL:
+			if self._currentFillMode == GL.GL_FILL:
 				Debug.Log("Renderer drawing mode set to: FILL", LogLevel.Info)
-			elif mode == GL.GL_LINE:
+			elif self._currentFillMode == GL.GL_LINE:
 				Debug.Log("Renderer drawing mode set to: WIREFRAME", LogLevel.Info)
-			elif mode == GL.GL_POINT:
+			elif self._currentFillMode == GL.GL_POINT:
 				Debug.Log("Renderer drawing mode set to: POINTS", LogLevel.Info)
 		elif key == Keys.KeyF1:
 			self.CaptureFrame()

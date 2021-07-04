@@ -1,7 +1,7 @@
 import glm
 
 _DEFAULT_CAMERA_SPEED = 15.0
-_DEFAULT_Z_NEAR_CLIP = 0.001
+_DEFAULT_Z_NEAR_CLIP = -1.0
 
 class ACamera(object):
 	def __init__(self):
@@ -18,7 +18,7 @@ class ACamera(object):
 		pass
 
 class OrthographicCamera(ACamera):
-	def __init__(self, left: float, right: float, bottom: float, top: float, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 10.0):
+	def __init__(self, left: float, right: float, bottom: float, top: float, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 1.0):
 		super().__init__()
 		self.left = left
 		self.right = right
@@ -56,6 +56,46 @@ class OrthographicCamera(ACamera):
 		self.viewProjectionMatrix = self.projectionMatrix * self.viewMatrix
 
 		self.shouldRecalculate = False
+
+# class OrthographicCamera(ACamera):
+# 	def __init__(self, left: float, right: float, bottom: float, top: float, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 10.0):
+# 		super().__init__()
+# 		self.left = left
+# 		self.right = right
+# 		self.bottom = bottom
+# 		self.top = top
+# 		self.zNear = zNear
+# 		self.zFar = zFar
+
+# 		self.projectionMatrix = glm.ortho(left, right, bottom, top, zNear, zFar)
+
+# 		self.RecalculateMatrices()
+	
+# 	def Move(self, direction: glm.vec3, dt: float):
+# 		self.position += direction * dt * self.speed
+# 		self.shouldRecalculate = True
+
+# 	def MoveTo(self, pos: glm.vec3):
+# 		self.position = pos
+# 		self.shouldRecalculate = True
+	
+# 	def ReinitProjectionMatrix(self, left: float, right: float, bottom: float, top: float, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 1.0):
+# 		self.left = left
+# 		self.right = right
+# 		self.bottom = bottom
+# 		self.top = top
+# 		self.zNear = zNear
+# 		self.zFar = zFar
+
+# 		self.projectionMatrix = glm.ortho(left, right, bottom, top, zNear, zFar)
+# 		self.shouldRecalculate = True
+		
+# 	def RecalculateMatrices(self):
+# 		transform = glm.translate(glm.mat4(1.0), self.position)
+# 		self.viewMatrix = glm.inverse(transform)
+# 		self.viewProjectionMatrix = self.projectionMatrix * self.viewMatrix
+
+# 		self.shouldRecalculate = False
 
 class PerspectiveCamera(object):
 	def __init__(self, fov, aspect, zNear = _DEFAULT_Z_NEAR_CLIP, zFar = 10.0):

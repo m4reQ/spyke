@@ -7,3 +7,4 @@ PyOpenGL-accelerate
 colorama
 psutil
 glfw
+Pillow

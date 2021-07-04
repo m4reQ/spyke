@@ -28,6 +28,6 @@ void main()
         texColor = textureMultisample(uTextureMS, vTexCoord, uSamples);
     else
         texColor = texture(uTexture, vTexCoord);
-        
+    
     Color = texColor * vColor;
 }
