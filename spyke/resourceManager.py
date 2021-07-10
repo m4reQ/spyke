@@ -210,7 +210,6 @@ def CreateScene(name: str) -> Scene:
 	s = Scene(name)
 	s.AddProcessor(TransformProcessor())
 	s.AddProcessor(ParticleProcessor())
-	s.AddProcessor(ScriptProcessor())
 
 	return s
 

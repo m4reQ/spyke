@@ -35,12 +35,6 @@ class Window(GlfwWindow):
 
 		ResourceManager.LoadScene("tests/scene.scn")
 
-		# ResourceManager.GetCurrentScene().CreateEntity(
-		# 	components.TagComponent("script"),
-		# 	components.ScriptComponent("tests/script1.py"))
-
-		# ResourceManager.SaveScene("tests/scene.scn", ResourceManager.GetCurrentScene())
-
 		EventHandler.KeyDown += EventHook(self.MoveCamera)
 	
 	def MoveCamera(self, key: int, mods: int, repeated: bool):
@@ -64,7 +58,7 @@ class Window(GlfwWindow):
 if __name__ == "__main__":
 	specs = WindowSpecs(1080, 720, "TestWindow")
 	specs.samples = 2
-	specs.vsync = True
+	specs.vsync = False
 	
 	win = Window(specs)
 	win.Run()

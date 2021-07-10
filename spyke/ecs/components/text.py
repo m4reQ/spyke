@@ -1,7 +1,7 @@
 import glm
 
 class TextComponent(object):
-	__slots__ = ("text", "size", "color", "font")
+	__slots__ = ("text", "size", "color", "font", "__weakref__")
 
 	def __init__(self, text: str, size: int, fontName: str, color: glm.vec4):
 		self.text = text

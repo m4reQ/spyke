@@ -205,7 +205,7 @@ class _Renderer(object):
 			elif fillMode == GL.GL_POINT:
 				Debug.Log("Renderer drawing mode set to: POINTS", LogLevel.Info)
 			
-			fillMode = self._currentFillMode
+			self._currentFillMode = fillMode
 		elif key == Keys.KeyF1:
 			self.CaptureFrame()
 

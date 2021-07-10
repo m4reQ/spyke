@@ -7,6 +7,8 @@ import numpy as np
 import time
 
 class TextureData(object):
+	__slots__ = ("width", "height", "data", "format", "filepath", "__weakref__")
+	
 	def __init__(self, width: int, height: int):
 		self.width: int = width
 		self.height: int = height
@@ -15,6 +17,8 @@ class TextureData(object):
 		self.filepath: str = ""
 
 class TextureSpec(object):
+	__slots__ = ("mipmaps", "minFilter", "magFilter", "wrapMode", "compress", "__weakref__")
+
 	def __init__(self):
 		self.mipmaps: int = 3
 		self.minFilter: GL.GLenum = GL.GL_LINEAR_MIPMAP_LINEAR

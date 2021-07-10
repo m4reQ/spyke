@@ -13,12 +13,7 @@ class TransformProcessor(Processor):
 		for _, cameraComponent in self.scene.GetComponent(CameraComponent):
 			if cameraComponent.shouldRecalculate:
 				cameraComponent.RecalculateMatrices()
-
-class ScriptProcessor(Processor):
-	def Process(self, *args, **kwargs):
-		for _, script in self.scene.GetComponent(ScriptComponent):
-			script.OnProcess(*args, **kwargs)
-
+				
 class AudioProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		for _, audio in self.scene.GetComponent(AudioComponent):
