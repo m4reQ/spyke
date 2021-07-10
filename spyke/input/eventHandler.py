@@ -1,5 +1,3 @@
-from enum import Enum
-
 """
 Function prototypes:
 
@@ -50,18 +48,14 @@ WindowCloseCallback() -> bool
 
 from .event import Event
 
-class _EventHandler:
-	def __init__(self):
-		self.KeyDown = Event()
-		self.KeyUp = Event()
-		self.WindowClose = Event()
-		self.WindowResize = Event()
-		self.WindowMove = Event()
-		self.MouseButtonUp = Event()
-		self.MouseButtonDown = Event()
-		self.MouseMove = Event()
-		self.MouseScroll = Event()
-		self.WindowFocus = Event()
-		self.WindowLostFocus = Event()
-
-EventHandler = _EventHandler()
+KeyDown = Event()
+KeyUp = Event()
+WindowClose = Event()
+WindowResize = Event()
+WindowMove = Event()
+MouseButtonUp = Event()
+MouseButtonDown = Event()
+MouseMove = Event()
+MouseScroll = Event()
+WindowFocus = Event()
+WindowLostFocus = Event()

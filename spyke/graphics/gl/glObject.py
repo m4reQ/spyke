@@ -1,4 +1,4 @@
-from .glMarshal import GLMarshal
+from . import glMarshal as GLMarshal
 
 class GLObject(object):
     def __init__(self):

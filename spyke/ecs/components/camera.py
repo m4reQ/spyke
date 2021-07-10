@@ -1,20 +1,20 @@
-from ...graphics.cameras import ACamera
 import glm
 
+class CameraType:
+	Orthographic, Perspective = range(2)
+
 class CameraComponent(object):
-	def __init__(self, cameraObject: ACamera):
-		if not isinstance(cameraObject, ACamera):
-			raise ValueError("Invalid camera object given.")
-		else:
-			self.camera = cameraObject
+	__slots__ = ("isPrimary", "shouldRecalculate", "_projectionMatrix", "_viewMatrix", "_viewProjectionMatrix", "_projectionFunc")
 
-class NEW___CameraComponent(object):
-	def __init__(self, cameraObject: ACamera):
-		if not isinstance(cameraObject, ACamera):
-			raise ValueError("Invalid camera object given.")
-		else:
-			self.camera = cameraObject
+	@staticmethod
+	def _CreateOrtho():
+		pass
 
+	@staticmethod
+	def _CreatePerspective():
+		pass
+
+	def __init__(self, cameraType: CameraType):
 		self.isPrimary = False
 		
 		self.shouldRecalculate = False
@@ -22,3 +22,8 @@ class NEW___CameraComponent(object):
 		self._projectionMatrix = glm.mat4(1.0)
 		self._viewMatrix = glm.mat4(1.0)
 		self._viewProjectionMatrix = glm.mat4(1.0)
+
+		if cameraType == CameraType.Orthographic:
+			self._projectionFunc = CameraComponent._CreateOrtho
+		else:
+			self._projectionFunc = CameraComponent._CreatePerspective

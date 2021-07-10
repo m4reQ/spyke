@@ -1,5 +1,5 @@
 from ...debugging import Debug, LogLevel
-from ...constants import _NP_BYTE
+from ...constants import _NP_UBYTE
 from ..gl import GLObject, GLHelper
 
 from OpenGL import GL
@@ -7,19 +7,20 @@ import numpy as np
 import time
 
 class TextureData(object):
-	def __init__(self, width, height):
-		self.width = width
-		self.height = height
-		self.data = []
-		self.format = GL.GL_RGB
+	def __init__(self, width: int, height: int):
+		self.width: int = width
+		self.height: int = height
+		self.data: memoryview = None
+		self.format: GL.GLenum = GL.GL_RGB
+		self.filepath: str = ""
 
 class TextureSpec(object):
 	def __init__(self):
-		self.mipmaps = 2
-		self.minFilter = GL.GL_LINEAR_MIPMAP_LINEAR
-		self.magFilter = GL.GL_LINEAR
-		self.wrapMode = GL.GL_REPEAT
-		self.compress = True
+		self.mipmaps: int = 3
+		self.minFilter: GL.GLenum = GL.GL_LINEAR_MIPMAP_LINEAR
+		self.magFilter: GL.GLenum = GL.GL_LINEAR
+		self.wrapMode: GL.GLenum = GL.GL_REPEAT
+		self.compress: bool = True
 		
 class Texture(GLObject):
 	_InternalFormat = GL.GL_RGBA8
@@ -33,6 +34,9 @@ class Texture(GLObject):
 		self.width = tData.width
 		self.height = tData.height
 
+		self.filepath = tData.filepath
+		self.specification = tSpec
+
 		self._id = GLHelper.CreateTexture(GL.GL_TEXTURE_2D)
 
 		_format = Texture._CompressedInternalFormat if tSpec.compress else Texture._InternalFormat
@@ -44,8 +48,10 @@ class Texture(GLObject):
 		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_MIN_FILTER, tSpec.minFilter)
 		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_MAG_FILTER, tSpec.magFilter)
 
-		GL.glTextureSubImage2D(self._id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, np.asarray(tData.data, dtype = _NP_BYTE))
+		GL.glTextureSubImage2D(self._id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data.obj)
 		GL.glGenerateTextureMipmap(self._id)
+
+		tData.data.release()
 
 		Debug.GetGLError()
 		Debug.Log(f"Texture (id: {self._id}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
@@ -59,14 +65,15 @@ class Texture(GLObject):
 	
 	@classmethod
 	def CreateWhiteTexture(cls):
-		data = TextureData(1, 1)
-		
-		data.data = [255, 255, 255, 255]
-		data.format = GL.GL_RGBA
+		tData = TextureData(1, 1)
+
+		tData.data = memoryview(np.array([255, 255, 255, 255], dtype=_NP_UBYTE))
+		tData.format = GL.GL_RGBA
 
 		spec = TextureSpec()
 		spec.minFilter = GL.GL_NEAREST
 		spec.magFilter = GL.GL_NEAREST
 		spec.mipmaps = 1
+		spec.compress = False
 
-		return cls(data, spec)
+		return cls(tData, spec)

@@ -1,15 +1,5 @@
-from ...utils import SecureSpaces, RestoreSpaces
-from ...memory import Serializable
-
-class TagComponent(Serializable):
-	@classmethod
-	def Deserialize(cls, data):
-		data = data.split(" ")
-
-		return cls(RestoreSpaces(data[0]))
-
+class TagComponent(object):
+	__slots__ = ("name",)
+	
 	def __init__(self, name):
 		self.name = name
-	
-	def Serialize(self):
-		return f"{SecureSpaces(self.Name)}"

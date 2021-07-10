@@ -3,15 +3,12 @@ Changes made by m4reQ:
 - renamed Scene to Scene
 - changed time measurement function from time.process_time to time.perf_counter
 - changed names of public functions to use PascalCase naming convention
-- changed Scene.AddComponent function ability to set component's reference to a parent entity and scene if component type is ScriptComponent
 - using ints casted to str as ids for entities (this is mainly because an internal CPython optimization for string dictionary keys)
 - added type hint to 'world' member in Processor class
 - moved Processor class below Scene class
 - added 'timed' memeber in Scene class that indicates if it uses timed processing
 - renamed 'world' Processors, class attribute to 'scene'
 - added 'LateInit' method to Processor class. It is called after an object gets it's scene reference and is generally initialized.
-- added Current global variable that indicates current scene
-- added Scene.MakeCurrent method that sets scene as the current
 - added Scene.name member that is just a scene name
 - removed timing methods of Scene class
 """
@@ -23,8 +20,6 @@ from typing import TypeVar as _TypeVar
 from typing import Any as _Any
 from typing import Tuple as _Tuple
 from typing import Iterable as _Iterable
-
-from .components.script import ScriptComponent
 
 version = '1.3'
 
@@ -41,8 +36,6 @@ class Scene:
 	is also responsible for executing all Processors assigned to it for each
 	frame of your game.
 	"""
-
-	Current = None
 
 	def __init__(self, name = ""):
 		self._processors = []
@@ -224,10 +217,6 @@ class Scene:
 		"""
 		component_type = type(component_instance)
 
-		if component_type == ScriptComponent:
-			component_instance.entity = entity
-			component_instance.world = self
-
 		if component_type not in self._components:
 			self._components[component_type] = set()
 
@@ -366,9 +355,6 @@ class Scene:
 		self._clear_dead_entities()
 		for processor in self._processors:
 			processor.Process(*args, **kwargs)
-	
-	def MakeCurrent(self):
-		Scene.Current = self
 
 class Processor:
 	"""Base class for all Processors to inherit from.
@@ -387,12 +373,3 @@ class Processor:
 
 	def Process(self, *args, **kwargs):
 		raise NotImplementedError
-
-from .processors import TransformProcessor, ScriptProcessor, ParticleProcessor
-
-def CreateScene(name: str):
-	s = Scene(name)
-	s.AddProcessor(TransformProcessor())
-	s.AddProcessor(ParticleProcessor())
-	s.AddProcessor(ScriptProcessor())
-	return s

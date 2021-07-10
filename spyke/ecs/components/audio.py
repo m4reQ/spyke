@@ -1,6 +1,7 @@
 class AudioComponent(object):
-	def __init__(self, filepath: str, looping: bool):
-		self.filepath = filepath
-		self.handle = Sound(filepath)
+	__slots__ = ("hasEnded", "looping", "sound")
+	
+	def __init__(self, soundName: str, looping: bool):
+		self.sound = soundName
 		self.ended = False
 		self.looping = looping

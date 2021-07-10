@@ -1,33 +1,17 @@
-def noexcept(func):
-	def __wrapper(*args, **kwargs):
-		r = None
-		try:
-			r = func(*args, **kwargs)
-		except Exception:
-			pass
-		return r
-	return __wrapper
+class Iterator(object):
+	def __init__(self, iterable, looping: bool = False):
+		self.iterable = iterable
+		self.lastPos = 0
+		self.looping = looping
 
-class StaticProperty(property):
-    def __get__(self, cls, owner):
-        return classmethod(self.fget).__get__(None, owner)()
+	def __next__(self):
+		pos = self.lastPos
+		self.lastPos += 1
 
-class Static:
-	def __decorator(_cls):
-		def inner(cls):
-			for attr in cls.__dict__:
-				_attr = getattr(cls, attr)
-				if callable(_attr):
-					setattr(cls, attr, staticmethod(_attr))
-			return cls
-		return inner
+		if self.lastPos > len(self.iterable):
+			if self.looping:
+				self.lastPos = 0
+			else:
+				raise StopIteration
 
-	def __init_subclass__(cls, *args, **kwargs):
-		return Static.__decorator(_cls = cls)
-	
-	def __new__(self, *args, **kwargs):
-		raise RuntimeError("Cannot instantiate static class.")
-
-class Enum:
-	def __new__(self):
-		raise RuntimeError("Cannot instantiate an enum.")
+		return self.iterable[pos]

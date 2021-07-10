@@ -2,6 +2,6 @@ class GraphicsException(Exception):
     def __init__(self, message: str):
         super().__init__(message)
 
-class NovaException(Exception):
+class SpykeException(Exception):
     def __init__(self, message: str):
         super().__init__(message)

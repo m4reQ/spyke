@@ -1,66 +1,56 @@
 from ...debugging import Debug, LogLevel
-from ...memory import Serializable
 
 import os
 import importlib.util
 
-class ScriptComponent(Serializable):
-	ClassName = "ScriptComponent"
+def _DEFAULT_CALLER(func, obj):
+	def inner(*args, **kwargs):
+		return func(obj, *args, **kwargs)
 	
-	@classmethod
-	def Deserialize(cls, data):
-		return cls(data)
+	return inner
 
-	@staticmethod
-	def __defaultcaller(func, _object):
-		def inner(*args, **kwargs):
-			return func(_object, *args, **kwargs)
+def _DEFAULT_PROCESS_FUNC(*args, **kwargs):
+	return
 
-		return inner
-
-	def __init__(self, file):
-		self.Filepath = os.path.abspath(file)
-		self.entity = 0
-		self.world = None
-
-		spec = importlib.util.spec_from_file_location(os.path.basename(file).split(".")[0], file)
+class ScriptComponent(object):
+	def _LoadScriptModule(self, filepath):
+		spec = importlib.util.spec_from_file_location(os.path.splitext(os.path.basename(filepath))[0], filepath)
 		ext = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(ext)
-		
-		func = None
-		for attr in dir(ext):
-			if attr == "OnInit":
-				func = getattr(ext, attr)
-				break
 
-		if not func or not callable(func):
-			Debug.Log("OnInit function not found. Object members may not be properly initialized.", LogLevel.Warning)
-		else:
-			if callable(func):
-				func(self)
+		return ext
+
+	def __init__(self, file):
+		self.filepath = os.path.abspath(file)
+		self.entity = 0
 
 		onProcessFound = False
-		self.Process = lambda *args, **kwargs: None
+		onInitFound = False
+
+		ext = self._LoadScriptModule(self.filepath)
+
 		for attr in dir(ext):
 			if attr == "OnInit":
+				getattr(ext, attr)(self)
+				onInitFound = True
+
+			if attr.startswith("__"):
 				continue
 
-			_func = getattr(ext, attr)
-			if callable(_func):
-				if attr[:2] == "__":
-					attr = "_" + type(self).__name__ + attr
-				setattr(self, attr, ScriptComponent.__defaultcaller(_func, self))
-			
-			if attr == "OnProcess":
-				onProcessFound = True
+			_attr = getattr(ext, attr)
+			if callable(_attr):
+				setattr(self, attr, _DEFAULT_CALLER(_attr, self))
+				if attr == "OnProcess":
+					onProcessFound = True
+			else:
+				setattr(self, attr, _attr)
 		
-		if onProcessFound:
-			self.Process = self.OnProcess
-		else:
+		if not onInitFound:
+			pass
+
+		if not onProcessFound:
 			Debug.Log("OnProcess function not found. Process function won't be called.", LogLevel.Warning)
-	
-	def GetComponent(self, componentType):
-		return self.world.ComponentForEntity(self.entity, componentType)
-	
-	def Serialize(self):
-		return f"{self.Filepath}"
+			self.OnProcess = ScriptComponent._defaultcaller(_DEFAULT_PROCESS_FUNC, self)
+		
+		if not onInitFound:
+			Debug.Log("OnInit function not found. Object members may not be properly initialized.", LogLevel.Warning)

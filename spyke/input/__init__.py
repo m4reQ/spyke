@@ -1,3 +1,2 @@
-from .eventHandler import EventHandler
-from .eventHook import EventHook
-from .event import Event
+from . import eventHandler as EventHandler
+from .event import Event, EventHook

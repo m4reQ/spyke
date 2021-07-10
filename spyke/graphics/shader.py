@@ -2,7 +2,7 @@
 from .gl import GLObject
 from ..debugging import Debug, LogLevel
 from ..utils import EnsureString
-from ..exceptions import GraphicsException, NovaException
+from ..exceptions import GraphicsException, SpykeException
 from ..constants import _NP_INT, _NP_FLOAT
 
 from OpenGL import GL
@@ -31,7 +31,7 @@ class Shader(GLObject):
 			with open(filepath, "r") as f:
 				source = f.read()
 		except FileNotFoundError as e:
-			raise NovaException(f"Cannot find shader file named '{e.filename}'")
+			raise SpykeException(f"Cannot find shader file named '{e.filename}'")
 
 		shader = GL.glCreateShader(stage)
 		self.__stages.append(shader)

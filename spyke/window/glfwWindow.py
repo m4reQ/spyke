@@ -4,17 +4,15 @@ from ..graphics.rendering.renderer import Renderer
 from ..graphics.contextInfo import ContextInfo
 from ..graphics.screenInfo import ScreenInfo
 from ..graphics.gl import GLMarshal
-from ..input.eventHandler import EventHandler
+from ..input import EventHandler
 from ..debugging import Debug, LogLevel
-from ..exceptions import GraphicsException, NovaException
+from ..exceptions import GraphicsException, SpykeException
 from ..imgui import ImGui
 from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
 from .windowSpecs import WindowSpecs
 
 import time, sys, atexit, glfw, os
 from PIL import Image
-
-from spyke.input import eventHandler
 #endregion
 
 class GlfwWindow(object):
@@ -63,7 +61,7 @@ class GlfwWindow(object):
 		#set icon
 		if specification.iconFilepath:
 			if not os.path.endswith(".ico"):
-				raise NovaException(f"Invalid icon extension: {os.path.splitext(specification.iconFilepath)}.")
+				raise SpykeException(f"Invalid icon extension: {os.path.splitext(specification.iconFilepath)}.")
 			
 			self.__LoadIcon(specification.iconFilepath)
 		else:
@@ -196,8 +194,9 @@ class GlfwWindow(object):
 		glfw.terminate()
 		Debug.Log("Glfw terminated.", LogLevel.Info)
 
-		Debug.CloseLogFile()
+		Debug.TryCloseLogFile()
 
+		os.system("pause >NUL")
 		sys.exit()
 	
 	def __CreateWindowNormal(self, spec):

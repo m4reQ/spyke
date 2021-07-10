@@ -1,3 +1,4 @@
+from spyke.utils.functional import Iterator
 from .basicRenderer import BasicRenderer
 from .postRenderer import PostRenderer
 from .particleRenderer import ParticleRenderer
@@ -6,12 +7,12 @@ from .rendererSettings import RendererSettings
 from ..buffers import *
 from ..screenInfo import ScreenInfo
 from ..contextInfo import ContextInfo
-from ...constants import USE_FAST_NV_MULTISAMPLE, _C_FLOAT_P, _GL_FLOAT_SIZE, _NP_FLOAT
+from ...constants import _C_FLOAT_P, _GL_FLOAT_SIZE, _NP_FLOAT
 from ...enums import Hint, Vendor, Keys
 from ...ecs import components
 from ...debugging import Debug, LogLevel
 from ...input import EventHook, EventHandler
-from ...utils import Mat4ToTuple
+from ... import resourceManager as ResourceManager
 
 from OpenGL import GL
 from PIL import Image
@@ -31,13 +32,6 @@ SCREENSHOT_DIRECTORY = "screenshots"
 # RESTORE PARTICLE RENDERER (REFACTORIZE IT)
 
 class _Renderer(object):
-	@staticmethod
-	def __PolygonModeGeneratorFn():
-		while True:
-			yield GL.GL_LINE
-			yield GL.GL_POINT
-			yield GL.GL_FILL
-			
 	def __init__(self):
 		self.basicRenderer: BasicRenderer = None
 		self.particleRenderer: ParticleRenderer = None
@@ -48,7 +42,7 @@ class _Renderer(object):
 
 		self._isInitialized = False
 
-		self._polygonModeGenerator = _Renderer.__PolygonModeGeneratorFn()
+		self._polygonModeIter = Iterator([GL.GL_LINE, GL.GL_POINT, GL.GL_FILL])
 
 	def Initialize(self, initialWidth: int, initialHeight: int, samples: int) -> None:
 		if self._isInitialized:
@@ -87,10 +81,7 @@ class _Renderer(object):
 			GL.glEnable(GL.GL_MULTISAMPLE)
 
 			if ContextInfo.Vendor == Vendor.Nvidia:
-				if USE_FAST_NV_MULTISAMPLE:
-					GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_FASTEST)
-				else:
-					GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)
+				GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)
 		
 		GL.glHint(GL.GL_TEXTURE_COMPRESSION_HINT, GL.GL_NICEST)
 		
@@ -145,36 +136,38 @@ class _Renderer(object):
 		alpha.sort(key = lambda x: x[0].color.w, reverse = True)
 
 		for (sprite, transform) in opaque:
-			self.basicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
+			self.basicRenderer.RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tilingFactor)
 		self.basicRenderer.EndScene()
 
 		GL.glDisable(GL.GL_DEPTH_TEST)
 		for (sprite, transform) in alpha:
-			self.basicRenderer.RenderQuad(transform.matrix, sprite.color, sprite.texture, sprite.tilingFactor)
+			self.basicRenderer.RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tilingFactor)
 	
 		transformNp = np.zeros((4, 4), dtype=_NP_FLOAT)
 		transformNp[3, 3] = 1.0
 		
 		for _, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
+			font = ResourceManager.GetFont(text.font)
+
 			advSum = 0.0
 
 			for char in text.text:
-				glyph = text.font.GetGlyph(ord(char))
+				glyph = font.GetGlyph(ord(char))
 
-				adv = advSum / ScreenInfo.width * (text.size / text.font.baseSize)
+				adv = advSum / ScreenInfo.width * (text.size / font.baseSize)
 
-				scWidth = glyph.width / ScreenInfo.width * (text.size / text.font.baseSize)
-				scHeight = glyph.height / ScreenInfo.height * (text.size / text.font.baseSize)
+				scWidth = glyph.width / ScreenInfo.width * (text.size / font.baseSize)
+				scHeight = glyph.height / ScreenInfo.height * (text.size / font.baseSize)
 
 				advSum += glyph.advance
 
-				transformNp[3, 0] = transform.Position.x + adv
-				transformNp[3, 1] = transform.Position.y
-				transformNp[3, 2] = transform.Position.z
+				transformNp[3, 0] = transform.position.x + adv
+				transformNp[3, 1] = transform.position.y
+				transformNp[3, 2] = transform.position.z
 				transformNp[0, 0] = scWidth
 				transformNp[1, 1] = scHeight
 
-				self.basicRenderer.RenderQuad(glm.make_mat4x4(transformNp.ctypes.data_as(_C_FLOAT_P)), text.color, text.font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
+				self.basicRenderer.RenderQuad(glm.make_mat4x4(transformNp.ctypes.data_as(_C_FLOAT_P)), text.color, font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
 			
 		self.basicRenderer.EndScene()
 		
@@ -203,14 +196,16 @@ class _Renderer(object):
 			return False
 
 		if key == Keys.KeyGrave:
-			self._currentFillMode = next(self._polygonModeGenerator)
+			fillMode = next(self._polygonModeIter)
 			
-			if self._currentFillMode == GL.GL_FILL:
+			if fillMode == GL.GL_FILL:
 				Debug.Log("Renderer drawing mode set to: FILL", LogLevel.Info)
-			elif self._currentFillMode == GL.GL_LINE:
+			elif fillMode == GL.GL_LINE:
 				Debug.Log("Renderer drawing mode set to: WIREFRAME", LogLevel.Info)
-			elif self._currentFillMode == GL.GL_POINT:
+			elif fillMode == GL.GL_POINT:
 				Debug.Log("Renderer drawing mode set to: POINTS", LogLevel.Info)
+			
+			fillMode = self._currentFillMode
 		elif key == Keys.KeyF1:
 			self.CaptureFrame()
 

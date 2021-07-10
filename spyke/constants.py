@@ -1,18 +1,23 @@
 import ctypes
+import psutil
+import time
+import os
 import numpy as np
 from OpenGL import GL
 
-START_TIME = 0.0
-
-USE_FAST_NV_MULTISAMPLE = False
+START_TIME = time.perf_counter()
 
 DEFAULT_LOG_FILENAME = "novaDefaultLog.log"
 DEFAULT_ICON_FILEPATH = "branding/spykeIcon.ico"
 
+MAX_LOADING_TASKS_COUNT = 6
+
+DEBUG_LOG_TO_FILE = True
+
+_MAIN_PROCESS = psutil.Process(os.getpid())
+
 _OPENGL_VER_MAJOR = 4
 _OPENGL_VER_MINOR = 5
-
-_MAIN_PROCESS = None
 
 _GL_FLOAT_SIZE = ctypes.sizeof(ctypes.c_float)
 _GL_INT_SIZE = ctypes.sizeof(ctypes.c_int)
@@ -24,6 +29,7 @@ _C_FLOAT_P = ctypes.POINTER(ctypes.c_float)
 _C_INT_P = ctypes.POINTER(ctypes.c_int)
 
 _NP_BYTE = np.int8
+_NP_UBYTE = np.uint8
 _NP_INT = np.int32
 _NP_LONG = np.int64
 _NP_FLOAT = np.float32

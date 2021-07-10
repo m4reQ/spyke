@@ -1,9 +1,5 @@
-#region Import
-from ...managers.textureManager import TextureManager
-
 import random
 import glm
-#endregion
 
 class Particle(object):
 	def __init__(self):

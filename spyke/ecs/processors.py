@@ -17,7 +17,7 @@ class TransformProcessor(Processor):
 class ScriptProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		for _, script in self.scene.GetComponent(ScriptComponent):
-			script.Process()
+			script.OnProcess(*args, **kwargs)
 
 class AudioProcessor(Processor):
 	def Process(self, *args, **kwargs):
