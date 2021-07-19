@@ -1,3 +1,2 @@
-from .renderer import Renderer
+from . import renderer as Renderer
 from .renderStats import RenderStats
-from .rendererSettings import RendererSettings

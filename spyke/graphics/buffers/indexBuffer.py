@@ -23,7 +23,7 @@ class IndexBuffer(GLObject):
 				0 + offset])
 			
 			offset += 4
-			i += 6
+			i += 1
 		
 		return data
 		

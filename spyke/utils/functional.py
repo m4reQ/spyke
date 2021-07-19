@@ -8,7 +8,7 @@ class Iterator(object):
 		pos = self.lastPos
 		self.lastPos += 1
 
-		if self.lastPos > len(self.iterable):
+		if self.lastPos >= len(self.iterable):
 			if self.looping:
 				self.lastPos = 0
 			else:

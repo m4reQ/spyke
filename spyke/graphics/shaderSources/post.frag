@@ -4,8 +4,8 @@ in vec2 vTexCoord;
 
 out vec4 Color;
 
-layout(binding = 0) uniform sampler2D uTexture;
-layout(binding = 1) uniform sampler2DMS uTextureMS;
+uniform sampler2D uTexture;
+uniform sampler2DMS uTextureMS;
 uniform int uSamples;
 
 vec4 textureMultisample(sampler2DMS texSampler, vec2 coord, int samples)

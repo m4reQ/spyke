@@ -29,3 +29,6 @@ class VertexBuffer(ABuffer):
 		"""
 
 		GL.glNamedBufferSubData(self._id, 0, size, self._dataView.obj)
+	
+	def __del__(self):
+		self._dataView.release()

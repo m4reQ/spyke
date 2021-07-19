@@ -1,8 +1,8 @@
 #region Import
 #from . import enginePreview
-from ..graphics.rendering.renderer import Renderer
-from ..graphics.contextInfo import ContextInfo
-from ..graphics.screenInfo import ScreenInfo
+from ..graphics import Renderer
+from ..graphics import ContextInfo
+from ..graphics import ScreenInfo
 from ..graphics.gl import GLMarshal
 from ..input import EventHandler
 from ..debugging import Debug, LogLevel
@@ -11,7 +11,12 @@ from ..imgui import ImGui
 from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
 from .windowSpecs import WindowSpecs
 
-import time, sys, atexit, glfw, os
+import time
+import sys
+import atexit
+import glfw
+import os
+import gc
 from PIL import Image
 #endregion
 
@@ -34,7 +39,7 @@ class GlfwWindow(object):
 		self.__SetDefaultWindowFlags(specification)
 		
 		if specification.fullscreen:
-			self.__handle = self.__CreateWindowFullscreen()	
+			self.__handle = self.__CreateWindowFullscreen(specification)	
 			Debug.Log("Window started in fulscreen mode.", LogLevel.Info)
 		else:
 			self.__handle = self.__CreateWindowNormal(specification)
@@ -77,6 +82,8 @@ class GlfwWindow(object):
 
 		if startImgui:
 			ImGui.Initialize()
+		
+		gc.collect()
 
 		Debug.Log(f"GLFW window initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 	
@@ -196,7 +203,6 @@ class GlfwWindow(object):
 
 		Debug.TryCloseLogFile()
 
-		os.system("pause >NUL")
 		sys.exit()
 	
 	def __CreateWindowNormal(self, spec):

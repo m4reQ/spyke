@@ -114,13 +114,13 @@ class Shader(GLObject):
 		GL.glUniformBlockBinding(self._id, loc, index)
 	
 	def SetUniformIntArray(self, name: str, values: list) -> None:
-		GL.glUniform1iv(self.GetUniformLocation(name), len(values), np.asarray(values, dtype=_NP_INT))
+		GL.glProgramUniform1iv(self._id, self.GetUniformLocation(name), len(values), np.asarray(values, dtype=_NP_INT))
 
 	def SetUniform1i(self, name: str, value: int) -> None:
-		GL.glUniform1i(self.GetUniformLocation(name), value)
+		GL.glProgramUniform1i(self._id, self.GetUniformLocation(name), value)
 
 	def SetUniform1f(self, name: str, value: float) -> None:
-		GL.glUniform1f(self.GetUniformLocation(name), value)
+		GL.glProgramUniform1f(self._id, self.GetUniformLocation(name), value)
 	
 	def SetUniformMat4(self, name: str, value: glm.mat4, transpose: bool) -> None:
-		GL.glUniformMatrix4fv(self.GetUniformLocation(name), 1, transpose, glm.value_ptr(value))
+		GL.glProgramUniformMatrix4fv(self._id, self.GetUniformLocation(name), 1, transpose, glm.value_ptr(value))

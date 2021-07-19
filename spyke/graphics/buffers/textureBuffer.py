@@ -29,6 +29,9 @@ class TextureBuffer(ABuffer):
 		super().Delete(removeRef)
 		GL.glDeleteTextures(1, [self._texId])
 	
+	def __del__(self):
+		self._dataView.release()
+	
 	@property
 	def TextureID(self):
 		return self._texId

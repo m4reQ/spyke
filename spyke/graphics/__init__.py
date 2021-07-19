@@ -1,6 +1,5 @@
-from .rendering.renderer import Renderer
+from .rendering import renderer as Renderer
 from .rendering.renderStats import RenderStats
-from .rendering.rendererSettings import RendererSettings
 from .shader import Shader
 from .vertexArray import VertexArray
 from .text.font import Font

@@ -18,5 +18,6 @@ class UniformBuffer(ABuffer):
 	def BindToUniform(self, index: int):
 		GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, index, self._id)
 
-	def AddData(self, data: list, size: int) -> None:
-		GL.glNamedBufferSubData(self._id, 0, size, np.asarray(data, dtype=_NP_FLOAT))
+	def AddData(self, data: memoryview, size: int) -> None:
+		GL.glNamedBufferSubData(self._id, 0, size, data.obj)
+		data.release()

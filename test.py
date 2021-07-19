@@ -58,7 +58,7 @@ class Window(GlfwWindow):
 if __name__ == "__main__":
 	specs = WindowSpecs(1080, 720, "TestWindow")
 	specs.samples = 2
-	specs.vsync = False
+	specs.vsync = True
 	
 	win = Window(specs)
 	win.Run()
