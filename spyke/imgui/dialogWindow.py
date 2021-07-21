@@ -15,10 +15,10 @@ class DialogWindow(object):
 		self.entry.pack()
 		self.button.pack()
 
-		self.value = None
+		self.returnValue = None
 
 	def Exit(self):
-		self.value = self.entry.get()
+		self.returnValue = self.entry.get()
 		self.top.destroy()
 
 	def AwaitWindow(self):

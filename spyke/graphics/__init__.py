@@ -4,7 +4,6 @@ from .shader import Shader
 from .vertexArray import VertexArray
 from .text.font import Font
 from .contextInfo import ContextInfo
-from .screenInfo import ScreenInfo
 from .texturing import *
 from .gl import *
 from .cameras import *

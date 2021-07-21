@@ -1,0 +1,158 @@
+from .widgets import *
+from .dialogWindow import DialogWindow
+from ..debugging import Debug, LogLevel
+from ..ecs.components import *
+from ..constants import DEFAULT_IMGUI_BG_COLOR, _MAIN_PROCESS, _THREAD_SYNC
+from ..graphics import Renderer
+from .. import ResourceManager
+
+import tkinter as tk
+from tkinter import ttk
+from tkinter import filedialog
+import threading
+import gc
+
+#This is just a large weight which forces other widgets with
+#weight 1 to be practically not resizable. Add this to widgets
+#that should be able to resize as grid_configure "weight" parameter.
+DONT_RESIZE_OTHERS = 450
+
+DEFAULT_WINDOW_WIDTH = 850
+DEFAULT_WINDOW_HEIGHT = 280
+
+DEFAULT_COLUMN_WEIGHT = 1
+DEFAULT_ROW_WEIGHT = 1
+
+_isInitialized = False
+_isRunning = False
+
+_window: tk.Tk = None
+
+_menu: tk.Menu = None
+_fileMenu: tk.Menu = None
+_treeviewMenu: tk.Menu = None
+
+_entitiesTree: ttk.Treeview = None
+
+_inspectorFrame: tk.Frame = None
+_treeviewFrame: tk.Frame = None
+
+_renderStatsWidget: RenderStatsWidget = None
+
+def _Run():
+	global _isRunning
+
+	_Setup()
+
+	_isRunning = True
+
+	while _isRunning:
+		_THREAD_SYNC.wait()
+
+		_renderStatsWidget.Update(Renderer.renderStats.drawsCount, Renderer.renderStats.vertexCount, Renderer.renderStats.drawTime,\
+			_MAIN_PROCESS.memory_info().rss, Renderer.renderStats.videoMemoryUsed, (Renderer.screenStats.width, Renderer.screenStats.height),\
+				Renderer.screenStats.vsync, Renderer.screenStats.refreshRate)
+		_window.update()
+
+	_Close()
+
+_thread = threading.Thread(target = _Run, name = "spyke.imgui")
+
+def Initialize() -> None:
+	if _isInitialized:
+		Debug.Log("Imgui already initialized.", LogLevel.Warning)
+		return
+
+	_thread.start()
+	Debug.Log("Imgui initialized.", LogLevel.Info)
+
+def Close() -> None:
+	global _isRunning
+	_isRunning = False
+
+def JoinThread() -> None:
+	_thread.join()
+
+def _Close() -> None:
+	global _isInitialized, _window
+
+	_isInitialized = False
+
+	_window.quit()
+	del _window
+
+	gc.collect()
+
+	Debug.Log("ImGui closed", LogLevel.Info)
+
+def _Setup() -> None:
+	global _window, _menu, _fileMenu, _treeviewMenu, _entitiesTree, _inspectorFrame, \
+		_treeviewFrame, _renderStatsWidget, _inspectorLabel
+
+	_window = tk.Tk()
+	_window.title("ImGui")
+	_window.geometry(f"{DEFAULT_WINDOW_WIDTH}x{DEFAULT_WINDOW_HEIGHT}")
+	_window.protocol("WM_DELETE_WINDOW", Close)
+	_window.config(bg = DEFAULT_IMGUI_BG_COLOR)
+
+	_menu = tk.Menu(_window)
+
+	_fileMenu = tk.Menu(_menu, tearoff = 0)
+	_fileMenu.add_command(label = "New Scene")
+	_fileMenu.add_command(label = "Open Scene...", command = _OpenScene)
+	_fileMenu.add_command(label = "Save Scene...", command = _SaveScene)
+	_fileMenu.add_separator()
+	_fileMenu.add_command(label = "Exit", command = Close)
+
+	_menu.add_cascade(label = "File", menu = _fileMenu)
+	_window.config(menu = _menu)
+
+	_treeviewMenu = tk.Menu(_window, tearoff = 0)
+	_treeviewMenu.add_command(label = "AddEntity", command = _AddEntity)
+
+	ttk.Style().configure("Treeview", bd = 1, relief = "solid")
+
+	_entitiesTree = ttk.Treeview(_window, show = "tree", style = "Treeview")
+	_entitiesTree.bind("<Button-3>", _PopTreeviewMenu)
+
+	_inspectorFrame = tk.Frame(_window, bd = 1, relief = "solid", bg = DEFAULT_IMGUI_BG_COLOR)
+	_treeviewFrame = tk.Frame(_window, bd = 1, relief = "solid", bg = DEFAULT_IMGUI_BG_COLOR)
+
+	_renderStatsWidget = RenderStatsWidget(_window)
+	_renderStatsWidget.grid(row = 0, column = 0, sticky = "news")
+
+	_inspectorLabel = tk.Label(_inspectorFrame, text = "Inspector", bd = 0, bg = DEFAULT_IMGUI_BG_COLOR)
+
+	_window.columnconfigure(0, weight = DEFAULT_COLUMN_WEIGHT)
+	_window.columnconfigure(1, weight = DEFAULT_COLUMN_WEIGHT)
+	_window.columnconfigure(2, weight = DEFAULT_COLUMN_WEIGHT)
+	_window.rowconfigure(0, weight = DEFAULT_ROW_WEIGHT)
+
+def _OpenScene() -> None:
+	f = filedialog.askopenfilename(parent = _window, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+	if not f:
+		return
+		
+	ResourceManager.LoadScene(f)
+
+def _SaveScene() -> None:
+	f = filedialog.asksaveasfilename(parent = _window, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
+	if not f:
+		return
+		
+	ResourceManager.SaveScene(f, ResourceManager.GetCurrentScene())
+
+def _AddEntity() -> None:
+	win = DialogWindow(_window, "Create Enitity", "Entity name: ")
+	win.AwaitWindow()
+
+	ResourceManager.GetCurrentScene().CreateEntity(TagComponent(win.returnValue))
+
+def _PopTreeviewMenu(event: tk.Event) -> None:
+	if _entitiesTree.identify("region", event.x, event.y) != "nothing":
+		return
+		
+	try:
+		_treeviewMenu.tk_popup(event.x_root, event.y_root)
+	finally:
+		_treeviewMenu.grab_release()

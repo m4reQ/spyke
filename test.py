@@ -13,7 +13,7 @@ from spyke.input import *
 
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
-		super().__init__(windowSpec, False)
+		super().__init__(windowSpec, True)
 	
 	def OnLoad(self):
 		# LoadScene("tests/newScene.scn")
@@ -45,7 +45,7 @@ class Window(GlfwWindow):
 		elif key == Keys.KeyA:
 			self.camera.Move(Vector3(-0.1, 0.0, 0.0), self.frameTime)
 		elif key == Keys.KeyD:
-			self.camera.Move(Vector3(0.1, 0.0, 0.0), self.frameTime)
+			self.camera.Move(Vector3(0.1, 0.0, 0.0), self.frameTimee)
 		
 		return False
 		

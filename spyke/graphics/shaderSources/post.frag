@@ -1,5 +1,4 @@
 #version 450 core
-in vec4 vColor;
 in vec2 vTexCoord;
 
 out vec4 Color;
@@ -22,12 +21,8 @@ vec4 textureMultisample(sampler2DMS texSampler, vec2 coord, int samples)
 
 void main()
 {
-    vec4 texColor;
-
     if (uSamples > 1)
-        texColor = textureMultisample(uTextureMS, vTexCoord, uSamples);
+        Color = textureMultisample(uTextureMS, vTexCoord, uSamples);
     else
-        texColor = texture(uTexture, vTexCoord);
-    
-    Color = texColor * vColor;
+        Color = texture(uTexture, vTexCoord);
 }

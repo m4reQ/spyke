@@ -1,105 +1,7 @@
-from ..graphics.rendering.renderStats import RenderStats
+from ..graphics import Renderer
+from ..constants import DEFAULT_IMGUI_FONT, DEFAULT_IMGUI_BG_COLOR
 
 import tkinter as tk
-
-FONT = ("Helvetica", 9)
-
-class StatsWidget(tk.Frame):
-	def __init__(self, master: tk.Frame):
-		super().__init__(master)
-
-		self.drawsTitleLabel = tk.Label(self, text = "Draws count: ", bg = "white", anchor = "w")
-		self.quadsTitleLabel = tk.Label(self, text = "Quads count: ", bg = "white", anchor = "w")
-		self.timeTitleLabel = tk.Label(self, text = "Draw time: ", bg = "white", anchor = "w")
-		self.fpsTitleLabel = tk.Label(self, text = "FPS: ", bg = "white", anchor = "w")
-
-		self.drawsLabel = tk.Label(self, text = "0", bg = "white", anchor = "e")
-		self.quadsLabel = tk.Label(self, text = "0", bg = "white", anchor = "e")
-		self.timeLabel = tk.Label(self, text = "0.0", bg = "white", anchor = "e")
-		self.fpsLabel = tk.Label(self, text = "0.0", bg = "white", anchor = "e")
-
-		self.drawsTitleLabel.grid(row = 0, column = 0, sticky = "we")
-		self.quadsTitleLabel.grid(row = 1, column = 0, sticky = "we")
-		self.timeTitleLabel.grid(row = 2, column = 0, sticky = "we")
-		self.fpsTitleLabel.grid(row = 3, column = 0, sticky = "we")
-
-		self.drawsLabel.grid(row = 0, column = 1, sticky = "we")
-		self.quadsLabel.grid(row = 1, column = 1, sticky = "we")
-		self.timeLabel.grid(row = 2, column = 1, sticky = "we")
-		self.fpsLabel.grid(row = 3, column = 1, sticky = "we")
-	
-	def Update(self):
-		if not RenderStats.FrameEnded:
-			return
-
-		self.drawsLabel["text"] = str(RenderStats.drawsCount)
-		self.quadsLabel["text"] = str(RenderStats.quadsCount)
-		self.timeLabel["text"] = "{0:.5f}".format(RenderStats.DrawTime)
-		if RenderStats.DrawTime:
-			self.fpsLabel["text"] = "{0:.2f}".format(1.0 / RenderStats.DrawTime)
-
-class ExpandableFrame(tk.Frame):
-	def __init__(self, master: tk.Frame, title: str, widgetType: type, **widgetConfig):
-		super().__init__(master)
-
-		self.titleLabel = tk.Label(self, text = title, bg = "white", anchor = "w")
-		self.expandButton = tk.Button(self, text = "+", bg = "white", bd = 0, command = self.__ButtonCallback)
-		self.widget = widgetType(self, **widgetConfig)
-
-		self.titleLabel.grid(row = 0, column = 0, sticky = "we")
-		self.expandButton.grid(row = 0, column = 1)
-
-		self.expanded = False
-	
-	def __ButtonCallback(self):
-		if self.expanded:
-			self.widget.grid_forget()
-			self.expandButton.configure(text = "+")
-			self.expanded = False
-		else:
-			self.widget.grid(row = 1, column = 0, sticky = "news", columnspan = 2)
-			self.expandButton.configure(text = "-")
-			self.expanded = True
-
-class RenderStatsView(tk.Frame):
-	def __init__(self, master: tk.Frame):
-		super().__init__(master)
-
-		self.drawsCountNameLabel = tk.Label(self, text = "Draws count: ", font = (*FONT, "bold"), bg = "white", anchor = "w")
-		self.verticesCountNameLabel = tk.Label(self, text = "Vertices count: ", font = (*FONT, "bold"), bg = "white", anchor = "w")
-		self.memUsedNameLabel = tk.Label(self, text = "Memory used: ", font = (*FONT, "bold"), bg = "white", anchor = "w")
-		self.vidMemUsedNameLabel = tk.Label(self, text = "Video memory used: ", font = (*FONT, "bold"), bg = "white", anchor = "w")
-		self.winSizeNameLabel = tk.Label(self, text = "Window size: ", font = (*FONT, "bold"), bg = "white", anchor = "w")
-		
-		self.drawsCountLabel = tk.Label(self, text = "", bg = "white")
-		self.verticesCountLabel = tk.Label(self, text = "", bg = "white")
-		self.memUsedLabel = tk.Label(self, text = "", bg = "white")
-		self.vidMemUsedLabel = tk.Label(self, text = "", bg = "white")
-		self.winSizeLabel = tk.Label(self, text = "", bg = "white")
-
-		#region Grid
-		self.grid_columnconfigure(0, weight = 1)
-		self.grid_columnconfigure(1, weight = 1)
-
-		self.drawsCountNameLabel.grid(row = 0, column = 0)
-		self.drawsCountLabel.grid(row = 0, column = 1, sticky = "we")
-		self.verticesCountNameLabel.grid(row = 1, column = 0)
-		self.verticesCountLabel.grid(row = 1, column = 1, sticky = "we")
-		self.memUsedNameLabel.grid(row = 2, column = 0)
-		self.memUsedLabel.grid(row = 2, column = 1, sticky = "we")
-		self.vidMemUsedNameLabel.grid(row = 3, column = 0)
-		self.vidMemUsedLabel.grid(row = 3, column = 1, sticky = "we")
-		self.winSizeNameLabel.grid(row = 4, column = 0)
-		self.winSizeLabel.grid(row = 4, column = 1, sticky = "we")
-
-	def Update(self, drawsN: int, vertN: int, memUsed: float, vidMemUsed: float, winSize: tuple) -> None:
-		self.drawsCountLabel.configure(text = str(drawsN))
-		self.verticesCountLabel.configure(text = str(vertN))
-		self.memUsedLabel.configure(text = str(memUsed))
-		self.vidMemUsedLabel.configure(text = str(vidMemUsed))
-		self.winSizeLabel.configure(text = f"{winSize[0]}x{winSize[1]}")
-
-		self.update()
 
 class LineEditor(tk.Frame):
 	def __init__(self, master):
@@ -116,12 +18,12 @@ class LineEditor(tk.Frame):
 		#endregion
 
 		#region Labels
-		self.beginLabel = tk.Label(self, text = "Begin", bg = "white", anchor = "w", font = (*FONT, "bold"))
-		self.endLabel = tk.Label(self, text = "End", bg = "white", anchor = "w", font = (*FONT, "bold"))
-		self.xLabel1 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
-		self.yLabel1 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
-		self.xLabel2 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
-		self.yLabel2 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
+		self.beginLabel = tk.Label(self, text = "Begin", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w", font = (*DEFAULT_IMGUI_FONT, "bold"))
+		self.endLabel = tk.Label(self, text = "End", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w", font = (*DEFAULT_IMGUI_FONT, "bold"))
+		self.xLabel1 = tk.Label(self, text = "X: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.yLabel1 = tk.Label(self, text = "Y: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.xLabel2 = tk.Label(self, text = "X: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.yLabel2 = tk.Label(self, text = "Y: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
 		#endregion
 
 		#region Entries
@@ -201,9 +103,9 @@ class ScriptEditor(tk.Frame):
 	def __init__(self, master):
 		super().__init__(master)
 
-		self.filepathNameLabel = tk.Label(self, text = "Filepath: ", anchor = "w", bg = "white", font = ("Helvetica", 9, "bold"))
-		self.filepathLabel = tk.Label(self, text = "", bg = "white", anchor = "w", font = ("Helvetica", 9, "italic"))
-		self.previewText = tk.Text(self, bg = "white", font = ("Helvetica", 6), height = 11, width = 30)
+		self.filepathNameLabel = tk.Label(self, text = "Filepath: ", anchor = "w", bg = DEFAULT_IMGUI_BG_COLOR, font = ("Helvetica", 9, "bold"))
+		self.filepathLabel = tk.Label(self, text = "", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w", font = ("Helvetica", 9, "italic"))
+		self.previewText = tk.Text(self, bg = DEFAULT_IMGUI_BG_COLOR, font = ("Helvetica", 6), height = 11, width = 30)
 
 		self.comp = None
 
@@ -248,14 +150,14 @@ class TransformEditor(tk.Frame):
 		#endregion
 
 		#region Labels
-		self.posLabel = tk.Label(self, text = "Position: ", bg = "white", anchor = "w")
-		self.scaleLabel = tk.Label(self, text = "Scale: ", bg = "white", anchor = "w")
-		self.rotLabel = tk.Label(self, text = "Rotation: ", bg = "white", anchor = "w")
+		self.posLabel = tk.Label(self, text = "Position: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.scaleLabel = tk.Label(self, text = "Scale: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.rotLabel = tk.Label(self, text = "Rotation: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
 
-		self.xLabel1 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
-		self.yLabel1 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
-		self.xLabel2 = tk.Label(self, text = "X: ", bg = "white", anchor = "w")
-		self.yLabel2 = tk.Label(self, text = "Y: ", bg = "white", anchor = "w")
+		self.xLabel1 = tk.Label(self, text = "X: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.yLabel1 = tk.Label(self, text = "Y: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.xLabel2 = tk.Label(self, text = "X: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
+		self.yLabel2 = tk.Label(self, text = "Y: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
 		#endregion
 
 		#region Entries
@@ -359,7 +261,7 @@ class TextEditor(tk.Frame):
 		self.__sizeMin = 1
 		self.__sizeMax = 999
 
-		self.sizeLabel = tk.Label(self, text = "Size: ", bg = "white", anchor = "w")
+		self.sizeLabel = tk.Label(self, text = "Size: ", bg = DEFAULT_IMGUI_BG_COLOR, anchor = "w")
 		self.textEntry = tk.Entry(self, textvariable = self.textVar)
 		self.sizeEntry = tk.Spinbox(self, from_ = self.__sizeMin, to = self.__sizeMax, textvariable = self.sizeVar)
 

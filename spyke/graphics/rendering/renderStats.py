@@ -1,12 +1,14 @@
-class RenderStats:
-	quadsCount = 0
-	drawsCount = 0
-	vertexCount = 0
-	frameEnded = False
+class RenderStats(object):
+	__slots__ = ("drawsCount", "vertexCount", "drawTime", "videoMemoryUsed")
+
+	def __init__(self):
+		self.drawsCount = 0
+		self.vertexCount = 0
+		self.drawTime = 1.0
+		self.videoMemoryUsed = 0.0
 	
-	@staticmethod
-	def Clear():
-		RenderStats.quadsCount = 0
-		RenderStats.drawsCount = 0
-		RenderStats.vertexCount = 0
-		RenderStats.frameEnded = False
+	def Clear(self):
+		self.drawsCount = 0
+		self.vertexCount = 0
+		self.drawTime = 1.0
+		self.videoMemoryUsed = 0.0

@@ -1,61 +1,30 @@
-#region Import
 from ..enums import NvidiaIntegerName, Vendor
 from ..utils import EnsureString
 
 from OpenGL import GL
-#endregion
 
-class ContextInfo:
-	Renderer = ""
-	Vendor = Vendor.Unknown
-	Version = ""
-	GLSLVersion = ""
-	MemoryAvailable = 0
+class ContextInfo(object):
+	__slots__ = ("renderer", "version", "glslVersion", "vendor", "memoryAvailable")
 
-	__Checked = False
+	def __init__(self):
+		self.renderer = ""
+		self.version = ""
+		self.glslVersion = ""
+		self.vendor = Vendor.Unknown
+		self.memoryAvailable = 0
 
-	@staticmethod
-	def TryGetInfo():
-		if ContextInfo.__Checked:
-			return
-			
-		ContextInfo.Renderer = EnsureString(GL.glGetString(GL.GL_RENDERER))
-		ContextInfo.Version = EnsureString(GL.glGetString(GL.GL_VERSION))
-		ContextInfo.GLSLVersion = EnsureString(GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION))
-
+	def GetInfo(self):
+		self.renderer = EnsureString(GL.glGetString(GL.GL_RENDERER))
+		self.version = EnsureString(GL.glGetString(GL.GL_VERSION))
+		self.glslVersion = EnsureString(GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION))
+		
 		vendor = EnsureString(GL.glGetString(GL.GL_VENDOR)).lower()
 		if "nvidia" in vendor:
-			ContextInfo.Vendor = Vendor.Nvidia
+			self.vendor = Vendor.Nvidia
 		elif "intel" in vendor:
-			ContextInfo.Vendor = Vendor.Intel
-		elif "amd" in vendor:
-			ContextInfo.Vendor = Vendor.Amd
-		else:
-			ContextInfo.Vendor = Vendor.Unknown
+			self.vendor = Vendor.Intel
+		elif "ati" in vendor:
+			self.vendor = Vendor.Amd
 
-		if ContextInfo.Vendor == Vendor.Nvidia:
-			ContextInfo.MemoryAvailable = GL.glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable)
-		
-		ContextInfo.__Checked = True
-		
-	@staticmethod
-	def PrintInfo():
-		if not ContextInfo.__Checked:
-			ContextInfo.TryGetInfo()
-		
-		print("-----GL INFO-----")
-		print(f"Renderer: {ContextInfo.Renderer}")
-		print(f"Vendor: {ContextInfo.Vendor}")
-		print(f"Version: {ContextInfo.Version}")
-		print(f"Shading language version: {ContextInfo.GLSLVersion}")
-		if ContextInfo.MemoryAvailable != 0:
-			print(f"Total video memory: {ContextInfo.MemoryAvailable / 1000000.0}GB")
-		else:
-			print("Total video memory: unavailable.")
-	
-	@staticmethod
-	def GetVideoMemoryCurrent():
-		if ContextInfo.Vendor == Vendor.Nvidia:
-			return GL.glGetIntegerv(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
-		else:
-			return 0
+		if self.vendor == Vendor.Nvidia:
+			self.memoryAvailable = GL.glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable)

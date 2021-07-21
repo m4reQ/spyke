@@ -1,13 +1,13 @@
 #region Import
 #from . import enginePreview
+from ..enums import Keys
 from ..graphics import Renderer
 from ..graphics import ContextInfo
-from ..graphics import ScreenInfo
 from ..graphics.gl import GLMarshal
 from ..input import EventHandler
 from ..debugging import Debug, LogLevel
 from ..exceptions import GraphicsException, SpykeException
-from ..imgui import ImGui
+from ..imgui import Imgui
 from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
 from .windowSpecs import WindowSpecs
 
@@ -25,8 +25,8 @@ class GlfwWindow(object):
 		start = time.perf_counter()
 
 		self.isActive = True
-		self.frameTime = 1.0
 		self.baseTitle = specification.title
+		self.frameTime = 1.0
 
 		if not glfw.init():
 			raise GraphicsException("Cannot initialize GLFW.")
@@ -47,7 +47,6 @@ class GlfwWindow(object):
 		glfw.make_context_current(self.__handle)
 
 		self.__GetScreenInfo(specification)
-		ContextInfo.TryGetInfo()
 
 		#enginePreview.RenderPreview()
 		#glfw.swap_buffers(self.__handle)
@@ -76,12 +75,13 @@ class GlfwWindow(object):
 
 		self.positionX, self.positionY = glfw.get_window_pos(self.__handle)
 
-		Renderer.Initialize(ScreenInfo.width, ScreenInfo.height, specification.samples)
+		Renderer.Initialize(Renderer.screenStats.width, Renderer.screenStats.height, specification.samples)
 
 		self.OnLoad()
 
 		if startImgui:
-			ImGui.Initialize()
+			Imgui.Initialize()
+			atexit.register(Imgui.Close)
 		
 		gc.collect()
 
@@ -104,7 +104,7 @@ class GlfwWindow(object):
 	
 	def SetVsync(self, value: bool) -> None:
 		glfw.swap_interval(int(value))
-		ScreenInfo.vsync = value
+		Renderer.screenStats.vsync = value
 
 		Debug.Log(f"Vsync set to: {value}.", LogLevel.Info)
 
@@ -135,8 +135,8 @@ class GlfwWindow(object):
 		raise GraphicsException(f"GLFW error: {message}")
 
 	def __ResizeCb(self, _, width, height):
-		ScreenInfo.width = width
-		ScreenInfo.height = height
+		Renderer.screenStats.width = width
+		Renderer.screenStats.height = height
 
 		EventHandler.WindowResize.Invoke(width, height)
 
@@ -163,7 +163,7 @@ class GlfwWindow(object):
 			EventHandler.WindowLostFocus.Invoke()
 			self.isActive = False
 		else:
-			EventHandler.WindowResize.Invoke(ScreenInfo.width, ScreenInfo.height)
+			EventHandler.WindowResize.Invoke(Renderer.screenStats.width, Renderer.screenStats.height)
 			EventHandler.WindowFocus.Invoke()
 			self.isActive = True
 		
@@ -179,6 +179,8 @@ class GlfwWindow(object):
 	def __KeyCb(self, _, key, scancode, action, mods):
 		if action == glfw.PRESS:
 			EventHandler.KeyDown.Invoke(key, mods, False)
+			if key == Keys.KeyF2:
+				self.SetVsync(not Renderer.screenStats.vsync)
 		elif action == glfw.REPEAT:
 			EventHandler.KeyDown.Invoke(key, mods, True)
 		elif action == glfw.RELEASE:
@@ -193,7 +195,10 @@ class GlfwWindow(object):
 		atexit.unregister(GLMarshal.ReleaseAll)
 		GLMarshal.ReleaseAll()
 
-		ImGui.TryClose()
+		atexit.unregister(Imgui.Close)
+		Imgui.Close()
+		Imgui.JoinThread()
+		
 
 		glfw.destroy_window(self.__handle)
 		Debug.Log("Window destroyed.", LogLevel.Info)
@@ -230,12 +235,11 @@ class GlfwWindow(object):
 		glfw.window_hint(glfw.SAMPLES, spec.samples)
 
 	def __GetScreenInfo(self, spec):
-		ScreenInfo.width, ScreenInfo.height = glfw.get_framebuffer_size(self.__handle)
+		Renderer.screenStats.width, Renderer.screenStats.height = glfw.get_framebuffer_size(self.__handle)
 		
 		vidmode = glfw.get_video_mode(glfw.get_primary_monitor())
-		ScreenInfo.refreshRate = vidmode.refresh_rate
-
-		ScreenInfo.vsync = spec.vsync
+		Renderer.screenStats.refreshRate = vidmode.refresh_rate
+		Renderer.screenStats.vsync = spec.vsync
 	
 	@property
 	def WindowHandle(self):

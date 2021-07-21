@@ -6,7 +6,7 @@ class WindowSpecs(object):
 		self.height = height
 		self.samples = 1
 		self.title = title
-		self.vsync = False
+		self.vsync = True
 		self.resizable = True
 		self.fullscreen = False
 		self.borderless = False
