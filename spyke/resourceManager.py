@@ -1,3 +1,4 @@
+from spyke.utils.converters import PilImageToNp
 from .ecs import Scene
 from .ecs.components import *
 from .ecs.processors import *
@@ -7,6 +8,7 @@ from .exceptions import GraphicsException, SpykeException
 from .graphics.texturing.texture import Texture, TextureData, TextureSpec
 from .graphics.text import Font, Glyph
 from .graphics.rectangle import RectangleF
+from .autoslot import WeakSlots
 
 from OpenGL import GL
 from PIL import Image
@@ -17,9 +19,9 @@ import threading
 import queue
 import yaml
 
-fonts = {}
-textures = {}
-currentScene = None
+_fonts = {}
+_textures = {}
+_currentScene = None
 
 _loadingTasksCount = 0
 _loadingSemaphore = threading.BoundedSemaphore(MAX_LOADING_TASKS_COUNT)
@@ -37,9 +39,7 @@ DUMP_STANDARD_ARGS = {
 	"explicit_end": True
 }
 
-class TextureLoadingData(object):
-	__slots__ = ("texName", "texData", "texSpec")
-	
+class TextureLoadingData(WeakSlots):
 	def __init__(self):
 		self.texName: str = ""
 		self.texData: TextureData = None
@@ -55,7 +55,7 @@ def FinishLoading():
 
 	while _loadingTasksCount != 0:
 		task = _loadingQueue.get()
-		textures[task.texName] = Texture(task.texData, task.texSpec)
+		_textures[task.texName] = Texture(task.texData, task.texSpec)
 		
 		_loadingTasksCount -= 1
 	
@@ -63,74 +63,6 @@ def FinishLoading():
 		t.join()
 	
 	_loadingThreads.clear()
-
-def _LoadTexture(filepath: str, name: str, texSpec: TextureSpec) -> None:
-	data = _LoadTextureImmediate(filepath, name, texSpec)
-
-	_loadingQueue.put(data)
-	_loadingSemaphore.release()
-
-def _LoadTextureImmediate(filepath: str, name: str, texSpec: TextureSpec) -> TextureLoadingData:
-	start = time.perf_counter()
-
-	try:
-		img = Image.open(filepath, mode="r")
-	except FileNotFoundError as e:
-		raise SpykeException(f"Cannot find texture file '{e.filename}'.")
-
-	tData = TextureData(img.size[0], img.size[1])
-	tData.format = _IMAGE_FORMAT_MAP[img.mode]
-	tData.data = memoryview(np.asarray(img.getdata(), dtype=_NP_UBYTE))
-	tData.filepath = filepath
-
-	img.close()
-
-	loadingData = TextureLoadingData()
-	loadingData.texName = name
-	loadingData.texData = tData
-	loadingData.texSpec = texSpec
-
-	Debug.Log(f"Texture '{filepath}' loaded in {time.perf_counter() - start} seconds.", LogLevel.Info)
-
-	return loadingData
-
-def _LoadFontData(filepath: str, texSize: tuple) -> tuple:
-	characters = {}
-	base = 1
-
-	f = open(filepath, mode="r")
-
-	for line in f.readlines():
-		if not line.startswith("char "):
-			idx = line.find("base=")
-			if idx != -1:
-				base = line[idx:].split(' ')[0]
-				base = int(base.split('=')[-1])
-
-			continue
-			
-		lineData = line[5:len(line) - 20]
-		lineData = lineData.split(' ')
-		lineData = [e for e in lineData if e != '' and e != ' ']
-
-		width = int(lineData[3][6:])
-		height = int(lineData[4][7:])
-		bearX = int(lineData[5][8:])
-		bearY = int(lineData[6][8:])
-		adv = int(lineData[7][9:])
-		_ord = int(lineData[0][3:])
-
-		texX = int(lineData[1][2:]) / texSize[0]
-		texY = int(lineData[2][2:]) / texSize[1]
-		texWidth = int(lineData[3][6:]) / texSize[0]
-		texHeight = int(lineData[4][7:]) / texSize[1]
-		texRect = RectangleF(texX, texY, texWidth, texHeight)
-
-		characters[_ord] = Glyph(width, height, bearX, bearY, adv, texRect, _ord)
-
-	f.close()
-
-	return (characters, base)
 
 def CreateTexture(filepath: str, name: str="", texSpec=TextureSpec()):
 	"""
@@ -146,11 +78,11 @@ def CreateTexture(filepath: str, name: str="", texSpec=TextureSpec()):
 	if not name:
 		name = filepath
 
-	if name in textures:
+	if name in _textures:
 		Debug.Log(f"Texture named '{name}' already exists. Texture will be overwritten.", LogLevel.Warning)
 
-		textures[name].Delete(True)
-		del textures[name]
+		_textures[name].Delete(True)
+		del _textures[name]
 	
 	thread = threading.Thread(target=_LoadTexture, args=(filepath, name, texSpec))
 
@@ -176,11 +108,11 @@ def CreateFont(fontFilepath: str, imageFilepath: str, name: str = "") -> None:
 	if not name:
 		name = fontFilepath
 
-	if name in fonts:
+	if name in _fonts:
 		Debug.Log(f"Font named '{name}' already exists. Font will be overwritten.", LogLevel.Warning)
 
-		fonts[name].texture.Delete(True)
-		del fonts[name]
+		_fonts[name].texture.Delete(True)
+		del _fonts[name]
 
 	tSpec = TextureSpec()
 	tSpec.minFilter = GL.GL_NEAREST
@@ -198,7 +130,7 @@ def CreateFont(fontFilepath: str, imageFilepath: str, name: str = "") -> None:
 	font.texture = Texture(loadingData.texData, loadingData.texSpec)
 	font.characters, font.baseSize = _LoadFontData(fontFilepath, (font.texture.width, font.texture.height))
 
-	fonts[name] = font
+	_fonts[name] = font
 
 	Debug.Log(f"Font '{name}' loaded in {time.perf_counter() - start} seconds.", LogLevel.Info)
 
@@ -223,10 +155,10 @@ def SaveScene(filepath: str, scene: Scene) -> None:
 
 	file.write(RESOURCE_SECTION_MARKER + '\n')
 
-	for name, texture in textures.items():
+	for name, texture in _textures.items():
 		dumped = yaml.dump(texture.specification, **DUMP_STANDARD_ARGS)
 		file.write(f"res_texture\n{texture.filepath}\n{name}\n{len(dumped)}\n{dumped}\n{RESOURCE_END_MARKER}\n")
-	for name, font in fonts.items():
+	for name, font in _fonts.items():
 		file.write(f"res_font\n{font.fontFilepath}\n{font.imageFilepath}\n{name}\n{RESOURCE_END_MARKER}\n")
 	
 	file.flush()
@@ -313,9 +245,24 @@ def LoadScene(filepath: str):
 
 	return scene
 
+def ReleaseResources() -> None:
+	"""
+	Release all resources that are already
+	loaded and clear current scene.
+	"""
+
+	for tex in _textures.values():
+		tex.Delete(removeRef=True)
+	
+	for font in _fonts.values():
+		font.texture.Delete(removeRef=True)
+	
+	_textures.clear()
+	_fonts.clear()
+
 def SetSceneCurrent(scene: Scene) -> None:
-	global currentScene
-	currentScene = scene
+	global _currentScene
+	_currentScene = scene
 
 	Debug.Log(f"Scene '{scene.name}' has been made current.", LogLevel.Info)
 
@@ -325,10 +272,10 @@ def GetCurrentScene() -> Scene:
 	Returns current scene.
 	"""
 
-	if not currentScene:
+	if not _currentScene:
 		raise SpykeException("No scene is made current.")
 
-	return currentScene
+	return _currentScene
 
 @lru_cache
 def GetTexture(name: str) -> Texture:
@@ -341,14 +288,82 @@ def GetTexture(name: str) -> Texture:
 	if name == '':
 		return None
 
-	if not name in textures:
+	if not name in _textures:
 		raise GraphicsException(f"No such texture: '{name}'.")
 	
-	return textures[name]
+	return _textures[name]
 
 @lru_cache
 def GetFont(name: str) -> Font:
-	if not name in fonts:
+	if not name in _fonts:
 		raise GraphicsException(f"No such font: '{name}'.")
 	
-	return fonts[name]
+	return _fonts[name]
+
+def _LoadTexture(filepath: str, name: str, texSpec: TextureSpec) -> None:
+	data = _LoadTextureImmediate(filepath, name, texSpec)
+
+	_loadingQueue.put(data)
+	_loadingSemaphore.release()
+
+def _LoadTextureImmediate(filepath: str, name: str, texSpec: TextureSpec) -> TextureLoadingData:
+	start = time.perf_counter()
+
+	try:
+		img = Image.open(filepath, mode="r")
+	except FileNotFoundError as e:
+		raise SpykeException(f"Cannot find texture file '{e.filename}'.")
+
+	tData = TextureData(img.size[0], img.size[1])
+	tData.format = _IMAGE_FORMAT_MAP[img.mode]
+	tData.data = PilImageToNp(img).data
+	tData.filepath = filepath
+
+	img.close()
+
+	loadingData = TextureLoadingData()
+	loadingData.texName = name
+	loadingData.texData = tData
+	loadingData.texSpec = texSpec
+
+	Debug.Log(f"Texture '{filepath}' loaded in {time.perf_counter() - start} seconds.", LogLevel.Info)
+
+	return loadingData
+
+def _LoadFontData(filepath: str, texSize: tuple) -> tuple:
+	characters = {}
+	base = 1
+
+	f = open(filepath, mode="r")
+
+	for line in f.readlines():
+		if not line.startswith("char "):
+			idx = line.find("base=")
+			if idx != -1:
+				base = line[idx:].split(' ')[0]
+				base = int(base.split('=')[-1])
+
+			continue
+			
+		lineData = line[5:len(line) - 20]
+		lineData = lineData.split(' ')
+		lineData = [e for e in lineData if e != '' and e != ' ']
+
+		width = int(lineData[3][6:])
+		height = int(lineData[4][7:])
+		bearX = int(lineData[5][8:])
+		bearY = int(lineData[6][8:])
+		adv = int(lineData[7][9:])
+		_ord = int(lineData[0][3:])
+
+		texX = int(lineData[1][2:]) / texSize[0]
+		texY = int(lineData[2][2:]) / texSize[1]
+		texWidth = int(lineData[3][6:]) / texSize[0]
+		texHeight = int(lineData[4][7:]) / texSize[1]
+		texRect = RectangleF(texX, texY, texWidth, texHeight)
+
+		characters[_ord] = Glyph(width, height, bearX, bearY, adv, texRect, _ord)
+
+	f.close()
+
+	return (characters, base)

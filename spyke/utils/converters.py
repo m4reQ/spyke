@@ -1,4 +1,8 @@
+from ..exceptions import GraphicsException
+
 import glm
+import numpy as np
+from PIL import Image
 from typing import Union, TypeVar, NoReturn
 
 T = TypeVar('T')
@@ -24,6 +28,26 @@ def IsArrayLike(obj: object) -> bool:
 
 def Mat4ToTuple(mat: glm.mat4) -> tuple:
 	return tuple(mat[0]) + tuple(mat[1]) + tuple(mat[2]) + tuple(mat[3])
+
+def PilImageToNp(im: Image.Image):
+    im.load()
+
+    encoder = Image._getencoder(im.mode, 'raw', im.mode)
+    encoder.setimage(im.im)
+
+    shape, typestr = Image._conv_type_shape(im)
+    data = np.empty(shape, dtype=np.dtype(typestr))
+    mem = data.data.cast('B', (data.data.nbytes,))
+
+    bufsize, s, offset = 65536, 0, 0
+    while not s:
+        _, s, d = encoder.encode(bufsize)
+        mem[offset:offset + len(d)] = d
+        offset += len(d)
+    if s < 0:
+        raise GraphicsException(f"Encoder error: {s}")
+		
+    return data
 
 def KwargParse(kwargs: dict, keywords: list, usage: str, copy = True) -> dict:
 	if not usage.lower() in ["n", "r", "l"]:

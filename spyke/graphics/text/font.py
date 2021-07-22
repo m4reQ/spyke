@@ -1,12 +1,11 @@
 from .glyph import Glyph
+from ...autoslot import WeakSlots
 
 from functools import lru_cache
 
 INVALID_GLYPH_ID = 0
 
-class Font(object):
-	__slots__ = ("fontFilepath", "imageFilepath", "characters", "baseSize", "texture", "name")
-
+class Font(WeakSlots):
 	def __init__(self):
 		self.fontFilepath = ""
 		self.imageFilepath = ""

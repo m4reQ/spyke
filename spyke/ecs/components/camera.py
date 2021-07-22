@@ -1,11 +1,10 @@
+from ...autoslot import WeakSlots
 import glm
 
 class CameraType:
 	Orthographic, Perspective = range(2)
 
-class CameraComponent(object):
-	__slots__ = ("isPrimary", "shouldRecalculate", "_projectionMatrix", "_viewMatrix", "_viewProjectionMatrix", "_projectionFunc")
-
+class CameraComponent(WeakSlots):
 	@staticmethod
 	def _CreateOrtho():
 		pass

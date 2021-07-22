@@ -2,6 +2,7 @@ from ..gl import GLObject, GLHelper
 from ...debugging import Debug, LogLevel
 from ...exceptions import GraphicsException
 from ...constants import _GL_FB_ERROR_CODE_NAMES_MAP, _NP_FLOAT, _NP_INT
+from ...autoslot import WeakSlots
 
 from OpenGL import GL
 from typing import List, Tuple
@@ -29,18 +30,14 @@ class FramebufferTextureFormat:
 	Depth24Stencil8 = GL.GL_DEPTH24_STENCIL8
 	Depth = GL.GL_DEPTH24_STENCIL8
 
-class FramebufferAttachmentSpec(object):
-	__slots__ = ("textureFormat", "wrapMode", "minFilter", "magFilter")
-
+class FramebufferAttachmentSpec(WeakSlots):
 	def __init__(self, _format: FramebufferTextureFormat):
 		self.textureFormat = _format
 		self.wrapMode = GL.GL_CLAMP_TO_EDGE
 		self.minFilter = GL.GL_LINEAR
 		self.magFilter = GL.GL_LINEAR
 
-class FramebufferSpec(object):
-	__slots__ = ("width", "height", "samples", "attachmentSpecs")
-
+class FramebufferSpec(WeakSlots):
 	def __init__(self, width: int, height: int):
 		self.width = width
 		self.height = height

@@ -1,5 +1,5 @@
-class TagComponent(object):
-	__slots__ = ("name", "__weakref__")
-	
+from ...autoslot import WeakSlots
+
+class TagComponent(WeakSlots):
 	def __init__(self, name):
 		self.name = name

@@ -1,3 +1,4 @@
+from spyke.imgui.widgets.contextInfo import ContextInfoWidget
 from .widgets import *
 from .dialogWindow import DialogWindow
 from ..debugging import Debug, LogLevel
@@ -17,7 +18,7 @@ import gc
 #that should be able to resize as grid_configure "weight" parameter.
 DONT_RESIZE_OTHERS = 450
 
-DEFAULT_WINDOW_WIDTH = 850
+DEFAULT_WINDOW_WIDTH = 900
 DEFAULT_WINDOW_HEIGHT = 280
 
 DEFAULT_COLUMN_WEIGHT = 1
@@ -34,10 +35,12 @@ _treeviewMenu: tk.Menu = None
 
 _entitiesTree: ttk.Treeview = None
 
+_infoFrame: tk.Frame = None
 _inspectorFrame: tk.Frame = None
 _treeviewFrame: tk.Frame = None
 
 _renderStatsWidget: RenderStatsWidget = None
+_contextInfoWidget: ContextInfoWidget = None
 
 def _Run():
 	global _isRunning
@@ -49,8 +52,8 @@ def _Run():
 	while _isRunning:
 		_THREAD_SYNC.wait()
 
-		_renderStatsWidget.Update(Renderer.renderStats.drawsCount, Renderer.renderStats.vertexCount, Renderer.renderStats.drawTime,\
-			_MAIN_PROCESS.memory_info().rss, Renderer.renderStats.videoMemoryUsed, (Renderer.screenStats.width, Renderer.screenStats.height),\
+		_renderStatsWidget.Update(Renderer.renderStats.drawsCount, Renderer.renderStats.vertexCount, Renderer.renderStats.drawTime, \
+			_MAIN_PROCESS.memory_full_info().uss, Renderer.renderStats.videoMemoryUsed, (Renderer.screenStats.width, Renderer.screenStats.height), \
 				Renderer.screenStats.vsync, Renderer.screenStats.refreshRate)
 		_window.update()
 
@@ -87,13 +90,18 @@ def _Close() -> None:
 
 def _Setup() -> None:
 	global _window, _menu, _fileMenu, _treeviewMenu, _entitiesTree, _inspectorFrame, \
-		_treeviewFrame, _renderStatsWidget, _inspectorLabel
+		_treeviewFrame, _renderStatsWidget, _inspectorLabel, _infoFrame, _contextInfoWidget
 
 	_window = tk.Tk()
 	_window.title("ImGui")
-	_window.geometry(f"{DEFAULT_WINDOW_WIDTH}x{DEFAULT_WINDOW_HEIGHT}")
+	# _window.geometry(f"{DEFAULT_WINDOW_WIDTH}x{DEFAULT_WINDOW_HEIGHT}")
 	_window.protocol("WM_DELETE_WINDOW", Close)
 	_window.config(bg = DEFAULT_IMGUI_BG_COLOR)
+
+	_window.columnconfigure(0, weight = DEFAULT_COLUMN_WEIGHT)
+	_window.columnconfigure(1, weight = DEFAULT_COLUMN_WEIGHT)
+	_window.columnconfigure(2, weight = DEFAULT_COLUMN_WEIGHT)
+	_window.rowconfigure(0, weight = DEFAULT_ROW_WEIGHT)
 
 	_menu = tk.Menu(_window)
 
@@ -115,18 +123,22 @@ def _Setup() -> None:
 	_entitiesTree = ttk.Treeview(_window, show = "tree", style = "Treeview")
 	_entitiesTree.bind("<Button-3>", _PopTreeviewMenu)
 
+	_infoFrame = tk.Frame(_window, bd = 1, relief = "solid", bg = DEFAULT_IMGUI_BG_COLOR)
 	_inspectorFrame = tk.Frame(_window, bd = 1, relief = "solid", bg = DEFAULT_IMGUI_BG_COLOR)
 	_treeviewFrame = tk.Frame(_window, bd = 1, relief = "solid", bg = DEFAULT_IMGUI_BG_COLOR)
 
-	_renderStatsWidget = RenderStatsWidget(_window)
+	_renderStatsWidget = RenderStatsWidget(_infoFrame)
+	_contextInfoWidget = ContextInfoWidget(_infoFrame, Renderer.contextInfo.renderer, Renderer.contextInfo.version, Renderer.contextInfo.glslVersion, Renderer.contextInfo.vendor, Renderer.contextInfo.memoryAvailable)
+	
+	_infoFrame.rowconfigure(0, weight = DEFAULT_ROW_WEIGHT)
+	_infoFrame.rowconfigure(1, weight = DEFAULT_ROW_WEIGHT)
+
 	_renderStatsWidget.grid(row = 0, column = 0, sticky = "news")
+	_contextInfoWidget.grid(row = 1, column = 0, sticky = "news")
+
+	_infoFrame.grid(row = 0, column = 0, sticky = "w")
 
 	_inspectorLabel = tk.Label(_inspectorFrame, text = "Inspector", bd = 0, bg = DEFAULT_IMGUI_BG_COLOR)
-
-	_window.columnconfigure(0, weight = DEFAULT_COLUMN_WEIGHT)
-	_window.columnconfigure(1, weight = DEFAULT_COLUMN_WEIGHT)
-	_window.columnconfigure(2, weight = DEFAULT_COLUMN_WEIGHT)
-	_window.rowconfigure(0, weight = DEFAULT_ROW_WEIGHT)
 
 def _OpenScene() -> None:
 	f = filedialog.askopenfilename(parent = _window, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
@@ -139,6 +151,9 @@ def _SaveScene() -> None:
 	f = filedialog.asksaveasfilename(parent = _window, initialdir = "./", title = "Select file", filetypes = (("spyke scene files", "*.scn"), ("all files", "*.*")))
 	if not f:
 		return
+	
+	if not f.endswith(".scn"):
+		f += ".scn"
 		
 	ResourceManager.SaveScene(f, ResourceManager.GetCurrentScene())
 

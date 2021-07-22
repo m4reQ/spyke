@@ -1,6 +1,6 @@
-class ScreenStats(object):
-    __slots__ = ("width", "height", "vsync", "refreshRate")
+from ..autoslot import WeakSlots
 
+class ScreenStats(WeakSlots):
     def __init__(self):
         self.width = 0
         self.height = 0

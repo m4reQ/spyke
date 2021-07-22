@@ -1,8 +1,8 @@
+from ..autoslot import WeakSlots
+
 import time
 
-class Delayer(object):
-	__slots__ = ("_firstWait", "_waitTime", "_toWait", "_lastTime")
-
+class Delayer(WeakSlots):
 	def __init__(self, waitTime: float):
 		self._firstWait = True
 		self._waitTime = waitTime

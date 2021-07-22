@@ -1,14 +1,13 @@
+from ..gl import GLObject, GLHelper
 from ...debugging import Debug, LogLevel
 from ...constants import _NP_UBYTE
-from ..gl import GLObject, GLHelper
+from ...autoslot import WeakSlots
 
 from OpenGL import GL
 import numpy as np
 import time
 
-class TextureData(object):
-	__slots__ = ("width", "height", "data", "format", "filepath", "__weakref__")
-	
+class TextureData(WeakSlots):
 	def __init__(self, width: int, height: int):
 		self.width: int = width
 		self.height: int = height
@@ -16,9 +15,7 @@ class TextureData(object):
 		self.format: GL.GLenum = GL.GL_RGB
 		self.filepath: str = ""
 
-class TextureSpec(object):
-	__slots__ = ("mipmaps", "minFilter", "magFilter", "wrapMode", "compress", "__weakref__")
-
+class TextureSpec(WeakSlots):
 	def __init__(self):
 		self.mipmaps: int = 3
 		self.minFilter: GL.GLenum = GL.GL_LINEAR_MIPMAP_LINEAR

@@ -1,6 +1,6 @@
-class AudioComponent(object):
-	__slots__ = ("hasEnded", "looping", "sound")
-	
+from ...autoslot import WeakSlots
+
+class AudioComponent(WeakSlots):
 	def __init__(self, soundName: str, looping: bool):
 		self.sound = soundName
 		self.ended = False

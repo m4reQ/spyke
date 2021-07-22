@@ -1,8 +1,6 @@
-#region Import
-#from . import enginePreview
+# from . import enginePreview
 from ..enums import Keys
 from ..graphics import Renderer
-from ..graphics import ContextInfo
 from ..graphics.gl import GLMarshal
 from ..input import EventHandler
 from ..debugging import Debug, LogLevel
@@ -18,7 +16,6 @@ import glfw
 import os
 import gc
 from PIL import Image
-#endregion
 
 class GlfwWindow(object):
 	def __init__(self, specification: WindowSpecs, startImgui: bool = False):
@@ -48,8 +45,8 @@ class GlfwWindow(object):
 
 		self.__GetScreenInfo(specification)
 
-		#enginePreview.RenderPreview()
-		#glfw.swap_buffers(self.__handle)
+		# enginePreview.RenderPreview()
+		# glfw.swap_buffers(self.__handle)
 
 		glfw.set_input_mode(self.__handle, glfw.CURSOR, glfw.CURSOR_NORMAL if specification.cursorVisible else glfw.CURSOR_HIDDEN)
 
@@ -110,8 +107,9 @@ class GlfwWindow(object):
 
 	def Run(self):
 		isRunning = True
-		#enginePreview.CleanupPreview()
-		#glfw.swap_buffers(self.__handle)
+
+		# enginePreview.CleanupPreview()
+		# glfw.swap_buffers(self.__handle)
 
 		while isRunning:
 			start = glfw.get_time()

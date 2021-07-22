@@ -5,6 +5,8 @@ from ..loaders import dds_loader
 import numpy as np
 import gc, os, ctypes
 
+GL_COMPRESSED_RGBA_S3TC_DXT1_EXT = 0x83F1
+
 VBO = None
 VAO = None
 TEXTURE = None
@@ -19,13 +21,12 @@ vertexData = [
     1.0, -1.0, 0.0,  1.0, 1.0,
     -1.0, -1.0, 0.0, 0.0, 1.0]
 
-_filepath = os.path.join(Path(__file__).parent.parent.parent, "branding/spykeLogoFill.dds")
-with open(_filepath, mode = "rb") as f:
-    tex = dds_loader.DDSTexture()
-    tex.load(_filepath)
+_filepath = os.path.join(Path(__file__).parent.parent.parent, "branding/spykeLogo.dds")
+tex = dds_loader.DDSTexture()
+tex.load(_filepath)
     
-    print(tex.data)
-    texData = numpy.fromstring(f.read(), dtype = numpy.uint8)
+texData = np.fromstring(tex.data, dtype = np.uint8)
+texImageSize = tex.real_size
 
 vertSource = """
 #version 450 core
@@ -82,7 +83,7 @@ def __SetupVbo():
 
     VBO = GL.glGenBuffers(1)
     GL.glBindBuffer(GL.GL_ARRAY_BUFFER, VBO)
-    GL.glBufferData(GL.GL_ARRAY_BUFFER, len(vertexData) * ctypes.sizeof(ctypes.c_float), numpy.asarray(vertexData, dtype = numpy.float32), GL.GL_STATIC_DRAW)
+    GL.glBufferData(GL.GL_ARRAY_BUFFER, len(vertexData) * ctypes.sizeof(ctypes.c_float), np.asarray(vertexData, dtype = np.float32), GL.GL_STATIC_DRAW)
 
 def __SetupVao():
     global VAO
@@ -105,11 +106,8 @@ def __SetupTexture():
 
     TEXTURE = GL.glGenTextures(1)
     GL.glBindTexture(GL.GL_TEXTURE_2D, TEXTURE)
-    #GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
 
-    #imageSize = 8 * (1024 / 4) * (1024 / 4)
-
-    GL.glCompressedTexImage2D(GL.GL_TEXTURE_2D, 0, 0x83F3, 1024, 1024, 0, texData)
+    GL.glCompressedTexImage2D(GL.GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1024, 1024, texImageSize, texData)
     GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
     GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
 
@@ -122,6 +120,10 @@ def CleanupPreview():
     GL.glDeleteBuffers(1, [VBO])
     GL.glDeleteVertexArrays(1, [VAO])
     GL.glDeleteTextures(1, [TEXTURE])
+
+    err = GL.glGetError()
+    while err != GL.GL_NO_ERROR:
+        err = GL.glGetError()
 
     del vertexData
     del texData
@@ -137,6 +139,9 @@ def RenderPreview():
     __SetupVbo()
     __SetupVao()
     __SetupTexture()
+
+    GL.glEnable(GL.GL_BLEND)
+    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
     
     GL.glUseProgram(SHADER)
     GL.glBindVertexArray(VAO)
@@ -146,3 +151,7 @@ def RenderPreview():
     GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
 
     GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+
+    err = GL.glGetError()
+    while err != GL.GL_NO_ERROR:
+        err = GL.glGetError()

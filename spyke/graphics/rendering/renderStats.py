@@ -1,6 +1,6 @@
-class RenderStats(object):
-	__slots__ = ("drawsCount", "vertexCount", "drawTime", "videoMemoryUsed")
+from ...autoslot import WeakSlots
 
+class RenderStats(WeakSlots):
 	def __init__(self):
 		self.drawsCount = 0
 		self.vertexCount = 0

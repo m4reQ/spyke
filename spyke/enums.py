@@ -15,6 +15,7 @@ class Vendor:
 	Nvidia = 						"NVIDIA"
 	Intel = 						"INTEL"
 	Amd = 							"AMD"
+	WindowsSoftware = 				"WINDOWS"
 	Unknown = 						"UNKNOWN"
 #endregion
 

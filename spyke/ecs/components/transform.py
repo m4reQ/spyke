@@ -1,8 +1,7 @@
+from ...autoslot import WeakSlots
 import glm
 
-class TransformComponent(object):
-	__slots__ = ("matrix", "_pos", "_size", "_rot", "_rotHint", "__posChanged", "__sizeChanged", "__rotChanged", "_transMat", "_scaleMat", "_rotQuat", "__weakref__")
-
+class TransformComponent(WeakSlots):
 	def __init__(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3):
 		self._pos = pos
 		self._size = size

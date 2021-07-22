@@ -238,8 +238,7 @@ class DDSTexture:
 				self.array_size = 1
 		# We either have a single texture or a texture array ( 2D )
 		else:
-			if self.format_code == DDSEnums.DX10_CC and \
-			self.ext_header.arraySize > 1:
+			if self.ext_header.arraySize > 1:
 				self.type = DDSTexture.Type.Texture2DArray
 				self.array_size = self.ext_header.arraySize
 			else:

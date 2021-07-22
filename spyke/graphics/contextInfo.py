@@ -1,11 +1,10 @@
 from ..enums import NvidiaIntegerName, Vendor
 from ..utils import EnsureString
+from ..autoslot import WeakSlots
 
 from OpenGL import GL
 
-class ContextInfo(object):
-	__slots__ = ("renderer", "version", "glslVersion", "vendor", "memoryAvailable")
-
+class ContextInfo(WeakSlots):
 	def __init__(self):
 		self.renderer = ""
 		self.version = ""
@@ -25,6 +24,8 @@ class ContextInfo(object):
 			self.vendor = Vendor.Intel
 		elif "ati" in vendor:
 			self.vendor = Vendor.Amd
+		elif "microsoft" in vendor:
+			self.vendor = Vendor.WindowsSoftware
 
 		if self.vendor == Vendor.Nvidia:
 			self.memoryAvailable = GL.glGetIntegerv(NvidiaIntegerName.GpuMemInfoTotalAvailable)
