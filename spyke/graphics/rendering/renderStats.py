@@ -1,6 +1,8 @@
-from ...autoslot import WeakSlots
+from ...autoslot import Slots
 
-class RenderStats(WeakSlots):
+class RenderStats(Slots):
+	__slots__ = ["__weakref__", ]
+
 	def __init__(self):
 		self.drawsCount = 0
 		self.vertexCount = 0

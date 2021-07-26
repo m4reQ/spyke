@@ -1,6 +1,8 @@
-from ..autoslot import WeakSlots
+from ..autoslot import Slots
 
-class ScreenStats(WeakSlots):
+class ScreenStats(Slots):
+    __slots__ = ("__weakref__", )
+    
     def __init__(self):
         self.width = 0
         self.height = 0

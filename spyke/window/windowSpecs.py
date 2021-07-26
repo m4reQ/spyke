@@ -1,6 +1,8 @@
-from ..autoslot import WeakSlots
+from ..autoslot import Slots
 
-class WindowSpecs(WeakSlots):
+class WindowSpecs(Slots):
+	__slots__ = ("__weakref__", )
+	
 	def __init__(self, width: int, height: int, title: str):
 		self.width = width
 		self.height = height

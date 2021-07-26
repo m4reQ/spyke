@@ -2,7 +2,7 @@ from ..gl import GLObject, GLHelper
 from ...debugging import Debug, LogLevel
 from ...exceptions import GraphicsException
 from ...constants import _GL_FB_ERROR_CODE_NAMES_MAP, _NP_FLOAT, _NP_INT
-from ...autoslot import WeakSlots
+from ...autoslot import Slots
 
 from OpenGL import GL
 from typing import List, Tuple
@@ -30,14 +30,18 @@ class FramebufferTextureFormat:
 	Depth24Stencil8 = GL.GL_DEPTH24_STENCIL8
 	Depth = GL.GL_DEPTH24_STENCIL8
 
-class FramebufferAttachmentSpec(WeakSlots):
+class FramebufferAttachmentSpec(Slots):
+	__slots__ = ("__weakref__", )
+
 	def __init__(self, _format: FramebufferTextureFormat):
 		self.textureFormat = _format
 		self.wrapMode = GL.GL_CLAMP_TO_EDGE
 		self.minFilter = GL.GL_LINEAR
 		self.magFilter = GL.GL_LINEAR
 
-class FramebufferSpec(WeakSlots):
+class FramebufferSpec(Slots):
+	__slots__ = ("__weakref__", )
+	
 	def __init__(self, width: int, height: int):
 		self.width = width
 		self.height = height
@@ -62,7 +66,7 @@ class Framebuffer(GLObject):
 			if _ATTACHMENT_FORMAT_IS_COLOR_MAP[attachmentSpec.textureFormat]:
 				self.colorAttachmentSpecs.append(attachmentSpec)
 			else:
-				if self.depthAttachmentSpec.textureFormat != FramebufferTextureFormat.NoAttachment:
+				if self.depthAttachmentSpec.textureFormat:
 					Debug.Log("Framebuffer found more than one depth texture format in the specification. Additional depth textures will not be created.", LogLevel.Warning)
 					continue
 			
@@ -118,7 +122,7 @@ class Framebuffer(GLObject):
 	
 	def __CreateFramebufferAttachment(self, attachmentSpec: FramebufferAttachmentSpec) -> int:
 		multisample = self.specification.samples > 1
-		target = Framebuffer.__GetTextureTarget(multisample)
+		target = GL.GL_TEXTURE_2D_MULTISAMPLE if multisample else GL.GL_TEXTURE_2D
 		internalFormat = _TEXTURE_FORMAT_INTERNAL_FORMAT_MAP[attachmentSpec.textureFormat]
 
 		_id = GLHelper.CreateTexture(target)
@@ -157,7 +161,7 @@ class Framebuffer(GLObject):
 			self.__AttachFramebufferTexture(texture, idx, False)
 			self.colorAttachments.append(texture)
 		 
-		if self.depthAttachmentSpec.textureFormat != FramebufferTextureFormat.NoAttachment:
+		if self.depthAttachmentSpec.textureFormat:
 			texture = self.__CreateFramebufferAttachment(self.depthAttachmentSpec)
 			self.__AttachFramebufferTexture(texture, 0, True)
 			self.depthAttachment = texture
@@ -170,12 +174,10 @@ class Framebuffer(GLObject):
 			GL.glNamedFramebufferDrawBuffers(self._id, len(self.colorAttachments), drawBuffers)
 		elif len(self.colorAttachments) == 0:
 			GL.glNamedFramebufferDrawBuffer(self._id, GL.GL_NONE)
+		else: #means we have only one color attachment
+			GL.glNamedFramebufferDrawBuffer(self._id, GL.GL_COLOR_ATTACHMENT0) #assume we use 0th index for our attachment
 		
 		if checkComplete:
 			status = GL.glCheckNamedFramebufferStatus(self._id, GL.GL_FRAMEBUFFER)
 			if status != GL.GL_FRAMEBUFFER_COMPLETE:
 				raise GraphicsException(f"Framebuffer incomplete: {_GL_FB_ERROR_CODE_NAMES_MAP[status]}.")
-	
-	@staticmethod
-	def __GetTextureTarget(isMultisampled: bool) -> GL.GLenum:
-		return GL.GL_TEXTURE_2D_MULTISAMPLE if isMultisampled else GL.GL_TEXTURE_2D

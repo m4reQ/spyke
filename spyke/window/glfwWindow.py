@@ -1,7 +1,7 @@
 # from . import enginePreview
 from ..enums import Keys
 from ..graphics import Renderer
-from ..graphics.gl import GLMarshal
+from ..graphics.gl import GLMarshal, GLHelper
 from ..input import EventHandler
 from ..debugging import Debug, LogLevel
 from ..exceptions import GraphicsException, SpykeException
@@ -118,6 +118,8 @@ class GlfwWindow(object):
 				EventHandler.WindowClose.Invoke()
 				isRunning = False
 			
+			Imgui._OnFrame()
+			
 			if self.isActive:
 				self.OnFrame()
 				glfw.swap_buffers(self.__handle)
@@ -195,8 +197,6 @@ class GlfwWindow(object):
 
 		atexit.unregister(Imgui.Close)
 		Imgui.Close()
-		Imgui.JoinThread()
-		
 
 		glfw.destroy_window(self.__handle)
 		Debug.Log("Window destroyed.", LogLevel.Info)

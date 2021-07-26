@@ -1,3 +1,6 @@
+from spyke.ecs.components.sprite import SpriteComponent
+from spyke.ecs.components.transform import TransformComponent
+from spyke.ecs.components.tag import TagComponent
 from spyke.ecs import components
 import spyke
 spyke.Init()
@@ -45,13 +48,16 @@ class Window(GlfwWindow):
 		elif key == Keys.KeyA:
 			self.camera.Move(Vector3(-0.1, 0.0, 0.0), self.frameTime)
 		elif key == Keys.KeyD:
-			self.camera.Move(Vector3(0.1, 0.0, 0.0), self.frameTimee)
+			self.camera.Move(Vector3(0.1, 0.0, 0.0), self.frameTime)
 		
 		return False
 		
 	def OnFrame(self):
+		if self.camera.shouldRecalculate:
+			self.camera.RecalculateMatrices()
+			
 		ResourceManager.GetCurrentScene().Process(dt = self.frameTime)
-		Renderer.RenderScene(ResourceManager.GetCurrentScene(), Matrix4(1.0))
+		Renderer.RenderScene(ResourceManager.GetCurrentScene(), self.camera.viewProjectionMatrix)
 
 		self.SetTitle(f"{self.baseTitle} | FrameTime: {self.frameTime:.5F} | FPS: {int(1 / self.frameTime)}")
 

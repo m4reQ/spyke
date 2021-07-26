@@ -1,7 +1,9 @@
-from ...autoslot import WeakSlots
+from ...autoslot import Slots
 import glm
 
-class TransformComponent(WeakSlots):
+class TransformComponent(Slots):
+	__slots__ = ("__weakref__", )
+	
 	def __init__(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3):
 		self._pos = pos
 		self._size = size

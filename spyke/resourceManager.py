@@ -8,7 +8,7 @@ from .exceptions import GraphicsException, SpykeException
 from .graphics.texturing.texture import Texture, TextureData, TextureSpec
 from .graphics.text import Font, Glyph
 from .graphics.rectangle import RectangleF
-from .autoslot import WeakSlots
+from .autoslot import Slots
 
 from OpenGL import GL
 from PIL import Image
@@ -39,7 +39,9 @@ DUMP_STANDARD_ARGS = {
 	"explicit_end": True
 }
 
-class TextureLoadingData(WeakSlots):
+class TextureLoadingData(Slots):
+	__slots__ = ("__weakref__", )
+	
 	def __init__(self):
 		self.texName: str = ""
 		self.texData: TextureData = None

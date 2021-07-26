@@ -1,13 +1,15 @@
 from ..gl import GLObject, GLHelper
 from ...debugging import Debug, LogLevel
 from ...constants import _NP_UBYTE
-from ...autoslot import WeakSlots
+from ...autoslot import Slots
 
 from OpenGL import GL
 import numpy as np
 import time
 
-class TextureData(WeakSlots):
+class TextureData(Slots):
+	__slots__ = ("__weakref__", )
+
 	def __init__(self, width: int, height: int):
 		self.width: int = width
 		self.height: int = height
@@ -15,7 +17,9 @@ class TextureData(WeakSlots):
 		self.format: GL.GLenum = GL.GL_RGB
 		self.filepath: str = ""
 
-class TextureSpec(WeakSlots):
+class TextureSpec(Slots):
+	__slots__ = ("__weakref__", )
+	
 	def __init__(self):
 		self.mipmaps: int = 3
 		self.minFilter: GL.GLenum = GL.GL_LINEAR_MIPMAP_LINEAR
@@ -26,6 +30,7 @@ class TextureSpec(WeakSlots):
 class Texture(GLObject):
 	_InternalFormat = GL.GL_RGBA8
 	_CompressedInternalFormat = GL.GL_COMPRESSED_RGBA
+	_CompressionEnabled = False
 
 	def __init__(self, tData: TextureData, tSpec: TextureSpec):
 		start = time.perf_counter()
@@ -41,6 +46,8 @@ class Texture(GLObject):
 		self._id = GLHelper.CreateTexture(GL.GL_TEXTURE_2D)
 
 		_format = Texture._CompressedInternalFormat if tSpec.compress else Texture._InternalFormat
+		if not Texture._CompressionEnabled:
+			_format = Texture._InternalFormat
 
 		GL.glTextureStorage2D(self._id, tSpec.mipmaps, _format, tData.width, tData.height)
 		

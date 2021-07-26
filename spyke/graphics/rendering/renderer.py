@@ -7,14 +7,16 @@ from ..shader import Shader
 from ..buffers import *
 from ..screenStats import ScreenStats
 from ..contextInfo import ContextInfo
-from ...constants import _C_FLOAT_P, _GL_FILL_MODE_NAMES_MAP, _GL_FLOAT_SIZE, _NP_FLOAT, _NP_UINT, _THREAD_SYNC
+from ...constants import _C_FLOAT_P, _GL_FILL_MODE_NAMES_MAP, _GL_FLOAT_SIZE, _NP_FLOAT, _NP_UINT
 from ...enums import Hint, NvidiaIntegerName, Vendor, Keys
 from ...ecs import components
 from ...debugging import Debug, LogLevel
 from ...input import EventHook, EventHandler
+from ..gl import GLHelper
 from ... import resourceManager as ResourceManager
 
 from OpenGL import GL
+from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
 from PIL import Image
 import glm
 import time
@@ -109,69 +111,24 @@ screenStats = ScreenStats()
 contextInfo = ContextInfo()
 
 def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
-	global _basicRenderer, _postRenderer, _ubo, _framebuffer, _isInitialized, _basicShader, \
-		_posVbo, _instanceDataVbo, _vertexDataTbo, _ibo, _basicVao, _postProcessVao, _whiteTexture, _postProcessShader, _postDataVbo
+	global _ubo, _isInitialized, _whiteTexture
 
 	if _isInitialized:
 		Debug.Log("Renderer already initialized.", LogLevel.Warning)
 		return
 	
-	########################################
-	_basicShader = Shader()
-	_basicShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "basic.vert")
-	_basicShader.AddStage(GL.GL_FRAGMENT_SHADER, SHADER_SOURCES_DIRECTORY + "basic.frag")
-	_basicShader.Compile()
+	contextInfo.GetInfo()
+	Texture._CompressionEnabled = contextInfo.capabilities.arbTextureCompressionEnabled
 
-	_postProcessShader = Shader()
-	_postProcessShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "post.vert")
-	_postProcessShader.AddStage(GL.GL_FRAGMENT_SHADER, SHADER_SOURCES_DIRECTORY + "post.frag")
-	_postProcessShader.Compile()
+	_CreateBasicComponents()
 
-	_posVbo = StaticVertexBuffer(_quadVertices)
-	_instanceDataVbo = VertexBuffer(BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, memoryview(_instanceData))
-	_vertexDataTbo = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE * MAX_QUADS_COUNT * VERTICES_PER_QUAD, GL.GL_RG32F, memoryview(_vertexData))
-	_postDataVbo = StaticVertexBuffer(_postData)
-	_ibo = IndexBuffer(IndexBuffer.CreateQuadIndices(MAX_QUADS_COUNT), GL.GL_UNSIGNED_INT)
-
-	_basicVao = VertexArray()
-
-	_basicVao.BindVertexBuffer(POS_DATA_BUFFER_BINDING, _posVbo.ID, 0, POS_DATA_VERTEX_SIZE)
-	_basicVao.BindVertexBuffer(INSTANCE_DATA_BUFFER_BINDING, _instanceDataVbo.ID, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
-	_basicVao.BindElementBuffer(_ibo.ID)
-
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aPosition"), POS_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False, 1)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTilingFactor"), INSTANCE_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False, 1)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_FLOAT, False, 1)
-	_basicVao.AddMatrixLayout(_basicShader.GetAttribLocation("aTransform"), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GL.GL_FLOAT, False, 1)
-
-	_postProcessVao = VertexArray()
-
-	_postProcessVao.BindVertexBuffer(POST_DATA_BUFFER_BINDING, _postDataVbo.ID, 0, POST_VERTEX_DATA_VERTEX_SIZE)
-	_postProcessVao.BindElementBuffer(_ibo.ID)
-
-	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aPosition"), POST_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
-	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aTexCoord"), POST_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False)
+	if not contextInfo.capabilities.intelFramebufferCMAAEnabled:
+		_CreatePostProcessComponents()
 
 	_whiteTexture = Texture.CreateWhiteTexture()
 
-	samplers = [x for x in range(MAX_TEXTURES_COUNT)]
-	samplers.remove(BUFFER_TEXTURE_SAMPLER)
-
-	_basicShader.SetUniformIntArray("uTextures", samplers)
-	_basicShader.SetUniform1i("uTexCoordsBuffer", BUFFER_TEXTURE_SAMPLER)
-	_basicShader.SetUniformBlockBinding("uMatrices", MATRICES_UNIFORM_BLOCK_INDEX)
-	_basicShader.Validate()
-
-	_postProcessShader.SetUniform1i("uTexture", NORMAL_TEXTURE_SAMPLER)
-	_postProcessShader.SetUniform1i("uTextureMS", MULTISAMPLE_TEXTURE_SAMPLER)
-	_postProcessShader.SetUniformBlockBinding("uMatrices", MATRICES_UNIFORM_BLOCK_INDEX)
-	_postProcessShader.Validate()
-
 	_ubo = UniformBuffer(UNIFORM_BLOCK_SIZE)
 	_ubo.BindToUniform(MATRICES_UNIFORM_BLOCK_INDEX)
-
-	contextInfo.GetInfo()
 
 	_CreateFramebuffer(initialWidth, initialHeight, samples)
 	_SetGLSettings()
@@ -207,8 +164,8 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	renderStats.Clear()
 	start = time.perf_counter()
 
-	data = np.asarray(viewProjectionMatrix, dtype=_NP_FLOAT)
-	_ubo.AddData(memoryview(data), data.size * _GL_FLOAT_SIZE)
+	viewProjectionData = np.asarray(viewProjectionMatrix, dtype=_NP_FLOAT)
+	_ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
 	
 	_ubo.Bind()
 
@@ -269,13 +226,28 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	# _basicRenderer.RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
 	# _basicRenderer.EndScene()
 
+	if contextInfo.capabilities.intelFramebufferCMAAEnabled and _framebuffer.specification.samples > 1:
+		glApplyFramebufferAttachmentCMAAINTEL()
+
 	_framebuffer.Unbind()
 
 	ClearScreen()
 	GL.glViewport(0, 0, screenStats.width, screenStats.height)
 	GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
-	_RenderFramebuffer(_framebuffer.specification.samples, _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
+	# viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
+	# viewProjectionData[2, 2] = -1.0
+	# _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
+
+	viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
+	_ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
+
+	if contextInfo.capabilities.intelFramebufferCMAAEnabled:
+		# _RenderQuad(glm.mat4(1.0), glm.vec4(1.0), DEFAULT_RENDER_COLOR_ATTACHMENT, glm.vec2(1.0))
+		_RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
+		_FlushNormal()
+	else:
+		_RenderFramebuffer(_framebuffer.specification.samples, _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
 	
 	GL.glPolygonMode(GL.GL_FRONT_AND_BACK, _currentFillMode)
 	GL.glEnable(GL.GL_DEPTH_TEST)
@@ -284,8 +256,6 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 		renderStats.videoMemoryUsed = contextInfo.memoryAvailable - GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
 
 	renderStats.drawTime = time.perf_counter() - start
-
-	_THREAD_SYNC.set()
 
 def _ResetCounters() -> None:
 	global _quadsCount, _lastTexture, _lastVertexPos, _lastInstancePos
@@ -428,7 +398,7 @@ def _CreateFramebuffer(initialWidth: int, initialHeight: int, samples: int) -> N
 	global _framebuffer
 
 	fbSpec = FramebufferSpec(initialWidth, initialHeight)
-	fbSpec.samples = samples
+	fbSpec.samples = 1 if contextInfo.capabilities.intelFramebufferCMAAEnabled else samples
 
 	colorAttachmentSpec = FramebufferAttachmentSpec(FramebufferTextureFormat.Rgba)
 	
@@ -442,6 +412,62 @@ def _CreateFramebuffer(initialWidth: int, initialHeight: int, samples: int) -> N
 	]
 
 	_framebuffer = Framebuffer(fbSpec)
+
+def _CreateBasicComponents() -> None:
+	global _posVbo, _instanceDataVbo, _vertexDataTbo, _ibo, _basicShader, _basicVao
+
+	_posVbo = StaticVertexBuffer(_quadVertices)
+	_instanceDataVbo = VertexBuffer(BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, memoryview(_instanceData))
+	_vertexDataTbo = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE * MAX_QUADS_COUNT * VERTICES_PER_QUAD, GL.GL_RG32F, memoryview(_vertexData))
+	_ibo = IndexBuffer(IndexBuffer.CreateQuadIndices(MAX_QUADS_COUNT), GL.GL_UNSIGNED_INT)
+
+	_basicShader = Shader()
+	_basicShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "basic.vert")
+	_basicShader.AddStage(GL.GL_FRAGMENT_SHADER, SHADER_SOURCES_DIRECTORY + "basic.frag")
+	_basicShader.Compile()
+
+	samplers = [x for x in range(MAX_TEXTURES_COUNT)]
+	samplers.remove(BUFFER_TEXTURE_SAMPLER)
+
+	_basicShader.SetUniformIntArray("uTextures", samplers)
+	_basicShader.SetUniform1i("uTexCoordsBuffer", BUFFER_TEXTURE_SAMPLER)
+	_basicShader.SetUniformBlockBinding("uMatrices", MATRICES_UNIFORM_BLOCK_INDEX)
+	_basicShader.Validate()
+	
+	_basicVao = VertexArray()
+
+	_basicVao.BindVertexBuffer(POS_DATA_BUFFER_BINDING, _posVbo.ID, 0, POS_DATA_VERTEX_SIZE)
+	_basicVao.BindVertexBuffer(INSTANCE_DATA_BUFFER_BINDING, _instanceDataVbo.ID, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
+	_basicVao.BindElementBuffer(_ibo.ID)
+
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aPosition"), POS_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTilingFactor"), INSTANCE_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_FLOAT, False, 1)
+	_basicVao.AddMatrixLayout(_basicShader.GetAttribLocation("aTransform"), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GL.GL_FLOAT, False, 1)
+
+def _CreatePostProcessComponents() -> None:
+	global _postProcessVao, _postProcessShader, _postDataVbo
+
+	_postDataVbo = StaticVertexBuffer(_postData)
+
+	_postProcessShader = Shader()
+	_postProcessShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "post.vert")
+	_postProcessShader.AddStage(GL.GL_FRAGMENT_SHADER, SHADER_SOURCES_DIRECTORY + "post.frag")
+	_postProcessShader.Compile()
+
+	_postProcessShader.SetUniform1i("uTexture", NORMAL_TEXTURE_SAMPLER)
+	_postProcessShader.SetUniform1i("uTextureMS", MULTISAMPLE_TEXTURE_SAMPLER)
+	_postProcessShader.SetUniformBlockBinding("uMatrices", MATRICES_UNIFORM_BLOCK_INDEX)
+	_postProcessShader.Validate()
+
+	_postProcessVao = VertexArray()
+
+	_postProcessVao.BindVertexBuffer(POST_DATA_BUFFER_BINDING, _postDataVbo.ID, 0, POST_VERTEX_DATA_VERTEX_SIZE)
+	_postProcessVao.BindElementBuffer(_ibo.ID)
+
+	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aPosition"), POST_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
+	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aTexCoord"), POST_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False)
 
 def _SetRendererCallbacks() -> None:
 	EventHandler.WindowResize += EventHook(_ResizeCallback, -1)

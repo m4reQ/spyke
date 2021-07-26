@@ -1,8 +1,10 @@
-from ..autoslot import WeakSlots
+from ..autoslot import Slots
 
 import time
 
-class Delayer(WeakSlots):
+class Delayer(Slots):
+	__slots__ = ("__weakref__", )
+	
 	def __init__(self, waitTime: float):
 		self._firstWait = True
 		self._waitTime = waitTime

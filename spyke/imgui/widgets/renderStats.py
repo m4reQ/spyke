@@ -5,7 +5,7 @@ from tkinter import ttk
 
 class RenderStatsWidget(tk.Frame):
 	def __init__(self, master: tk.Frame):
-		super().__init__(master, bg = DEFAULT_IMGUI_BG_COLOR, bd = 2, highlightthickness = 2, highlightcolor = DEFAULT_IMGUI_HIGLIGHT_COLOR)
+		super().__init__(master)
 
 		self.titleLabel = tk.Label(self, text = "Render stats", anchor = "center", bg = DEFAULT_IMGUI_TITLE_BG_COLOR, font = (*DEFAULT_IMGUI_FONT, "bold"))
 
@@ -47,13 +47,13 @@ class RenderStatsWidget(tk.Frame):
 		self._GridComponent(self.refreshRateTitleLabel, self.refreshRateLabel, 10)
 	
 	def Update(self, drawsCount: int, vertexCount: int, drawTime: float, memUsed: int, vidMemUsed: float, winSize: tuple, vsync: bool, refreshRate: float) -> None:
-		self.drawsCountLabel["text"] = str(drawsCount) if vsync else "disable vsync"
-		self.vertexCountLabel["text"] = str(vertexCount)  if vsync else "disable vsync"
-		self.drawTimeLabel["text"] = f"{drawTime:.5f}" if vsync else "disable vsync"
+		self.drawsCountLabel["text"] = str(drawsCount)
+		self.vertexCountLabel["text"] = str(vertexCount)
+		self.drawTimeLabel["text"] = f"{drawTime:.5f}"
 		self.memoryUsedLabel["text"] = f"{(memUsed / 1024.0 ** 2):.2f}MB"
 		self.videoMemoryUsedLabel["text"] = str(vidMemUsed) if vidMemUsed else "unavailable"
 		self.windowSizeLabel["text"] = f"{winSize[0]}x{winSize[1]}"
-		self.vsyncLabel["text"] = str(vsync)
+		self.vsyncLabel["text"] = "enabled" if vsync else "disabled"
 		self.refreshRateLabel["text"] = str(refreshRate)
 	
 	def _CreateLabel(self, text: str, anchor: str) -> tk.Label:

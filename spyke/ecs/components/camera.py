@@ -1,10 +1,12 @@
-from ...autoslot import WeakSlots
+from ...autoslot import Slots
 import glm
 
 class CameraType:
 	Orthographic, Perspective = range(2)
 
-class CameraComponent(WeakSlots):
+class CameraComponent(Slots):
+	__slots__ = ("__weakref__", )
+	
 	@staticmethod
 	def _CreateOrtho():
 		pass

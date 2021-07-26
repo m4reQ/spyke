@@ -1,8 +1,6 @@
 from OpenGL import GL
 
-GLenum = GL.GLenum
-
-def CreateTexture(target: GLenum) -> int:
+def CreateTexture(target: GL.GLenum) -> int:
     _id = GL.GLint()
     GL.glCreateTextures(target, 1, _id)
 

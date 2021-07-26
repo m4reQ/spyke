@@ -3,7 +3,7 @@ from .widgets import *
 from .dialogWindow import DialogWindow
 from ..debugging import Debug, LogLevel
 from ..ecs.components import *
-from ..constants import DEFAULT_IMGUI_BG_COLOR, _MAIN_PROCESS, _THREAD_SYNC
+from ..constants import DEFAULT_IMGUI_BG_COLOR, _MAIN_PROCESS
 from ..graphics import Renderer
 from .. import ResourceManager
 
@@ -42,49 +42,39 @@ _treeviewFrame: tk.Frame = None
 _renderStatsWidget: RenderStatsWidget = None
 _contextInfoWidget: ContextInfoWidget = None
 
-def _Run():
-	global _isRunning
+def _OnFrame() -> None:
+	if not _isRunning:
+		return
 
-	_Setup()
-
-	_isRunning = True
-
-	while _isRunning:
-		_THREAD_SYNC.wait()
-
-		_renderStatsWidget.Update(Renderer.renderStats.drawsCount, Renderer.renderStats.vertexCount, Renderer.renderStats.drawTime, \
-			_MAIN_PROCESS.memory_full_info().uss, Renderer.renderStats.videoMemoryUsed, (Renderer.screenStats.width, Renderer.screenStats.height), \
-				Renderer.screenStats.vsync, Renderer.screenStats.refreshRate)
-		_window.update()
-
-	_Close()
-
-_thread = threading.Thread(target = _Run, name = "spyke.imgui")
+	_renderStatsWidget.Update(Renderer.renderStats.drawsCount, Renderer.renderStats.vertexCount, Renderer.renderStats.drawTime, \
+		_MAIN_PROCESS.memory_full_info().uss, Renderer.renderStats.videoMemoryUsed, (Renderer.screenStats.width, Renderer.screenStats.height), \
+		Renderer.screenStats.vsync, Renderer.screenStats.refreshRate)
+	_window.update()
 
 def Initialize() -> None:
+	global _isRunning, _isInitialized
+	
 	if _isInitialized:
 		Debug.Log("Imgui already initialized.", LogLevel.Warning)
 		return
 
-	_thread.start()
+	_Setup()
+	_isRunning = True
+	_isInitialized = True
+
 	Debug.Log("Imgui initialized.", LogLevel.Info)
 
 def Close() -> None:
-	global _isRunning
+	global _isRunning, _isInitialized, _window
+
+	if not _isInitialized:
+		return
+
 	_isRunning = False
-
-def JoinThread() -> None:
-	_thread.join()
-
-def _Close() -> None:
-	global _isInitialized, _window
-
 	_isInitialized = False
 
-	_window.quit()
+	_window.destroy()
 	del _window
-
-	gc.collect()
 
 	Debug.Log("ImGui closed", LogLevel.Info)
 
@@ -136,7 +126,7 @@ def _Setup() -> None:
 	_renderStatsWidget.grid(row = 0, column = 0, sticky = "news")
 	_contextInfoWidget.grid(row = 1, column = 0, sticky = "news")
 
-	_infoFrame.grid(row = 0, column = 0, sticky = "w")
+	_infoFrame.grid(row = 0, column = 0, sticky = "wn")
 
 	_inspectorLabel = tk.Label(_inspectorFrame, text = "Inspector", bd = 0, bg = DEFAULT_IMGUI_BG_COLOR)
 
