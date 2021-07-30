@@ -2,9 +2,11 @@
 
 in vec4 vColor;
 in vec2 vTexCoord;
-in flat float vTexIdx;
+in flat int vTexIdx;
+in flat int vEntId;
 
 layout(location = 0) out vec4 Color;
+layout(location = 1) out int EntityId;
 
 uniform sampler2D uTextures[16];
 
@@ -12,7 +14,7 @@ void main()
 {
     vec4 texCol = vColor;
 
-    switch(int(vTexIdx))
+    switch(vTexIdx)
     {
         case 0: texCol *= texture(uTextures[0], vTexCoord); break;
         case 1: texCol *= texture(uTextures[1], vTexCoord); break;
@@ -33,4 +35,5 @@ void main()
     }
     
     Color = texCol;
+    EntityId = vEntId;
 }

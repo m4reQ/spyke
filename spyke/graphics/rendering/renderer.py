@@ -1,7 +1,8 @@
+from ..sync import Sync
 from ..rectangle import RectangleF
 from ..texturing import Texture
 from ..vertexArray import VertexArray
-from ...utils import Iterator
+from ...utils import CreateQuadIndices, Iterator
 from .renderStats import RenderStats
 from ..shader import Shader
 from ..buffers import *
@@ -12,7 +13,6 @@ from ...enums import Hint, NvidiaIntegerName, Vendor, Keys
 from ...ecs import components
 from ...debugging import Debug, LogLevel
 from ...input import EventHook, EventHandler
-from ..gl import GLHelper
 from ... import resourceManager as ResourceManager
 
 from OpenGL import GL
@@ -22,6 +22,7 @@ import glm
 import time
 import numpy as np
 import os
+import ctypes
 
 ##############################################
 # RESTORE PARTICLE RENDERER (REFACTORIZE IT) #
@@ -34,6 +35,7 @@ UNIFORM_BLOCK_SIZE = 16 * _GL_FLOAT_SIZE
 MATRICES_UNIFORM_BLOCK_INDEX = 0
 
 DEFAULT_RENDER_COLOR_ATTACHMENT = 0
+ENTITY_ID_ATTACHMENT = 1
 
 MAX_QUADS_COUNT = 400
 VERTICES_PER_QUAD = 4
@@ -41,7 +43,7 @@ INDICES_PER_QUAD = 6
 
 POS_VERTEX_VALUES_COUNT = 3
 
-BASIC_INSTANCE_VERTEX_VALUES_COUNT = 4 + 2 + 1 + 16
+BASIC_INSTANCE_VERTEX_VALUES_COUNT = 4 + 2 + 1 + 1 + 16
 BASIC_VERTEX_VERTEX_VALUES_COUNT = 2
 
 POST_VERTEX_VERTEX_VALUES_COUNT = 3 + 2
@@ -78,8 +80,11 @@ _postData = [
 	1.0, 0.0, 0.0, 1.0, 0.0 
 ]
 
-_vertexData = np.empty(BASIC_VERTEX_VERTEX_VALUES_COUNT * MAX_QUADS_COUNT * VERTICES_PER_QUAD, dtype=_NP_FLOAT)
-_instanceData = np.empty(BASIC_INSTANCE_VERTEX_VALUES_COUNT * MAX_QUADS_COUNT, dtype=_NP_FLOAT)
+__vertexData = np.empty(BASIC_VERTEX_VERTEX_VALUES_COUNT * MAX_QUADS_COUNT * VERTICES_PER_QUAD, dtype=_NP_FLOAT)
+__instanceData = np.empty(BASIC_INSTANCE_VERTEX_VALUES_COUNT * MAX_QUADS_COUNT, dtype=_NP_FLOAT)
+
+_vertexData = None
+_instanceData = None
 
 _lastVertexPos = 0
 _lastInstancePos = 0
@@ -95,16 +100,17 @@ _currentFillMode = GL.GL_FILL
 
 _basicShader: Shader = None
 _postProcessShader: Shader = None
-_posVbo: StaticVertexBuffer = None
-_instanceDataVbo: VertexBuffer = None
-_vertexDataTbo: TextureBuffer = None
-_postDataVbo: StaticVertexBuffer = None
-_ibo: IndexBuffer = None
+_posVbo: StaticBuffer = None
+_instanceDataVbo: MappedBuffer = None
+_vertexDataTbo: MappedTextureBuffer = None
+_postDataVbo: StaticBuffer = None
+_ibo: StaticBuffer = None
 _ubo: UniformBuffer = None
 _basicVao: VertexArray = None
 _postProcessVao: VertexArray = None
 _whiteTexture: Texture = None
 _framebuffer: Framebuffer = None
+_sync: Sync = None
 
 renderStats = RenderStats()
 screenStats = ScreenStats()
@@ -159,8 +165,6 @@ def SetClearColor(r: float, g: float, b: float, a: float):
 	GL.glClearColor(r, g, b, a)
 
 def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
-	global _acumVertexCount, _acumDrawsCount
-
 	renderStats.Clear()
 	start = time.perf_counter()
 
@@ -178,20 +182,21 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	alpha = [x for x in drawables if x not in opaque]
 
 	alpha.sort(key = lambda x: x[0].color.w, reverse = True)
-
+	_sync.WaitBuffer()
 	for (sprite, transform) in opaque:
 		_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tilingFactor)
 
-	_FlushNormal()
+	_Flush()
 
 	GL.glDisable(GL.GL_DEPTH_TEST)
+	_sync.WaitBuffer()
 	for (sprite, transform) in alpha:
 		_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tilingFactor)
 
 	transformNp = np.zeros((4, 4), dtype=_NP_FLOAT)
 	transformNp[3, 3] = 1.0
 	
-	for _, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
+	for ent, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
 		font = ResourceManager.GetFont(text.font)
 
 		advSum = 0.0
@@ -212,9 +217,9 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 			transformNp[0, 0] = scWidth
 			transformNp[1, 1] = scHeight
 
-			_RenderQuad(glm.make_mat4x4(transformNp.ctypes.data_as(_C_FLOAT_P)), text.color, font.texture, glm.vec2(1.0, 1.0), glyph.texRect)
+			_RenderQuad(glm.make_mat4x4(transformNp.ctypes.data_as(_C_FLOAT_P)), text.color, font.texture, glm.vec2(1.0, 1.0), glyph.texRect, int(ent))
 		
-	_FlushNormal()
+	_Flush()
 	
 	# for _, system in scene.GetComponent(components.ParticleSystemComponent):
 	# 	for particle in system.particlePool:
@@ -239,13 +244,14 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	# viewProjectionData[2, 2] = -1.0
 	# _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
 
-	viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
-	_ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
+	# viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
+	# _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
 
+	_sync.WaitBuffer()
 	if contextInfo.capabilities.intelFramebufferCMAAEnabled:
 		# _RenderQuad(glm.mat4(1.0), glm.vec4(1.0), DEFAULT_RENDER_COLOR_ATTACHMENT, glm.vec2(1.0))
 		_RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
-		_FlushNormal()
+		_Flush()
 	else:
 		_RenderFramebuffer(_framebuffer.specification.samples, _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
 	
@@ -265,9 +271,7 @@ def _ResetCounters() -> None:
 	_lastVertexPos = 0
 	_lastInstancePos = 0
 
-def _FlushNormal():
-	global _acumVertexCount, _acumDrawsCount
-
+def _Flush():
 	if not _quadsCount:
 		return
 
@@ -278,21 +282,20 @@ def _FlushNormal():
 	textures = _textures[:_lastTexture]
 	GL.glBindTextures(0, len(textures), np.asarray(textures, dtype=_NP_UINT))
 	GL.glBindTextures(14, 2, np.asarray([_whiteTexture.ID, _vertexDataTbo.TextureID], dtype=_NP_UINT))
-
-	_instanceDataVbo.TransferData(_lastInstancePos * _GL_FLOAT_SIZE)
-	_vertexDataTbo.TransferData(_lastVertexPos * _GL_FLOAT_SIZE)
 		
-	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, _quadsCount * INDICES_PER_QUAD, _ibo.Type, None, _quadsCount)
+	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, _quadsCount * INDICES_PER_QUAD, _ibo.dataType, None, _quadsCount)
+
+	_sync.LockBuffer()
 
 	renderStats.drawsCount += 1
 	renderStats.vertexCount += _quadsCount * VERTICES_PER_QUAD
 	_ResetCounters()
 
-def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, tilingFactor: glm.vec2, texRect: RectangleF = RectangleF.One()):
+def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, tilingFactor: glm.vec2, texRect: RectangleF = RectangleF.One(), entId: int = -1):
 	global _lastTexture, _lastVertexPos, _lastInstancePos, _quadsCount
 
 	if _quadsCount >= MAX_QUADS_COUNT:
-		_FlushNormal()
+		_Flush()
 
 	texIdx = WHITE_TEXTURE_SAMPLER
 
@@ -309,7 +312,7 @@ def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, t
 		
 		if texIdx == WHITE_TEXTURE_SAMPLER:
 			if _lastTexture >= AVAILABLE_USER_TEXTURES_COUNT:
-				_FlushNormal()
+				_Flush()
 			
 			texIdx = _lastTexture
 			_textures[_lastTexture] = tId
@@ -323,7 +326,7 @@ def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, t
 	)
 
 	_instanceData[_lastInstancePos:_lastInstancePos + BASIC_INSTANCE_VERTEX_VALUES_COUNT] = (
-		color.x, color.y, color.z, color.w, tilingFactor.x, tilingFactor.y, texIdx) + tuple(transform[0]) + tuple(transform[1]) + tuple(transform[2]) + tuple(transform[3]
+		color.x, color.y, color.z, color.w, tilingFactor.x, tilingFactor.y, texIdx, entId) + tuple(transform[0]) + tuple(transform[1]) + tuple(transform[2]) + tuple(transform[3]
 	)
 
 	_lastVertexPos += BASIC_VERTEX_VERTEX_VALUES_COUNT * VERTICES_PER_QUAD
@@ -331,8 +334,6 @@ def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, t
 	_quadsCount += 1
 
 def _RenderFramebuffer(samplesToRender: int, attachmentToRender: int) -> None:
-	global _acumVertexCount, _acumDrawsCount
-
 	_postProcessVao.Bind()
 
 	_postProcessShader.Use()
@@ -340,7 +341,9 @@ def _RenderFramebuffer(samplesToRender: int, attachmentToRender: int) -> None:
 
 	GL.glBindTextureUnit(MULTISAMPLE_TEXTURE_SAMPLER if samplesToRender > 1 else NORMAL_TEXTURE_SAMPLER, attachmentToRender)
 
-	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, INDICES_PER_QUAD, _ibo.Type, None, 1)
+	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, INDICES_PER_QUAD, _ibo.dataType, None, 1)
+
+	_sync.LockBuffer()
 
 	renderStats.drawsCount += 1
 	renderStats.vertexCount += VERTICES_PER_QUAD
@@ -400,26 +403,31 @@ def _CreateFramebuffer(initialWidth: int, initialHeight: int, samples: int) -> N
 	fbSpec = FramebufferSpec(initialWidth, initialHeight)
 	fbSpec.samples = 1 if contextInfo.capabilities.intelFramebufferCMAAEnabled else samples
 
-	colorAttachmentSpec = FramebufferAttachmentSpec(FramebufferTextureFormat.Rgba)
+	colorAttachmentSpec = FramebufferAttachmentSpec(GL.GL_RGBA)
+
+	entIdAttachmentSpec = FramebufferAttachmentSpec(GL.GL_RED_INTEGER)
+	entIdAttachmentSpec.minFilter = GL.GL_NEAREST
+	entIdAttachmentSpec.magFilter = GL.GL_NEAREST
 	
-	depthAttachmentSpec = FramebufferAttachmentSpec(FramebufferTextureFormat.Depth24Stencil8)
+	depthAttachmentSpec = FramebufferAttachmentSpec(GL.GL_DEPTH24_STENCIL8)
 	depthAttachmentSpec.minFilter = GL.GL_NEAREST
 	depthAttachmentSpec.magFilter = GL.GL_NEAREST
 
 	fbSpec.attachmentSpecs = [
 		colorAttachmentSpec,
+		entIdAttachmentSpec,
 		depthAttachmentSpec
 	]
 
 	_framebuffer = Framebuffer(fbSpec)
 
 def _CreateBasicComponents() -> None:
-	global _posVbo, _instanceDataVbo, _vertexDataTbo, _ibo, _basicShader, _basicVao
+	global _posVbo, _instanceDataVbo, _vertexDataTbo, _ibo, _basicShader, _basicVao, _vertexData, _instanceData, _sync
 
-	_posVbo = StaticVertexBuffer(_quadVertices)
-	_instanceDataVbo = VertexBuffer(BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, memoryview(_instanceData))
-	_vertexDataTbo = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE * MAX_QUADS_COUNT * VERTICES_PER_QUAD, GL.GL_RG32F, memoryview(_vertexData))
-	_ibo = IndexBuffer(IndexBuffer.CreateQuadIndices(MAX_QUADS_COUNT), GL.GL_UNSIGNED_INT)
+	_posVbo = StaticBuffer(_quadVertices, GL.GL_FLOAT)
+	_instanceDataVbo = MappedBuffer(BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT)
+	_vertexDataTbo = MappedTextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE * MAX_QUADS_COUNT * VERTICES_PER_QUAD, GL.GL_RG32F)
+	_ibo = StaticBuffer(CreateQuadIndices(MAX_QUADS_COUNT), GL.GL_UNSIGNED_INT)
 
 	_basicShader = Shader()
 	_basicShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "basic.vert")
@@ -443,13 +451,19 @@ def _CreateBasicComponents() -> None:
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aPosition"), POS_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False, 1)
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTilingFactor"), INSTANCE_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False, 1)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_FLOAT, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_INT, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_INT, False, 1)
 	_basicVao.AddMatrixLayout(_basicShader.GetAttribLocation("aTransform"), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GL.GL_FLOAT, False, 1)
+
+	_vertexData = (ctypes.c_float * (MAX_QUADS_COUNT * VERTICES_PER_QUAD * BASIC_VERTEX_VERTEX_VALUES_COUNT)).from_address(_vertexDataTbo.Pointer)
+	_instanceData = (ctypes.c_float * (MAX_QUADS_COUNT * BASIC_INSTANCE_VERTEX_VALUES_COUNT)).from_address(_instanceDataVbo.Pointer)
+
+	_sync = Sync()
 
 def _CreatePostProcessComponents() -> None:
 	global _postProcessVao, _postProcessShader, _postDataVbo
 
-	_postDataVbo = StaticVertexBuffer(_postData)
+	_postDataVbo = StaticBuffer(_postData, GL.GL_FLOAT)
 
 	_postProcessShader = Shader()
 	_postProcessShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "post.vert")

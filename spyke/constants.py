@@ -35,18 +35,26 @@ _INT_SIZE = ctypes.sizeof(ctypes.c_int)
 _C_FLOAT_P = ctypes.POINTER(ctypes.c_float)
 _C_INT_P = ctypes.POINTER(ctypes.c_int)
 
-_NP_BYTE = np.int8
-_NP_UBYTE = np.uint8
-_NP_INT = np.int32
-_NP_LONG = np.int64
 _NP_FLOAT = np.float32
 _NP_DOUBLE = np.float64
+_NP_BYTE = np.int8
+_NP_UBYTE = np.uint8
+_NP_SHORT = np.int16
+_NP_USHORT = np.uint16
+_NP_INT = np.int32
 _NP_UINT = np.uint32
+_NP_LONG = np.int64
+_NP_ULONG = np.uint64
 
-_GL_INDEX_TYPE_NUMPY_TYPE_MAP = {
-	GL.GL_UNSIGNED_BYTE: np.uint8,
-	GL.GL_UNSIGNED_SHORT: np.uint16,
-	GL.GL_UNSIGNED_INT: np.uint32
+_GL_TYPE_NP_TYPE_MAP = {
+	GL.GL_FLOAT: _NP_FLOAT,
+	GL.GL_DOUBLE: _NP_DOUBLE,
+	GL.GL_BYTE: _NP_BYTE,
+	GL.GL_SHORT: _NP_SHORT,
+	GL.GL_INT: _NP_INT,
+	GL.GL_UNSIGNED_BYTE: _NP_UBYTE,
+	GL.GL_UNSIGNED_SHORT: _NP_USHORT,
+	GL.GL_UNSIGNED_INT: _NP_UINT
 }
 
 _GL_TYPE_SIZE_MAP = {

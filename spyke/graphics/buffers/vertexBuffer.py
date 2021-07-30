@@ -1,26 +1,26 @@
-from .aBuffer import ABuffer
-from ...constants import _NP_FLOAT, _GL_FLOAT_SIZE
+from .aBuffer import ABuffer, AMappable
+from ...constants import _GL_TYPE_NP_TYPE_MAP, _GL_TYPE_SIZE_MAP
 
 from OpenGL import GL
 import numpy as np
 
-class StaticVertexBuffer(ABuffer):
+class StaticBuffer(ABuffer):
 	_BufferUsageFlags = 0
 
-	def __init__(self, data: list):
-		super().__init__(len(data) * _GL_FLOAT_SIZE)
+	def __init__(self, data: list, dataType: GL.GLenum):
+		super().__init__(len(data) * _GL_TYPE_SIZE_MAP[dataType], dataType)
 
-		GL.glNamedBufferStorage(self._id, self._size, np.asarray(data, dtype=_NP_FLOAT), StaticVertexBuffer._BufferUsageFlags)
+		GL.glNamedBufferStorage(self._id, self._size, np.asarray(data, dtype=_GL_TYPE_NP_TYPE_MAP[dataType]), self._BufferUsageFlags)
 	
-class VertexBuffer(ABuffer):
+class Buffer(ABuffer):
 	_BufferUsageFlags = GL.GL_DYNAMIC_STORAGE_BIT
 
 	def __init__(self, size: int, dataStorageView: memoryview):
-		super().__init__(size)
+		super().__init__(size, None)
 
 		self._dataView = dataStorageView
 
-		GL.glNamedBufferStorage(self._id, self._size, None, VertexBuffer._BufferUsageFlags)
+		GL.glNamedBufferStorage(self._id, self._size, None, self._BufferUsageFlags)
 	
 	def TransferData(self, size: int) -> None:
 		"""
@@ -32,3 +32,11 @@ class VertexBuffer(ABuffer):
 	
 	def __del__(self):
 		self._dataView.release()
+
+class MappedBuffer(AMappable):
+	def __init__(self, size: int):
+		super().__init__(size, None)
+
+		GL.glNamedBufferStorage(self._id, self._size, None, self._BufferUsageFlags)
+		
+		self._MapPersistent()

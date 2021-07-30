@@ -57,9 +57,10 @@ class Window(GlfwWindow):
 			self.camera.RecalculateMatrices()
 			
 		ResourceManager.GetCurrentScene().Process(dt = self.frameTime)
-		Renderer.RenderScene(ResourceManager.GetCurrentScene(), self.camera.viewProjectionMatrix)
+		Renderer.RenderScene(ResourceManager.GetCurrentScene(), Matrix4(1.0))
 
 		self.SetTitle(f"{self.baseTitle} | FrameTime: {self.frameTime:.5F} | FPS: {int(1 / self.frameTime)}")
+		Debug.GetGLError()
 
 if __name__ == "__main__":
 	specs = WindowSpecs(1080, 720, "TestWindow")

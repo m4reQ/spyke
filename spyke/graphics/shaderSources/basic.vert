@@ -5,12 +5,14 @@ layout(location=0) in vec3 aPosition;
 
 layout(location=1) in vec4 aColor;
 layout(location=2) in vec2 aTilingFactor;
-layout(location=3) in float aTexIdx;
-layout(location=4) in mat4 aTransform;
+layout(location=3) in int aTexIdx;
+layout(location=4) in int aEntId;
+layout(location=5) in mat4 aTransform;
 
 out vec4 vColor;
 out vec2 vTexCoord;
-out flat float vTexIdx;
+out int vTexIdx;
+out int vEntId;
 
 layout (std140) uniform uMatrices
 {
@@ -25,6 +27,7 @@ void main()
 
     vColor = aColor;
     vTexIdx = aTexIdx;
+    vEntId = aEntId;
     
     gl_Position = aTransform * viewProjection * vec4(aPosition, 1.0f);
 }

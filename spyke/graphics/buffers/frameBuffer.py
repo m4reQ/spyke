@@ -1,3 +1,5 @@
+from OpenGL.raw.GL.VERSION.GL_1_1 import GL_RGBA16
+from OpenGL.raw.GL.VERSION.GL_3_0 import GL_ALPHA_INTEGER, GL_GREEN_INTEGER
 from ..gl import GLObject, GLHelper
 from ...debugging import Debug, LogLevel
 from ...exceptions import GraphicsException
@@ -15,25 +17,19 @@ _ATTACHMENT_FORMAT_IS_COLOR_MAP = {
 	GL.GL_DEPTH24_STENCIL8: False
 }
 
+# TODO: Add support for 16 and 32 bits rgb(a) formats
 _TEXTURE_FORMAT_INTERNAL_FORMAT_MAP = {
 	GL.GL_RED_INTEGER: GL.GL_R32I,
+	GL.GL_RED: GL.GL_R32F,
 	GL.GL_RGB: GL.GL_RGB8,
 	GL.GL_RGBA: GL.GL_RGBA8,
 	GL.GL_DEPTH24_STENCIL8: GL.GL_DEPTH24_STENCIL8
 }
 
-class FramebufferTextureFormat:
-	NoAttachment = 0
-	RedInteger = GL.GL_RED_INTEGER
-	Rgb = GL.GL_RGB
-	Rgba = GL.GL_RGBA
-	Depth24Stencil8 = GL.GL_DEPTH24_STENCIL8
-	Depth = GL.GL_DEPTH24_STENCIL8
-
 class FramebufferAttachmentSpec(Slots):
 	__slots__ = ("__weakref__", )
 
-	def __init__(self, _format: FramebufferTextureFormat):
+	def __init__(self, _format: GL.GLenum):
 		self.textureFormat = _format
 		self.wrapMode = GL.GL_CLAMP_TO_EDGE
 		self.minFilter = GL.GL_LINEAR
@@ -55,7 +51,7 @@ class Framebuffer(GLObject):
 		self.height = specification.height
 	
 		self.colorAttachmentSpecs = []
-		self.depthAttachmentSpec = FramebufferAttachmentSpec(FramebufferTextureFormat.NoAttachment)
+		self.depthAttachmentSpec = FramebufferAttachmentSpec(0)
 
 		self.colorAttachments = []
 		self.depthAttachment = 0
@@ -114,10 +110,10 @@ class Framebuffer(GLObject):
 		
 		return self.depthAttachment
 	
-	def ClearBufferInt(self, bufferTraget: GL.GLenum, drawBuffer: int, value: Tuple[int, int, int, int]) -> None:
+	def ClearBufferInt(self, bufferTraget: GL.GLenum, drawBuffer: int, value) -> None:
 		GL.glClearNamedFramebufferiv(self._id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_INT))
 
-	def ClearBufferFloat(self, bufferTraget: GL.GLenum, drawBuffer: int, value: Tuple[float, float, float, float]) -> None:
+	def ClearBufferFloat(self, bufferTraget: GL.GLenum, drawBuffer: int, value) -> None:
 		GL.glClearNamedFramebufferfv(self._id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_FLOAT))
 	
 	def __CreateFramebufferAttachment(self, attachmentSpec: FramebufferAttachmentSpec) -> int:
