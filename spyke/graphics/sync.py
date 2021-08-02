@@ -1,10 +1,10 @@
-from .gl import GLObject
+from .gl import AGLObject
 
 from OpenGL import GL
 
 _WAIT_TIMEOUT_NS = 1
 
-class Sync(GLObject):
+class Sync(AGLObject):
     def __init__(self):
         super().__init__()
         self._id = 0

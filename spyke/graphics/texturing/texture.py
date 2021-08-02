@@ -1,4 +1,4 @@
-from ..gl import GLObject, GLHelper
+from ..gl import AGLObject, GLHelper
 from ...debugging import Debug, LogLevel
 from ...constants import _NP_UBYTE
 from ...autoslot import Slots
@@ -27,7 +27,7 @@ class TextureSpec(Slots):
 		self.wrapMode: GL.GLenum = GL.GL_REPEAT
 		self.compress: bool = True
 		
-class Texture(GLObject):
+class Texture(AGLObject):
 	_InternalFormat = GL.GL_RGBA8
 	_CompressedInternalFormat = GL.GL_COMPRESSED_RGBA
 	_CompressionEnabled = False

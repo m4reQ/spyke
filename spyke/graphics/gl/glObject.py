@@ -1,11 +1,7 @@
 from . import glMarshal as GLMarshal
 
-class GLObject(object):
+class AGLObject(object):
     def __init__(self):
-        """
-        Adds OpenGL object's id to the GLMarshal's watchlist.
-        """
-
         self._id = 0
         GLMarshal.AddObjectRef(self)
 

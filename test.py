@@ -1,9 +1,10 @@
+import spyke
+spyke.Init()
+
 from spyke.ecs.components.sprite import SpriteComponent
 from spyke.ecs.components.transform import TransformComponent
 from spyke.ecs.components.tag import TagComponent
 from spyke.ecs import components
-import spyke
-spyke.Init()
 
 from spyke.debugging import Debug, LogLevel
 from spyke.window import GlfwWindow, WindowSpecs

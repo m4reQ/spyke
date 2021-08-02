@@ -1,11 +1,11 @@
 from ..debugging import Debug, LogLevel
-from .gl import GLObject, GLHelper
+from .gl import AGLObject, GLHelper
 from ..constants import _GL_TYPE_SIZE_MAP
 
 from OpenGL import GL
 import ctypes
 
-class VertexArray(GLObject):
+class VertexArray(AGLObject):
 	def __init__(self):
 		super().__init__()
 

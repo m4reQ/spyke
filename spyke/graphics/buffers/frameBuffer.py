@@ -1,6 +1,6 @@
 from OpenGL.raw.GL.VERSION.GL_1_1 import GL_RGBA16
 from OpenGL.raw.GL.VERSION.GL_3_0 import GL_ALPHA_INTEGER, GL_GREEN_INTEGER
-from ..gl import GLObject, GLHelper
+from ..gl import AGLObject, GLHelper
 from ...debugging import Debug, LogLevel
 from ...exceptions import GraphicsException
 from ...constants import _GL_FB_ERROR_CODE_NAMES_MAP, _NP_FLOAT, _NP_INT
@@ -44,7 +44,7 @@ class FramebufferSpec(Slots):
 		self.samples = 1
 		self.attachmentSpecs: List[FramebufferAttachmentSpec] = []
 
-class Framebuffer(GLObject):
+class Framebuffer(AGLObject):
 	def __init__(self, specification: FramebufferSpec):
 		super().__init__()
 		self.width = specification.width

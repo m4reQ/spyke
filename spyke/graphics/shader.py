@@ -1,5 +1,5 @@
 #region Import
-from .gl import GLObject
+from .gl import AGLObject
 from ..debugging import Debug, LogLevel
 from ..utils import EnsureString
 from ..exceptions import GraphicsException, SpykeException
@@ -11,7 +11,7 @@ import glm
 from functools import lru_cache
 #endregion
 
-class Shader(GLObject):
+class Shader(AGLObject):
 	def __init__(self):
 		super().__init__()
 
