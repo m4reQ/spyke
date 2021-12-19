@@ -8,7 +8,7 @@ in flat int vEntId;
 layout(location = 0) out vec4 Color;
 layout(location = 1) out int EntityId;
 
-uniform sampler2D uTextures[16];
+uniform sampler2D uTextures[15];
 
 void main()
 {
@@ -31,7 +31,6 @@ void main()
         case 12: texCol *= texture(uTextures[12], vTexCoord); break;
         case 13: texCol *= texture(uTextures[13], vTexCoord); break;
         case 14: texCol *= texture(uTextures[14], vTexCoord); break;
-        case 15: texCol *= texture(uTextures[15], vTexCoord); break;
     }
     
     Color = texCol;

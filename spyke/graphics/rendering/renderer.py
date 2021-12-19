@@ -198,6 +198,7 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	
 	for ent, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
 		font = ResourceManager.GetFont(text.font)
+		texture = ResourceManager.GetTexture(font.texture)
 
 		advSum = 0.0
 
@@ -217,7 +218,7 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 			transformNp[0, 0] = scWidth
 			transformNp[1, 1] = scHeight
 
-			_RenderQuad(glm.make_mat4x4(transformNp.ctypes.data_as(_C_FLOAT_P)), text.color, font.texture, glm.vec2(1.0, 1.0), glyph.texRect, int(ent))
+			_RenderQuad(glm.make_mat4x4(transformNp.ctypes.data_as(_C_FLOAT_P)), text.color, texture, glm.vec2(1.0, 1.0), glyph.texRect, int(ent))
 		
 	_Flush()
 	
@@ -299,12 +300,12 @@ def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, t
 
 	texIdx = WHITE_TEXTURE_SAMPLER
 
-	if isinstance(texture, Texture):
-		tId = texture.ID
-	else:
-		tId = texture
-
 	if texture:
+		if isinstance(texture, Texture):
+			tId = texture.ID
+		else:
+			tId = texture
+
 		for i in range(_lastTexture):
 			if _textures[i] == tId:
 				texIdx = i
@@ -452,7 +453,7 @@ def _CreateBasicComponents() -> None:
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False, 1)
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTilingFactor"), INSTANCE_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False, 1)
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_INT, False, 1)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_INT, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aEntId"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_INT, False, 1)
 	_basicVao.AddMatrixLayout(_basicShader.GetAttribLocation("aTransform"), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GL.GL_FLOAT, False, 1)
 
 	_vertexData = (ctypes.c_float * (MAX_QUADS_COUNT * VERTICES_PER_QUAD * BASIC_VERTEX_VERTEX_VALUES_COUNT)).from_address(_vertexDataTbo.Pointer)
