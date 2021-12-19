@@ -1,27 +1,22 @@
 from ..debugging import Debug, LogLevel
-from .gl import AGLObject, GLHelper
+from spyke.graphics import gl
 from ..constants import _GL_TYPE_SIZE_MAP
 
 from OpenGL import GL
-import ctypes
 
-class VertexArray(AGLObject):
+class VertexArray(gl.GLObject):
 	def __init__(self):
 		super().__init__()
 
-		self._id = GLHelper.CreateVertexArray()
+		self._id = gl.create_vertex_array()
+
 		self._offsets = {}
-		self._bindings = {}
 	
 	def BindVertexBuffer(self, bindingIndex: int, bufferId: int, offset: int, stride: int) -> None:
-		if bindingIndex in self._bindings:
-			Debug.Log(f"Vertex buffer binding already exists at binding point {bindingIndex}. This binding will be overwritten by buffer with id {bufferId}.", LogLevel.Info)
-		self._bindings[bindingIndex] = bufferId
-
-		GL.glVertexArrayVertexBuffer(self._id, bindingIndex, bufferId, offset, stride)
+		GL.glVertexArrayVertexBuffer(self.id, bindingIndex, bufferId, offset, stride)
 	
 	def BindElementBuffer(self, bufferId: int) -> None:
-		GL.glVertexArrayElementBuffer(self._id, bufferId)
+		GL.glVertexArrayElementBuffer(self.id, bufferId)
 	
 	def AddLayout(self, attribIndex: int, bindingIndex: int, count: int, _type: GL.GLenum, isNormalized: bool, divisor: int = 0) -> None:
 		if bindingIndex in self._offsets:
@@ -30,10 +25,10 @@ class VertexArray(AGLObject):
 			offset = 0
 			self._offsets[bindingIndex] = 0
 
-		GL.glEnableVertexArrayAttrib(self._id, attribIndex)
-		GL.glVertexArrayAttribFormat(self._id, attribIndex, count, _type, isNormalized, offset)
-		GL.glVertexArrayBindingDivisor(self._id, bindingIndex, divisor)
-		GL.glVertexArrayAttribBinding(self._id, attribIndex, bindingIndex)
+		GL.glEnableVertexArrayAttrib(self.id, attribIndex)
+		GL.glVertexArrayAttribFormat(self.id, attribIndex, count, _type, isNormalized, offset)
+		GL.glVertexArrayBindingDivisor(self.id, bindingIndex, divisor)
+		GL.glVertexArrayAttribBinding(self.id, attribIndex, bindingIndex)
 
 		self._offsets[bindingIndex] += _GL_TYPE_SIZE_MAP[_type] * count
 	
@@ -42,7 +37,7 @@ class VertexArray(AGLObject):
 			self.AddLayout(attribIndex + i, bindingIndex, cols, _type, isNormalized, divisor)
 	
 	def Bind(self) -> None:
-		GL.glBindVertexArray(self._id)
+		GL.glBindVertexArray(self.id)
 	
-	def Delete(self, removeRef: bool) -> None:
-		super().Delete(removeRef)
+	def delete(self) -> None:
+		GL.glDeleteVertexArrays(1, [self.id])

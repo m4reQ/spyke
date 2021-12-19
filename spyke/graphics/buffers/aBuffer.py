@@ -1,20 +1,18 @@
 from ...debugging import Debug, LogLevel
-from ..gl import AGLObject, GLHelper
+from spyke.graphics import gl
 
 from OpenGL import GL
 
-class ABuffer(AGLObject):
+class ABuffer(gl.GLObject):
     def __init__(self, size: int, dataType: GL.GLenum):
         super().__init__()
 
-        self.dataType = dataType
-
+        self._id = gl.create_buffer()
         self._size = size
-        self._id = GLHelper.CreateBuffer()
-
-    def Delete(self, removeRef: bool) -> None:
-        super().Delete(removeRef)
-        GL.glDeleteBuffers(1, [self._id])
+        self.dataType = dataType
+    
+    def delete(self) -> None:
+        GL.glDeleteBuffers(1, [self.id])
     
     @property
     def Size(self):
@@ -32,8 +30,8 @@ class AMappable(ABuffer):
             Debug.Log("Buffer is already persistently mapped.", LogLevel.Warning)
             return
 
-        self._pointer = GL.glMapNamedBufferRange(self._id, 0, self._size, AMappable._BufferUsageFlags)
-        Debug.Log(f"Buffer (id: {self._id}) has been persistently mapped to {hex(self._pointer)}.", LogLevel.Info)
+        self._pointer = GL.glMapNamedBufferRange(self.id, 0, self._size, AMappable._BufferUsageFlags)
+        Debug.Log(f"{self} has been persistently mapped to {hex(self._pointer)}.", LogLevel.Info)
         self._alreadyMapped = True
     
     @property

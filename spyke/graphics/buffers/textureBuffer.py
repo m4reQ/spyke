@@ -1,5 +1,5 @@
 from .aBuffer import ABuffer, AMappable
-from ..gl import GLHelper
+from spyke.graphics import gl
 
 from OpenGL import GL
 
@@ -9,7 +9,7 @@ class TextureBuffer(ABuffer):
 	def __init__(self, size: int, format: GL.GLenum, dataStorageView: memoryview):
 		super().__init__(size, None)
 	
-		self._texId = GLHelper.CreateTexture(GL.GL_TEXTURE_BUFFER)
+		self._texId = gl.create_texture(GL.GL_TEXTURE_BUFFER)
 		self._dataView = dataStorageView
 
 		GL.glNamedBufferStorage(self._id, self._size, None, TextureBuffer._BufferUsageFlags)
@@ -38,10 +38,10 @@ class MappedTextureBuffer(AMappable):
 	def __init__(self, size: int, format: GL.GLenum):
 		super().__init__(size, None)
 	
-		self._texId = GLHelper.CreateTexture(GL.GL_TEXTURE_BUFFER)
+		self._tex_id = gl.create_texture(GL.GL_TEXTURE_BUFFER)
 
-		GL.glNamedBufferStorage(self._id, self._size, None, self._BufferUsageFlags)
-		GL.glTextureBuffer(self._texId, format, self._id)
+		GL.glNamedBufferStorage(self.id, self._size, None, self._BufferUsageFlags)
+		GL.glTextureBuffer(self.texture_id, format, self.id)
 
 		self._MapPersistent()
 	
@@ -51,12 +51,12 @@ class MappedTextureBuffer(AMappable):
 		to buffer's memory.
 		"""
 
-		GL.glNamedBufferSubData(self._id, 0, size, self._dataView.obj)
+		GL.glNamedBufferSubData(self.id, 0, size, self._dataView.obj)
 
-	def Delete(self, removeRef: bool) -> None:
-		super().Delete(removeRef)
-		GL.glDeleteTextures(1, [self._texId])
+	def delete(self) -> None:
+		super().delete()
+		GL.glDeleteTextures(1, [self.texture_id])
 	
 	@property
-	def TextureID(self):
-		return self._texId
+	def texture_id(self) -> int:
+		return self._tex_id.value

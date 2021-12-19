@@ -1,17 +1,17 @@
-from .gl import AGLObject
+from .gl import GLObject
 
 from OpenGL import GL
 
-_WAIT_TIMEOUT_NS = 1
+_WAIT_TIMEOUT_NS = 1000
 
-class Sync(AGLObject):
+class Sync(GLObject):
     def __init__(self):
         super().__init__()
-        self._id = 0
+        self._id = GL.GLint(0)
     
     def LockBuffer(self):
         if self._id:
-            self.Delete(False)
+            self.delete()
         
         self._id = GL.glFenceSync(GL.GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
     
@@ -22,8 +22,6 @@ class Sync(AGLObject):
                 if waitRet == GL.GL_ALREADY_SIGNALED or waitRet == GL.GL_CONDITION_SATISFIED:
                     return
     
-    def Delete(self, removeRef: bool) -> None:
-        super().Delete(removeRef)
-
+    def delete(self) -> None:
         GL.glDeleteSync(self._id)
-        self._id = 0
+        self._id = GL.GLint(0)

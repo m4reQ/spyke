@@ -1,4 +1,4 @@
-from ..gl import AGLObject, GLHelper
+from spyke.graphics import gl
 from ...debugging import Debug, LogLevel
 from ...constants import _NP_UBYTE
 from ...autoslot import Slots
@@ -27,7 +27,7 @@ class TextureSpec(Slots):
 		self.wrapMode: GL.GLenum = GL.GL_REPEAT
 		self.compress: bool = True
 		
-class Texture(AGLObject):
+class Texture(gl.GLObject):
 	_InternalFormat = GL.GL_RGBA8
 	_CompressedInternalFormat = GL.GL_COMPRESSED_RGBA
 	_CompressionEnabled = False
@@ -43,33 +43,32 @@ class Texture(AGLObject):
 		self.filepath = tData.filepath
 		self.specification = tSpec
 
-		self._id = GLHelper.CreateTexture(GL.GL_TEXTURE_2D)
+		self._id = gl.create_texture(GL.GL_TEXTURE_2D)
 
 		_format = Texture._CompressedInternalFormat if tSpec.compress else Texture._InternalFormat
 		if not Texture._CompressionEnabled:
 			_format = Texture._InternalFormat
 
-		GL.glTextureStorage2D(self._id, tSpec.mipmaps, _format, tData.width, tData.height)
+		GL.glTextureStorage2D(self.id, tSpec.mipmaps, _format, tData.width, tData.height)
 		
-		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_WRAP_S, tSpec.wrapMode)
-		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_WRAP_T, tSpec.wrapMode)
-		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_MIN_FILTER, tSpec.minFilter)
-		GL.glTextureParameteri(self._id, GL.GL_TEXTURE_MAG_FILTER, tSpec.magFilter)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_S, tSpec.wrapMode)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_T, tSpec.wrapMode)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MIN_FILTER, tSpec.minFilter)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MAG_FILTER, tSpec.magFilter)
 
-		GL.glTextureSubImage2D(self._id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data.obj)
-		GL.glGenerateTextureMipmap(self._id)
+		GL.glTextureSubImage2D(self.id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data.obj)
+		GL.glGenerateTextureMipmap(self.id)
 
 		tData.data.release()
 
 		Debug.GetGLError()
-		Debug.Log(f"Texture (id: {self._id}) initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
+		Debug.Log(f"{self} initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
 
 	def BindToUnit(self, slot) -> None:
-		GL.glBindTextureUnit(slot, self._id)
+		GL.glBindTextureUnit(slot, self.id)
 
-	def Delete(self, removeRef: bool) -> None:
-		super().Delete(removeRef)
-		GL.glDeleteTextures(1, [self._id])
+	def delete(self) -> None:
+		GL.glDeleteTextures(1, [self.id])
 	
 	@classmethod
 	def CreateWhiteTexture(cls):

@@ -8,14 +8,14 @@ class UniformBuffer(ABuffer):
 	def __init__(self, size: int):
 		super().__init__(size, None)
 
-		GL.glNamedBufferStorage(self._id, self._size, None, self._BufferStorageFlags)
+		GL.glNamedBufferStorage(self.id, self._size, None, self._BufferStorageFlags)
 
 	def Bind(self):
-		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self._id)
+		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self.id)
 
 	def BindToUniform(self, index: int):
-		GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, index, self._id)
+		GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, index, self.id)
 
 	def AddData(self, data: memoryview, size: int) -> None:
-		GL.glNamedBufferSubData(self._id, 0, size, data.obj)
+		GL.glNamedBufferSubData(self.id, 0, size, data.obj)
 		data.release()

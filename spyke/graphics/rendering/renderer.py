@@ -282,7 +282,7 @@ def _Flush():
 		
 	textures = _textures[:_lastTexture]
 	GL.glBindTextures(0, len(textures), np.asarray(textures, dtype=_NP_UINT))
-	GL.glBindTextures(14, 2, np.asarray([_whiteTexture.ID, _vertexDataTbo.TextureID], dtype=_NP_UINT))
+	GL.glBindTextures(14, 2, np.asarray([_whiteTexture.id, _vertexDataTbo.texture_id], dtype=_NP_UINT))
 		
 	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, _quadsCount * INDICES_PER_QUAD, _ibo.dataType, None, _quadsCount)
 
@@ -302,7 +302,7 @@ def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, t
 
 	if texture:
 		if isinstance(texture, Texture):
-			tId = texture.ID
+			tId = texture.id
 		else:
 			tId = texture
 
@@ -445,9 +445,9 @@ def _CreateBasicComponents() -> None:
 	
 	_basicVao = VertexArray()
 
-	_basicVao.BindVertexBuffer(POS_DATA_BUFFER_BINDING, _posVbo.ID, 0, POS_DATA_VERTEX_SIZE)
-	_basicVao.BindVertexBuffer(INSTANCE_DATA_BUFFER_BINDING, _instanceDataVbo.ID, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
-	_basicVao.BindElementBuffer(_ibo.ID)
+	_basicVao.BindVertexBuffer(POS_DATA_BUFFER_BINDING, _posVbo.id, 0, POS_DATA_VERTEX_SIZE)
+	_basicVao.BindVertexBuffer(INSTANCE_DATA_BUFFER_BINDING, _instanceDataVbo.id, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
+	_basicVao.BindElementBuffer(_ibo.id)
 
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aPosition"), POS_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
 	_basicVao.AddLayout(_basicShader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False, 1)

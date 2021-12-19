@@ -1,7 +1,7 @@
 # from . import enginePreview
+from spyke.graphics.gl import GLObject
 from ..enums import Keys
 from ..graphics import Renderer
-from ..graphics.gl import GLMarshal, GLHelper
 from ..input import EventHandler
 from ..debugging import Debug, LogLevel
 from ..exceptions import GraphicsException, SpykeException
@@ -192,17 +192,16 @@ class GlfwWindow(object):
 		img.close()
 
 	def __DefClose(self):
-		atexit.unregister(GLMarshal.ReleaseAll)
-		GLMarshal.ReleaseAll()
-
 		atexit.unregister(Imgui.Close)
 		Imgui.Close()
 
+		GLObject.delete_all()
+
 		glfw.destroy_window(self.__handle)
-		Debug.Log("Window destroyed.", LogLevel.Info)
+		Debug.Log('Window destroyed.', LogLevel.Info)
 		
 		glfw.terminate()
-		Debug.Log("Glfw terminated.", LogLevel.Info)
+		Debug.Log('Glfw terminated.', LogLevel.Info)
 
 		Debug.TryCloseLogFile()
 

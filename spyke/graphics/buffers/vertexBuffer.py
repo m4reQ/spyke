@@ -10,7 +10,7 @@ class StaticBuffer(ABuffer):
 	def __init__(self, data: list, dataType: GL.GLenum):
 		super().__init__(len(data) * _GL_TYPE_SIZE_MAP[dataType], dataType)
 
-		GL.glNamedBufferStorage(self._id, self._size, np.asarray(data, dtype=_GL_TYPE_NP_TYPE_MAP[dataType]), self._BufferUsageFlags)
+		GL.glNamedBufferStorage(self.id, self._size, np.asarray(data, dtype=_GL_TYPE_NP_TYPE_MAP[dataType]), self._BufferUsageFlags)
 	
 class Buffer(ABuffer):
 	_BufferUsageFlags = GL.GL_DYNAMIC_STORAGE_BIT
@@ -20,7 +20,7 @@ class Buffer(ABuffer):
 
 		self._dataView = dataStorageView
 
-		GL.glNamedBufferStorage(self._id, self._size, None, self._BufferUsageFlags)
+		GL.glNamedBufferStorage(self.id, self._size, None, self._BufferUsageFlags)
 	
 	def TransferData(self, size: int) -> None:
 		"""
@@ -28,7 +28,7 @@ class Buffer(ABuffer):
 		to buffer's memory.
 		"""
 
-		GL.glNamedBufferSubData(self._id, 0, size, self._dataView.obj)
+		GL.glNamedBufferSubData(self.id, 0, size, self._dataView.obj)
 	
 	def __del__(self):
 		self._dataView.release()
@@ -37,6 +37,6 @@ class MappedBuffer(AMappable):
 	def __init__(self, size: int):
 		super().__init__(size, None)
 
-		GL.glNamedBufferStorage(self._id, self._size, None, self._BufferUsageFlags)
+		GL.glNamedBufferStorage(self.id, self._size, None, self._BufferUsageFlags)
 		
 		self._MapPersistent()

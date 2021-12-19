@@ -1,4 +1,4 @@
-from ..gl import GLHelper
+from spyke.graphics import gl
 from .aBuffer import ABuffer
 
 from OpenGL import GL
@@ -9,24 +9,20 @@ class PixelBuffer(ABuffer):
     def __init__(self, size: int):
         super().__init__(size)
 
-        self._id = GLHelper.CreateBuffer()
-        GL.glNamedBufferStorage(self._id, self._size, None, PixelBuffer._BufferUsageFlags)
+        GL.glNamedBufferStorage(self.id, self._size, None, PixelBuffer._BufferUsageFlags)
     
     def BindLoad(self) -> None:
-        GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, self._id)
+        GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, self.id)
     
     def BindRead(self) -> None:
-        GL.glBindBuffer(GL.GL_PIXEL_PACK_BUFFER, self._id)
+        GL.glBindBuffer(GL.GL_PIXEL_PACK_BUFFER, self.id)
     
     def Unbind(self) -> None:
         GL.glBindBuffer(GL.GL_PIXEL_PACK_BUFFER, 0)
         GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, 0)
     
     def UploadData(self, size: int, data: memoryview) -> None:
-        GL.glNamedBufferSubData(self._id, 0, size, data.obj)
+        GL.glNamedBufferSubData(self.id, 0, size, data.obj)
     
     def ReadData(self) -> None:
         raise NotImplementedError
-    
-    def Delete(self, removeRef: bool) -> None:
-        super().Delete(removeRef)

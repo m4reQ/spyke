@@ -1,6 +1,4 @@
-from OpenGL.raw.GL.VERSION.GL_1_1 import GL_RGBA16
-from OpenGL.raw.GL.VERSION.GL_3_0 import GL_ALPHA_INTEGER, GL_GREEN_INTEGER
-from ..gl import AGLObject, GLHelper
+from spyke.graphics import gl
 from ...debugging import Debug, LogLevel
 from ...exceptions import GraphicsException
 from ...constants import _GL_FB_ERROR_CODE_NAMES_MAP, _NP_FLOAT, _NP_INT
@@ -44,9 +42,12 @@ class FramebufferSpec(Slots):
 		self.samples = 1
 		self.attachmentSpecs: List[FramebufferAttachmentSpec] = []
 
-class Framebuffer(AGLObject):
+class Framebuffer(gl.GLObject):
 	def __init__(self, specification: FramebufferSpec):
 		super().__init__()
+
+		self._id = gl.create_framebuffer()
+
 		self.width = specification.width
 		self.height = specification.height
 	
@@ -63,7 +64,7 @@ class Framebuffer(AGLObject):
 				self.colorAttachmentSpecs.append(attachmentSpec)
 			else:
 				if self.depthAttachmentSpec.textureFormat:
-					Debug.Log("Framebuffer found more than one depth texture format in the specification. Additional depth textures will not be created.", LogLevel.Warning)
+					Debug.Log(f"{self} found more than one depth texture format in the specification. Additional depth textures will not be created.", LogLevel.Warning)
 					continue
 			
 				self.depthAttachmentSpec = attachmentSpec
@@ -71,10 +72,10 @@ class Framebuffer(AGLObject):
 		self.__Invalidate(True)
 
 		Debug.GetGLError()
-		Debug.Log(f"Framebuffer (id: {self._id}) created succesfully.", LogLevel.Info)
+		Debug.Log(f"{self} created succesfully.", LogLevel.Info)
 	
 	def Bind(self) -> None:
-		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._id)
+		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.id)
 		GL.glViewport(0, 0, self.width, self.height)
 	
 	def Unbind(self) -> None:
@@ -86,12 +87,10 @@ class Framebuffer(AGLObject):
 	
 		self.__Invalidate(False)
 
-		Debug.Log(f"Framebuffer (id: {self._id}) resized to ({width}, {height}).", LogLevel.Info)
+		Debug.Log(f"{self} resized to ({width}, {height}).", LogLevel.Info)
 
-	def Delete(self, removeRef: bool) -> None:
-		super().Delete(removeRef)
-
-		GL.glDeleteFramebuffers(1, [self._id])
+	def delete(self) -> None:
+		GL.glDeleteFramebuffers(1, [self.id])
 		GL.glDeleteTextures(len(self.colorAttachments), self.colorAttachments)
 		GL.glDeleteTextures(1, [self.depthAttachment])
 
@@ -111,17 +110,17 @@ class Framebuffer(AGLObject):
 		return self.depthAttachment
 	
 	def ClearBufferInt(self, bufferTraget: GL.GLenum, drawBuffer: int, value) -> None:
-		GL.glClearNamedFramebufferiv(self._id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_INT))
+		GL.glClearNamedFramebufferiv(self.id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_INT))
 
 	def ClearBufferFloat(self, bufferTraget: GL.GLenum, drawBuffer: int, value) -> None:
-		GL.glClearNamedFramebufferfv(self._id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_FLOAT))
+		GL.glClearNamedFramebufferfv(self.id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_FLOAT))
 	
 	def __CreateFramebufferAttachment(self, attachmentSpec: FramebufferAttachmentSpec) -> int:
 		multisample = self.specification.samples > 1
 		target = GL.GL_TEXTURE_2D_MULTISAMPLE if multisample else GL.GL_TEXTURE_2D
 		internalFormat = _TEXTURE_FORMAT_INTERNAL_FORMAT_MAP[attachmentSpec.textureFormat]
-
-		_id = GLHelper.CreateTexture(target)
+		
+		_id = gl.create_texture(target).value
 
 		if multisample:
 			GL.glTextureStorage2DMultisample(_id, self.specification.samples, internalFormat, self.width, self.height, False)
@@ -144,13 +143,13 @@ class Framebuffer(AGLObject):
 		else:
 			attachmentTarget = GL.GL_COLOR_ATTACHMENT0 + attachmentIndex
 		
-		GL.glNamedFramebufferTexture(self._id, attachmentTarget, textureId, 0)
+		GL.glNamedFramebufferTexture(self.id, attachmentTarget, textureId, 0)
 
 	def __Invalidate(self, checkComplete: bool):
-		if self._id:
-			self.Delete(False)
+		if self.id:
+			self.delete()
 
-		self._id = GLHelper.CreateFramebuffer()
+		self._id = gl.create_framebuffer()
 
 		for idx, attachmentSpec in enumerate(self.colorAttachmentSpecs):
 			texture = self.__CreateFramebufferAttachment(attachmentSpec)
@@ -167,13 +166,13 @@ class Framebuffer(AGLObject):
 				raise GraphicsException("Cannot use more than 4 framebuffer texture attachments.")
 			
 			drawBuffers = [GL.GL_COLOR_ATTACHMENT0, GL.GL_COLOR_ATTACHMENT1, GL.GL_COLOR_ATTACHMENT2, GL.GL_COLOR_ATTACHMENT3]
-			GL.glNamedFramebufferDrawBuffers(self._id, len(self.colorAttachments), drawBuffers)
+			GL.glNamedFramebufferDrawBuffers(self.id, len(self.colorAttachments), drawBuffers)
 		elif len(self.colorAttachments) == 0:
-			GL.glNamedFramebufferDrawBuffer(self._id, GL.GL_NONE)
+			GL.glNamedFramebufferDrawBuffer(self.id, GL.GL_NONE)
 		else: #means we have only one color attachment
-			GL.glNamedFramebufferDrawBuffer(self._id, GL.GL_COLOR_ATTACHMENT0) #assume we use 0th index for our attachment
+			GL.glNamedFramebufferDrawBuffer(self.id, GL.GL_COLOR_ATTACHMENT0) #assume we use 0th index for our attachment
 		
 		if checkComplete:
-			status = GL.glCheckNamedFramebufferStatus(self._id, GL.GL_FRAMEBUFFER)
+			status = GL.glCheckNamedFramebufferStatus(self.id, GL.GL_FRAMEBUFFER)
 			if status != GL.GL_FRAMEBUFFER_COMPLETE:
 				raise GraphicsException(f"Framebuffer incomplete: {_GL_FB_ERROR_CODE_NAMES_MAP[status]}.")
