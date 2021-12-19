@@ -53,6 +53,9 @@ class GLObject(ABC):
     def __str__(self):
         return f'{type(self).__name__} (id: {self._id.value})'
     
+    def __repr__(self):
+        return str(self)
+    
     def _delete(self) -> None:
         if self._deleted:
             return

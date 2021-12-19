@@ -73,4 +73,4 @@ def get_gl_error():
     err = GL.glGetError()
 
     if err != GL.GL_NO_ERROR:
-        raise GraphicsException(f'OpenGL error: {ErrorCode(err).name} ({err})')
+        raise GraphicsException(err)

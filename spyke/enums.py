@@ -110,15 +110,52 @@ class BlendFactor:
 	Src1Alpha = 					GL.GL_SRC1_ALPHA
 	OneMinusSrc1Alpha = 			GL.GL_ONE_MINUS_SRC1_ALPHA
 
-class GLType:
+class GLType(enum.IntEnum):
 	Float = 						GL.GL_FLOAT
 	Double = 						GL.GL_DOUBLE
+	Fixed = 						GL.GL_FIXED
+	HalfFloat = 					GL.GL_HALF_FLOAT
 	Int = 							GL.GL_INT
 	UnsignedInt = 					GL.GL_UNSIGNED_INT
 	Byte = 							GL.GL_BYTE
 	UnsignedByte = 					GL.GL_UNSIGNED_BYTE
 	Short = 						GL.GL_SHORT
 	UnsignedShort = 				GL.GL_UNSIGNED_SHORT
+
+class InternalFormat(enum.IntEnum):
+	R8 = 							GL.GL_R8
+	R16 = 							GL.GL_R16
+	R16f = 							GL.GL_R16F
+	R32f = 							GL.GL_R32F
+	R8i = 							GL.GL_R8I
+	R16i = 							GL.GL_R16I
+	R32i = 							GL.GL_R32I
+	R8ui = 							GL.GL_R8UI
+	R16ui = 						GL.GL_R16UI
+	R32ui = 						GL.GL_R32UI
+	Rg8 = 							GL.GL_RG8
+	Rg16 = 							GL.GL_RG16
+	Rg16f = 						GL.GL_RG16F
+	Rg32f = 						GL.GL_RG32F
+	Rg8i = 							GL.GL_RG8I
+	Rg16i = 						GL.GL_RG16I
+	Rg32i = 						GL.GL_RG32I
+	Rg8ui = 						GL.GL_RG8UI
+	Rg16ui = 						GL.GL_RG16UI
+	Rg32ui = 						GL.GL_RG32UI
+	Rgb32f = 						GL.GL_RGB32F
+	Rgb32i = 						GL.GL_RGB32I
+	Rgb32ui = 						GL.GL_RGB32UI
+	Rgba8 = 						GL.GL_RGBA8
+	Rgba16 = 						GL.GL_RGBA16
+	Rgba16f = 						GL.GL_RGBA16F
+	Rgba32f = 						GL.GL_RGBA32F
+	Rgba8i = 						GL.GL_RGBA8I
+	Rgba16i = 						GL.GL_RGBA16I
+	Rgba32i = 						GL.GL_RGBA32I
+	Rgba8ui = 						GL.GL_RGBA8UI
+	Rgba16ui = 						GL.GL_RGBA16UI
+	Rgba32ui = 						GL.GL_RGBA32UI
 
 class VertexAttribType:
 	Float = 						GL.GL_FLOAT

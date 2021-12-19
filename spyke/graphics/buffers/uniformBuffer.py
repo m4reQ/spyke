@@ -1,21 +1,15 @@
-from .aBuffer import ABuffer
+from spyke.enums import GLType
+from spyke import debug
+from .glBuffer import DynamicBuffer
 
 from OpenGL import GL
 
-class UniformBuffer(ABuffer):
-	_BufferStorageFlags = GL.GL_DYNAMIC_STORAGE_BIT
+class UniformBuffer(DynamicBuffer):
+	def __init__(self, size: int, data_type: GLType):
+		super().__init__(size, data_type)
 
-	def __init__(self, size: int):
-		super().__init__(size, None)
-
-		GL.glNamedBufferStorage(self.id, self._size, None, self._BufferStorageFlags)
-
-	def Bind(self):
+	def bind(self) -> None:
 		GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, self.id)
 
-	def BindToUniform(self, index: int):
+	def bind_to_uniform(self, index: int) -> None:
 		GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, index, self.id)
-
-	def AddData(self, data: memoryview, size: int) -> None:
-		GL.glNamedBufferSubData(self.id, 0, size, data.obj)
-		data.release()

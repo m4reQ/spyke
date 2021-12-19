@@ -1,4 +1,5 @@
 from spyke import debug
+from spyke.enums import GLType
 from ..sync import Sync
 from ..rectangle import RectangleF
 from ..texturing import Texture
@@ -10,7 +11,7 @@ from ..buffers import *
 from ..screenStats import ScreenStats
 from ..contextInfo import ContextInfo
 from ...constants import _C_FLOAT_P, _GL_FILL_MODE_NAMES_MAP, _GL_FLOAT_SIZE, _NP_FLOAT, _NP_UINT
-from ...enums import Hint, NvidiaIntegerName, Vendor, Keys
+from ...enums import Hint, InternalFormat, NvidiaIntegerName, Vendor, Keys
 from ...ecs import components
 from ...input import EventHook, EventHandler
 from ... import resourceManager as ResourceManager
@@ -60,7 +61,7 @@ INSTANCE_DATA_BUFFER_BINDING = 1
 POST_DATA_BUFFER_BINDING = 0
 
 MAX_TEXTURES_COUNT = 16
-AVAILABLE_USER_TEXTURES_COUNT = 16 - 4
+AVAILABLE_USER_TEXTURES_COUNT = 16 - 2
 
 MULTISAMPLE_TEXTURE_SAMPLER = 0
 NORMAL_TEXTURE_SAMPLER = 1
@@ -80,9 +81,6 @@ _postData = [
 	1.0, 0.0, 0.0, 1.0, 0.0 
 ]
 
-__vertexData = np.empty(BASIC_VERTEX_VERTEX_VALUES_COUNT * MAX_QUADS_COUNT * VERTICES_PER_QUAD, dtype=_NP_FLOAT)
-__instanceData = np.empty(BASIC_INSTANCE_VERTEX_VALUES_COUNT * MAX_QUADS_COUNT, dtype=_NP_FLOAT)
-
 _vertexData = None
 _instanceData = None
 
@@ -101,8 +99,8 @@ _currentFillMode = GL.GL_FILL
 _basicShader: Shader = None
 _postProcessShader: Shader = None
 _posVbo: StaticBuffer = None
-_instanceDataVbo: MappedBuffer = None
-_vertexDataTbo: MappedTextureBuffer = None
+_instanceDataVbo: DynamicBuffer = None
+_vertexDataTbo: TextureBuffer = None
 _postDataVbo: StaticBuffer = None
 _ibo: StaticBuffer = None
 _ubo: UniformBuffer = None
@@ -133,8 +131,8 @@ def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
 
 	_whiteTexture = Texture.CreateWhiteTexture()
 
-	_ubo = UniformBuffer(UNIFORM_BLOCK_SIZE)
-	_ubo.BindToUniform(MATRICES_UNIFORM_BLOCK_INDEX)
+	_ubo = UniformBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
+	_ubo.bind_to_uniform(MATRICES_UNIFORM_BLOCK_INDEX)
 
 	_CreateFramebuffer(initialWidth, initialHeight, samples)
 	_SetGLSettings()
@@ -151,11 +149,11 @@ def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
 def CaptureFrame():
 	pixels = GL.glReadPixels(0, 0, screenStats.width, screenStats.height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
 	
-	img = Image.frombytes("RGB", (screenStats.width, screenStats.height), pixels)
+	img = Image.frombytes('RGB', (screenStats.width, screenStats.height), pixels)
 	img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
-	filename = os.path.join(SCREENSHOT_DIRECTORY, "screenshot_" + str(int(time.time()))) + ".jpg"
-	img.save(filename, "JPEG")
+	filename = os.path.join(SCREENSHOT_DIRECTORY, f'screenshot_{time.time()}.jpg')
+	img.save(filename, 'JPEG')
 	debug.log_info(f'Screenshot was saved as "{filename}".')
 
 def ClearScreen() -> None:
@@ -168,10 +166,10 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	renderStats.Clear()
 	start = time.perf_counter()
 
-	viewProjectionData = np.asarray(viewProjectionMatrix, dtype=_NP_FLOAT)
-	_ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
+	_ubo.add_data(np.asarray(viewProjectionMatrix, dtype=np.float32).flatten())
+	_ubo.flip()
 	
-	_ubo.Bind()
+	_ubo.bind()
 
 	_framebuffer.Bind()
 	
@@ -182,14 +180,14 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	alpha = [x for x in drawables if x not in opaque]
 
 	alpha.sort(key = lambda x: x[0].color.w, reverse = True)
-	_sync.WaitBuffer()
+	# _sync.WaitBuffer()
 	for (sprite, transform) in opaque:
 		_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tilingFactor)
 
 	_Flush()
 
 	GL.glDisable(GL.GL_DEPTH_TEST)
-	_sync.WaitBuffer()
+	# _sync.WaitBuffer()
 	for (sprite, transform) in alpha:
 		_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tilingFactor)
 
@@ -248,7 +246,7 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	# viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
 	# _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
 
-	_sync.WaitBuffer()
+	# _sync.WaitBuffer()
 	if contextInfo.capabilities.intelFramebufferCMAAEnabled:
 		# _RenderQuad(glm.mat4(1.0), glm.vec4(1.0), DEFAULT_RENDER_COLOR_ATTACHMENT, glm.vec2(1.0))
 		_RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
@@ -276,17 +274,17 @@ def _Flush():
 	if not _quadsCount:
 		return
 
-	_basicVao.Bind()
+	_vertexDataTbo.flip()
+	_instanceDataVbo.flip()
 
+	_basicVao.Bind()
 	_basicShader.Use()
 		
 	textures = _textures[:_lastTexture]
-	GL.glBindTextures(0, len(textures), np.asarray(textures, dtype=_NP_UINT))
-	GL.glBindTextures(14, 2, np.asarray([_whiteTexture.id, _vertexDataTbo.texture_id], dtype=_NP_UINT))
+	GL.glBindTextures(0, len(textures), np.asarray(textures, dtype=np.uint32))
+	GL.glBindTextures(14, 2, np.asarray([_whiteTexture.id, _vertexDataTbo.texture_id], dtype=np.uint32))
 		
-	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, _quadsCount * INDICES_PER_QUAD, _ibo.dataType, None, _quadsCount)
-
-	_sync.LockBuffer()
+	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, _quadsCount * INDICES_PER_QUAD, _ibo.data_type, None, _quadsCount)
 
 	renderStats.drawsCount += 1
 	renderStats.vertexCount += _quadsCount * VERTICES_PER_QUAD
@@ -319,19 +317,31 @@ def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture or int, t
 			_textures[_lastTexture] = tId
 			_lastTexture += 1
 
-	_vertexData[_lastVertexPos:_lastVertexPos + BASIC_VERTEX_VERTEX_VALUES_COUNT * VERTICES_PER_QUAD] = (
+	vertex_data = np.array([
 		texRect.left, texRect.top,
 		texRect.left, texRect.bottom,
 		texRect.right, texRect.bottom,
 		texRect.right, texRect.top
-	)
+	], dtype=np.float32)
 
-	_instanceData[_lastInstancePos:_lastInstancePos + BASIC_INSTANCE_VERTEX_VALUES_COUNT] = (
-		color.x, color.y, color.z, color.w, tilingFactor.x, tilingFactor.y, texIdx, entId) + tuple(transform[0]) + tuple(transform[1]) + tuple(transform[2]) + tuple(transform[3]
-	)
+	_vertexDataTbo.add_data(vertex_data)
 
-	_lastVertexPos += BASIC_VERTEX_VERTEX_VALUES_COUNT * VERTICES_PER_QUAD
-	_lastInstancePos += BASIC_INSTANCE_VERTEX_VALUES_COUNT
+	instance_data = np.concatenate((
+		np.array([
+			color.x,
+			color.y,
+			color.z,
+			color.w,
+			tilingFactor.x,
+			tilingFactor.y,
+			texIdx,
+			entId
+		], dtype=np.float32),
+		np.asarray(transform, dtype=np.float32).T.flatten()
+	))
+
+	_instanceDataVbo.add_data(instance_data)
+
 	_quadsCount += 1
 
 def _RenderFramebuffer(samplesToRender: int, attachmentToRender: int) -> None:
@@ -344,7 +354,7 @@ def _RenderFramebuffer(samplesToRender: int, attachmentToRender: int) -> None:
 
 	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, INDICES_PER_QUAD, _ibo.dataType, None, 1)
 
-	_sync.LockBuffer()
+	# _sync.LockBuffer()
 
 	renderStats.drawsCount += 1
 	renderStats.vertexCount += VERTICES_PER_QUAD
@@ -425,10 +435,10 @@ def _CreateFramebuffer(initialWidth: int, initialHeight: int, samples: int) -> N
 def _CreateBasicComponents() -> None:
 	global _posVbo, _instanceDataVbo, _vertexDataTbo, _ibo, _basicShader, _basicVao, _vertexData, _instanceData, _sync
 
-	_posVbo = StaticBuffer(_quadVertices, GL.GL_FLOAT)
-	_instanceDataVbo = MappedBuffer(BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT)
-	_vertexDataTbo = MappedTextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE * MAX_QUADS_COUNT * VERTICES_PER_QUAD, GL.GL_RG32F)
-	_ibo = StaticBuffer(CreateQuadIndices(MAX_QUADS_COUNT), GL.GL_UNSIGNED_INT)
+	_posVbo = StaticBuffer(_quadVertices, GLType.Float)
+	_instanceDataVbo = DynamicBuffer(BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, GLType.Float)
+	_vertexDataTbo = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE * MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, InternalFormat.Rg32f)
+	_ibo = StaticBuffer(CreateQuadIndices(MAX_QUADS_COUNT), GLType.UnsignedInt)
 
 	_basicShader = Shader()
 	_basicShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "basic.vert")
@@ -445,26 +455,23 @@ def _CreateBasicComponents() -> None:
 	
 	_basicVao = VertexArray()
 
-	_basicVao.BindVertexBuffer(POS_DATA_BUFFER_BINDING, _posVbo.id, 0, POS_DATA_VERTEX_SIZE)
-	_basicVao.BindVertexBuffer(INSTANCE_DATA_BUFFER_BINDING, _instanceDataVbo.id, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
-	_basicVao.BindElementBuffer(_ibo.id)
+	_basicVao.BindVertexBuffer(POS_DATA_BUFFER_BINDING, _posVbo, 0, POS_DATA_VERTEX_SIZE)
+	_basicVao.BindVertexBuffer(INSTANCE_DATA_BUFFER_BINDING, _instanceDataVbo, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
+	_basicVao.BindElementBuffer(_ibo)
 
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aPosition"), POS_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GL.GL_FLOAT, False, 1)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTilingFactor"), INSTANCE_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False, 1)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_INT, False, 1)
-	_basicVao.AddLayout(_basicShader.GetAttribLocation("aEntId"), INSTANCE_DATA_BUFFER_BINDING, 1, GL.GL_INT, False, 1)
-	_basicVao.AddMatrixLayout(_basicShader.GetAttribLocation("aTransform"), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GL.GL_FLOAT, False, 1)
-
-	_vertexData = (ctypes.c_float * (MAX_QUADS_COUNT * VERTICES_PER_QUAD * BASIC_VERTEX_VERTEX_VALUES_COUNT)).from_address(_vertexDataTbo.Pointer)
-	_instanceData = (ctypes.c_float * (MAX_QUADS_COUNT * BASIC_INSTANCE_VERTEX_VALUES_COUNT)).from_address(_instanceDataVbo.Pointer)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aPosition"), POS_DATA_BUFFER_BINDING, 3, GLType.Float, False)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aColor"), INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTilingFactor"), INSTANCE_DATA_BUFFER_BINDING, 2, GLType.Float, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aTexIdx"), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
+	_basicVao.AddLayout(_basicShader.GetAttribLocation("aEntId"), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
+	_basicVao.AddMatrixLayout(_basicShader.GetAttribLocation("aTransform"), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float, False, 1)
 
 	_sync = Sync()
 
 def _CreatePostProcessComponents() -> None:
 	global _postProcessVao, _postProcessShader, _postDataVbo
 
-	_postDataVbo = StaticBuffer(_postData, GL.GL_FLOAT)
+	_postDataVbo = StaticBuffer(_postData, GLType.Float)
 
 	_postProcessShader = Shader()
 	_postProcessShader.AddStage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "post.vert")
@@ -478,11 +485,11 @@ def _CreatePostProcessComponents() -> None:
 
 	_postProcessVao = VertexArray()
 
-	_postProcessVao.BindVertexBuffer(POST_DATA_BUFFER_BINDING, _postDataVbo.ID, 0, POST_VERTEX_DATA_VERTEX_SIZE)
-	_postProcessVao.BindElementBuffer(_ibo.ID)
+	_postProcessVao.BindVertexBuffer(POST_DATA_BUFFER_BINDING, _postDataVbo, 0, POST_VERTEX_DATA_VERTEX_SIZE)
+	_postProcessVao.BindElementBuffer(_ibo)
 
-	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aPosition"), POST_DATA_BUFFER_BINDING, 3, GL.GL_FLOAT, False)
-	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aTexCoord"), POST_DATA_BUFFER_BINDING, 2, GL.GL_FLOAT, False)
+	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aPosition"), POST_DATA_BUFFER_BINDING, 3, GLType.Float, False)
+	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aTexCoord"), POST_DATA_BUFFER_BINDING, 2, GLType.Float, False)
 
 def _SetRendererCallbacks() -> None:
 	EventHandler.WindowResize += EventHook(_ResizeCallback, -1)

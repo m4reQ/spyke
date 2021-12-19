@@ -1,5 +1,5 @@
 from spyke.graphics import gl
-from .aBuffer import ABuffer
+from .glBuffer import ABuffer
 
 from OpenGL import GL
 
