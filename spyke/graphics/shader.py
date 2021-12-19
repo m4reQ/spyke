@@ -1,6 +1,6 @@
 #region Import
 from spyke.graphics import gl
-from ..debugging import Debug, LogLevel
+from spyke import debug
 from ..utils import EnsureString
 from ..exceptions import GraphicsException, SpykeException
 from ..constants import _NP_INT, _NP_FLOAT
@@ -24,7 +24,7 @@ class Shader(gl.GLObject):
 	
 	def AddStage(self, stage: int, filepath: str) -> None:
 		if self.__compiled:
-			Debug.Log("Tried to add shader stage to already compiled shader.", LogLevel.Warning)
+			debug.log_warning('Tried to add shader stage to already compiled shader.')
 			return
 
 		try:
@@ -47,7 +47,7 @@ class Shader(gl.GLObject):
 	
 	def Compile(self) -> None:
 		if self.__compiled:
-			LogLevel("Shader already compiled.", LogLevel.Warning)
+			debug.log_warning('Shader already compiled.')
 			return
 
 		GL.glLinkProgram(self.id)
@@ -59,20 +59,20 @@ class Shader(gl.GLObject):
 		self.__stages.clear()
 		self.__compiled = True
 
-		Debug.Log(f"{self} compiled succesfully.", LogLevel.Info)
+		debug.log_info(f'{self} compiled succesfully.')
 	
 	def Validate(self) -> None:
 		if not self.__compiled:
-			Debug.Log("Cannot validate not compiled shader program.", LogLevel.Warning)
+			debug.log_warning('Cannot validate not compiled shader program.')
 			return
 		
 		GL.glValidateProgram(self.id)
 
-		infoLog = GL.glGetProgramInfoLog(self.id)
-		if len(infoLog) != 0:
-			raise GraphicsException(f"{self} validation failure:\n{EnsureString(infoLog)}.")
-		else:
-			Debug.Log(f"{self} has been validated succesfully.", LogLevel.Info)
+		info_log = GL.glGetProgramInfoLog(self.id)
+		if len(info_log) != 0:
+			raise GraphicsException(f'{self} validation failure:\n{info_log}.')
+		
+		debug.log_info(f'{self} has been validated succesfully.')
 	
 	def Use(self) -> None:
 		GL.glUseProgram(self.id)
@@ -84,27 +84,27 @@ class Shader(gl.GLObject):
 	def GetAttribLocation(self, name: str) -> int:
 		loc = GL.glGetAttribLocation(self.id, name)
 		if loc == -1:
-			raise GraphicsException(f"Cannot find attribute named '{name}'.")
+			raise GraphicsException(f'Cannot find attribute named "{name}".')
 
 		return loc
 
 	def GetUniformLocation(self, name: str) -> int:
 		if name in self.uniforms:
 			return self.uniforms[name]
-		else:
-			loc = GL.glGetUniformLocation(self.id, name)
-			if loc == -1:
-				raise GraphicsException(f"Cannot find uniform named '{name}'.")
-			else:
-				self.uniforms[name] = loc
-			
-			return loc
+
+		loc = GL.glGetUniformLocation(self.id, name)
+		if loc == -1:
+			raise GraphicsException(f'Cannot find uniform named "{name}".')
+
+		self.uniforms[name] = loc
+		
+		return loc
 	
 	@lru_cache
 	def GetUniformBlockLocation(self, name: str) -> int:
 		loc = GL.glGetUniformBlockIndex(self.id, name)
 		if loc == -1:
-			raise GraphicsException(f"Cannot find uniform block named '{name}'.")
+			raise GraphicsException(f'Cannot find uniform block named "{name}".')
 		
 		return loc
 	

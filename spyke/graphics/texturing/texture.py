@@ -1,5 +1,5 @@
 from spyke.graphics import gl
-from ...debugging import Debug, LogLevel
+from spyke import debug
 from ...constants import _NP_UBYTE
 from ...autoslot import Slots
 
@@ -61,8 +61,8 @@ class Texture(gl.GLObject):
 
 		tData.data.release()
 
-		Debug.GetGLError()
-		Debug.Log(f"{self} initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
+		debug.get_gl_error()
+		debug.log_info(f'{self} initialized in {time.perf_counter() - start} seconds.')
 
 	def BindToUnit(self, slot) -> None:
 		GL.glBindTextureUnit(slot, self.id)

@@ -1,7 +1,7 @@
 from spyke.imgui.widgets.contextInfo import ContextInfoWidget
+from spyke import debug
 from .widgets import *
 from .dialogWindow import DialogWindow
-from ..debugging import Debug, LogLevel
 from ..ecs.components import *
 from ..constants import DEFAULT_IMGUI_BG_COLOR, _MAIN_PROCESS
 from ..graphics import Renderer
@@ -55,14 +55,14 @@ def Initialize() -> None:
 	global _isRunning, _isInitialized
 	
 	if _isInitialized:
-		Debug.Log("Imgui already initialized.", LogLevel.Warning)
+		debug.log_info('Imgui already initialized.')
 		return
 
 	_Setup()
 	_isRunning = True
 	_isInitialized = True
 
-	Debug.Log("Imgui initialized.", LogLevel.Info)
+	debug.log_info('Imgui initialized.')
 
 def Close() -> None:
 	global _isRunning, _isInitialized, _window
@@ -76,7 +76,7 @@ def Close() -> None:
 	_window.destroy()
 	del _window
 
-	Debug.Log("ImGui closed", LogLevel.Info)
+	debug.log_info('ImGui closed')
 
 def _Setup() -> None:
 	global _window, _menu, _fileMenu, _treeviewMenu, _entitiesTree, _inspectorFrame, \

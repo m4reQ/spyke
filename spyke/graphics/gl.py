@@ -1,4 +1,4 @@
-from spyke.debugging import Debug, LogLevel
+from spyke import debug
 from spyke.exceptions import GraphicsException
 from OpenGL import GL
 from abc import ABC, abstractmethod
@@ -42,7 +42,7 @@ class GLObject(ABC):
         
         GLObject._objects.clear()
 
-        Debug.Log(f'{cnt} OpenGL objects have been deleted.', LogLevel.Info)
+        debug.log_info(f'{cnt} OpenGL objects have been deleted.')
 
     def __init__(self):
         self._id: GL.GLint = GL.GLint(-1)
@@ -60,7 +60,7 @@ class GLObject(ABC):
         self.delete()
 
         self._deleted = True
-        Debug.Log(f'{self} deleted succesfully.', LogLevel.Info)
+        debug.log_info(f'{self} deleted succesfully.')
 
     @abstractmethod
     def delete(self) -> None:

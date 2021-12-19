@@ -1,8 +1,8 @@
 from spyke.utils.converters import PilImageToNp
+from spyke import debug
 from .ecs import Scene
 from .ecs.components import *
 from .ecs.processors import *
-from .debugging import Debug, LogLevel
 from .constants import _IMAGE_FORMAT_MAP, MAX_LOADING_TASKS_COUNT
 from .exceptions import GraphicsException, SpykeException
 from .graphics.texturing.texture import Texture, TextureData, TextureSpec
@@ -87,13 +87,13 @@ class TextureLoadingTask(ALoadingTask):
 		start = time.perf_counter()
 
 		if self.texName in _textures:
-			Debug.Log("Texture with given name already exists. Texture will be overwritten.", LogLevel.Warning)
+			debug.log_warning('Texture with given name already exists. Texture will be overwritten.')
 			_textures[self.texName].Delete(True)
 		
 		_textures[self.texName] = Texture(self.texData, self.texSpec)
 		
 		self.loadingTime += time.perf_counter() - start
-		Debug.Log(f"Texture {self.texName} loaded in {self.loadingTime} seconds.", LogLevel.Info)
+		debug.log_info(f'Texture {self.texName} loaded in {self.loadingTime} seconds.')
 
 		return True
 	
@@ -168,12 +168,12 @@ class FontLoadingTask(ALoadingTask):
 		
 
 		if self.fontName in _fonts:
-			Debug.Log("Font with given name already exists. Font will be overwritten.", LogLevel.Warning)
+			debug.log_warning('Font with given name already exists. Font will be overwritten.')
 		
 		_fonts[self.fontName] = font
 		
 		self.loadingTime += time.perf_counter() - start
-		Debug.Log(f"Font {self.fontName} loaded in {self.loadingTime} seconds.", LogLevel.Info)
+		debug.log_info(f'Font {self.fontName} loaded in {self.loadingTime} seconds.')
 		
 		return True
 
@@ -215,7 +215,7 @@ def FinishLoading():
 			_loadingTasks.remove(task)
 			_loadingTasksCount -= 1
 		
-	Debug.Log("Resource loading finished.", LogLevel.Info)
+	debug.log_info('Resource loading finished.')
 
 def CreateTexture(filepath: str, name: str="", texSpec=TextureSpec()):
 	"""
@@ -310,7 +310,7 @@ def SaveScene(filepath: str, scene: Scene) -> None:
 
 	file.close()
 
-	Debug.Log(f"Scene {scene.name} saved as {filepath} in {time.perf_counter() - start} seconds.", LogLevel.Info)
+	debug.log_info(f'Scene {scene.name} saved as {filepath} in {time.perf_counter() - start} seconds.')
 
 def LoadScene(filepath: str):
 	"""
@@ -381,16 +381,16 @@ def LoadScene(filepath: str):
 	
 	FinishLoading()
 
-	Debug.Log(f"Scene '{scene.name}' from file '{filepath}' loaded succesfully in {time.perf_counter() - start} seconds.", LogLevel.Info)
+	debug.log_info(f'Scene "{scene.name}" from file "{filepath}" loaded succesfully in {time.perf_counter() - start} seconds.')
 	SetSceneCurrent(scene)
 
 	return scene
 
 def ReleaseResources() -> None:
-	"""
+	'''
 	Releases all resources that are already
 	loaded and clears current scene.
-	"""
+	'''
 
 	global _currentScene
 
@@ -409,65 +409,65 @@ def SetSceneCurrent(scene: Scene) -> None:
 	global _currentScene
 	_currentScene = scene
 
-	Debug.Log(f"Scene '{scene.name}' has been made current.", LogLevel.Info)
+	debug.log_info(f'Scene "{scene.name}" has been made current.')
 
 @lru_cache
 def GetCurrentScene() -> Scene:
-	"""
+	'''
 	Returns current scene. Raises SpykeException
 	if current scene is not set.
-	"""
+	'''
 
 	if not _currentScene:
-		raise SpykeException("No scene is set current.")
+		raise SpykeException('No scene is set current.')
 
 	return _currentScene
 
 @lru_cache
 def GetTexture(name: str) -> Texture:
-	"""
+	'''
 	Returns texture from texture pool that coresponds
 	to the given name. If the name is an empty string
 	white texture will be returned. Raises GraphicsException
 	if certain texture cannot be found.
 
-	param name: Name of a texture.
-	"""
+	:param name: Name of a texture.
+	'''
 
 	if name == '':
 		return None
 
 	if not name in _textures:
-		raise GraphicsException(f"No such texture: '{name}'.")
+		raise GraphicsException(f'No such texture: "{name}".')
 	
 	return _textures[name]
 
 @lru_cache
 def GetFont(name: str) -> Font:
-	"""
+	'''
 	Returns font from font pool that coresponds
 	to the given name. Raises GraphicsException
 	if certain font cannot be found.
 
-	param name: Name of a font.
-	"""
+	:param name: Name of a font.
+	'''
 
 	if not name in _fonts:
-		raise GraphicsException(f"No such font: '{name}'.")
+		raise GraphicsException(f'No such font: "{name}".')
 	
 	return _fonts[name]
 
 @lru_cache
 def GetModel(name: str) -> None:
-	"""
+	'''
 	Returns model from model pool that coresponds
 	to the given name. Raises GraphicsException
 	if certain model cannot be found.
 
-	param name: Name of a model.
-	"""
+	:param name: Name of a model.
+	'''
 
 	if not name in _models:
-		raise GraphicsException(f"No such model '{name}'.")
+		raise GraphicsException(f'No such model "{name}".')
 	
 	return _models[name]

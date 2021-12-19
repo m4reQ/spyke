@@ -1,3 +1,4 @@
+from spyke import debug
 from ..sync import Sync
 from ..rectangle import RectangleF
 from ..texturing import Texture
@@ -11,7 +12,6 @@ from ..contextInfo import ContextInfo
 from ...constants import _C_FLOAT_P, _GL_FILL_MODE_NAMES_MAP, _GL_FLOAT_SIZE, _NP_FLOAT, _NP_UINT
 from ...enums import Hint, NvidiaIntegerName, Vendor, Keys
 from ...ecs import components
-from ...debugging import Debug, LogLevel
 from ...input import EventHook, EventHandler
 from ... import resourceManager as ResourceManager
 
@@ -120,7 +120,7 @@ def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
 	global _ubo, _isInitialized, _whiteTexture
 
 	if _isInitialized:
-		Debug.Log("Renderer already initialized.", LogLevel.Warning)
+		debug.log_warning('Renderer already initialized.')
 		return
 	
 	contextInfo.GetInfo()
@@ -145,8 +145,8 @@ def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
 
 	_isInitialized = True
 
-	Debug.GetGLError()
-	Debug.Log("Master renderer fully initialized.", LogLevel.Info)
+	debug.get_gl_error()
+	debug.log_info('Master renderer fully initialized.')
 
 def CaptureFrame():
 	pixels = GL.glReadPixels(0, 0, screenStats.width, screenStats.height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
@@ -156,7 +156,7 @@ def CaptureFrame():
 
 	filename = os.path.join(SCREENSHOT_DIRECTORY, "screenshot_" + str(int(time.time()))) + ".jpg"
 	img.save(filename, "JPEG")
-	Debug.Log(f"Screenshot was saved as '{filename}'.", LogLevel.Info)
+	debug.log_info(f'Screenshot was saved as "{filename}".')
 
 def ClearScreen() -> None:
 	GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
@@ -358,7 +358,7 @@ def _KeyDownCallback(key: int, _, repeated: bool) -> bool:
 
 	if key == Keys.KeyGrave:
 		_currentFillMode = next(_polygonModeIter)
-		Debug.Log(f"Renderer drawing mode set to: {_GL_FILL_MODE_NAMES_MAP}", LogLevel.Info)
+		debug.log_info(f'Renderer drawing mode set to: {_GL_FILL_MODE_NAMES_MAP[_currentFillMode]}')
 	elif key == Keys.KeyF1:
 		CaptureFrame()
 

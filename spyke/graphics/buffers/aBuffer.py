@@ -1,4 +1,4 @@
-from ...debugging import Debug, LogLevel
+from spyke import debug
 from spyke.graphics import gl
 
 from OpenGL import GL
@@ -27,11 +27,11 @@ class AMappable(ABuffer):
 
     def _MapPersistent(self):
         if self._alreadyMapped:
-            Debug.Log("Buffer is already persistently mapped.", LogLevel.Warning)
+            debug.log_warning('Buffer is already persistently mapped.')
             return
 
         self._pointer = GL.glMapNamedBufferRange(self.id, 0, self._size, AMappable._BufferUsageFlags)
-        Debug.Log(f"{self} has been persistently mapped to {hex(self._pointer)}.", LogLevel.Info)
+        debug.log_info(f'{self} has been persistently mapped to {hex(self._pointer)}.')
         self._alreadyMapped = True
     
     @property

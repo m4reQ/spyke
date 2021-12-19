@@ -1,6 +1,7 @@
 from OpenGL import GL
 import openal
 import glfw
+import enum
 
 #region Audio
 class AudioState:
@@ -62,13 +63,16 @@ class ShaderType:
 	ComputeShader = 				GL.GL_COMPUTE_SHADER
 	TessEvaluationShader = 			GL.GL_TESS_EVALUATION_SHADER
 
-class ErrorCode:
+class ErrorCode(enum.IntEnum):
 	NoError = 						GL.GL_NO_ERROR
 	InvalidEnum = 					GL.GL_INVALID_ENUM
 	InvalidValue = 					GL.GL_INVALID_VALUE
 	InvalidOperation = 				GL.GL_INVALID_OPERATION
+	StackOverflow = 				GL.GL_STACK_OVERFLOW
+	StackUnderflow = 				GL.GL_STACK_UNDERFLOW
 	InvalidFramebufferOperation = 	GL.GL_INVALID_FRAMEBUFFER_OPERATION
 	OutOfMemory = 					GL.GL_OUT_OF_MEMORY
+	ContextLost = 					GL.GL_CONTEXT_LOST
 
 class PrimitiveMode:
 	Triangles = 					GL.GL_TRIANGLES

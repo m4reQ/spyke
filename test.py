@@ -1,12 +1,11 @@
 import spyke
-spyke.Init()
 
 # from spyke.ecs.components.sprite import SpriteComponent
 from spyke.ecs.components.transform import TransformComponent
 from spyke.ecs.components.tag import TagComponent
 from spyke.ecs import components
+from spyke import debug
 
-from spyke.debugging import Debug, LogLevel
 from spyke.window import GlfwWindow, WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
@@ -61,7 +60,7 @@ class Window(GlfwWindow):
 		Renderer.RenderScene(ResourceManager.GetCurrentScene(), Matrix4(1.0))
 
 		self.SetTitle(f"{self.baseTitle} | FrameTime: {self.frameTime:.5F} | FPS: {int(1 / self.frameTime)}")
-		Debug.GetGLError()
+		debug.get_gl_error()
 
 if __name__ == "__main__":
 	specs = WindowSpecs(1080, 720, "TestWindow")

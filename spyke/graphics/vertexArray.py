@@ -1,4 +1,4 @@
-from ..debugging import Debug, LogLevel
+from spyke import debug
 from spyke.graphics import gl
 from ..constants import _GL_TYPE_SIZE_MAP
 
@@ -11,6 +11,8 @@ class VertexArray(gl.GLObject):
 		self._id = gl.create_vertex_array()
 
 		self._offsets = {}
+
+		debug.log_info(f'{self} created succesfully.')
 	
 	def BindVertexBuffer(self, bindingIndex: int, bufferId: int, offset: int, stride: int) -> None:
 		GL.glVertexArrayVertexBuffer(self.id, bindingIndex, bufferId, offset, stride)

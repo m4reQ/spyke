@@ -1,9 +1,9 @@
 # from . import enginePreview
 from spyke.graphics.gl import GLObject
+from spyke import debug
 from ..enums import Keys
 from ..graphics import Renderer
 from ..input import EventHandler
-from ..debugging import Debug, LogLevel
 from ..exceptions import GraphicsException, SpykeException
 from ..imgui import Imgui
 from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
@@ -31,13 +31,13 @@ class GlfwWindow(object):
 		glfw.set_error_callback(self.__GlfwErrorCb)
 
 		ver = ".".join(str(x) for x in glfw.get_version())
-		Debug.Log(f"GLFW version: {ver}", LogLevel.Info)
+		debug.log_info(f'GLFW version: {ver}')
 		
 		self.__SetDefaultWindowFlags(specification)
 		
 		if specification.fullscreen:
 			self.__handle = self.__CreateWindowFullscreen(specification)	
-			Debug.Log("Window started in fulscreen mode.", LogLevel.Info)
+			debug.log_info('Window started in fulscreen mode.')
 		else:
 			self.__handle = self.__CreateWindowNormal(specification)
 
@@ -61,8 +61,8 @@ class GlfwWindow(object):
 
 		#set icon
 		if specification.iconFilepath:
-			if not os.path.endswith(".ico"):
-				raise SpykeException(f"Invalid icon extension: {os.path.splitext(specification.iconFilepath)}.")
+			if not os.path.endswith('.ico'):
+				raise SpykeException(f'Invalid icon extension: {os.path.splitext(specification.iconFilepath)}.')
 			
 			self.__LoadIcon(specification.iconFilepath)
 		else:
@@ -82,7 +82,7 @@ class GlfwWindow(object):
 		
 		gc.collect()
 
-		Debug.Log(f"GLFW window initialized in {time.perf_counter() - start} seconds.", LogLevel.Info)
+		debug.log_info(f'GLFW window initialized in {time.perf_counter() - start} seconds.')
 	
 	def OnFrame(self):
 		pass
@@ -103,7 +103,7 @@ class GlfwWindow(object):
 		glfw.swap_interval(int(value))
 		Renderer.screenStats.vsync = value
 
-		Debug.Log(f"Vsync set to: {value}.", LogLevel.Info)
+		debug.log_info(f'Vsync set to: {value}.')
 
 	def Run(self):
 		isRunning = True
@@ -140,7 +140,7 @@ class GlfwWindow(object):
 
 		EventHandler.WindowResize.Invoke(width, height)
 
-		Debug.Log(f"Window resized to ({width}, {height})", LogLevel.Info)
+		debug.log_info(f'Window resized to ({width}, {height})')
 	
 	def __WindowFocusCallback(self, _, value):
 		if value:
@@ -198,12 +198,10 @@ class GlfwWindow(object):
 		GLObject.delete_all()
 
 		glfw.destroy_window(self.__handle)
-		Debug.Log('Window destroyed.', LogLevel.Info)
+		debug.log_info('Window destroyed.')
 		
 		glfw.terminate()
-		Debug.Log('Glfw terminated.', LogLevel.Info)
-
-		Debug.TryCloseLogFile()
+		debug.log_info('Glfw terminated.')
 
 		sys.exit()
 	

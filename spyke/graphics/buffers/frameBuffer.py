@@ -1,5 +1,5 @@
 from spyke.graphics import gl
-from ...debugging import Debug, LogLevel
+from spyke import debug
 from ...exceptions import GraphicsException
 from ...constants import _GL_FB_ERROR_CODE_NAMES_MAP, _NP_FLOAT, _NP_INT
 from ...autoslot import Slots
@@ -64,15 +64,15 @@ class Framebuffer(gl.GLObject):
 				self.colorAttachmentSpecs.append(attachmentSpec)
 			else:
 				if self.depthAttachmentSpec.textureFormat:
-					Debug.Log(f"{self} found more than one depth texture format in the specification. Additional depth textures will not be created.", LogLevel.Warning)
+					debug.log_warning(f'{self} found more than one depth texture format in the specification. Additional depth textures will not be created.')
 					continue
 			
 				self.depthAttachmentSpec = attachmentSpec
 		
 		self.__Invalidate(True)
 
-		Debug.GetGLError()
-		Debug.Log(f"{self} created succesfully.", LogLevel.Info)
+		debug.get_gl_error()
+		debug.log_info(f'{self} created succesfully.')
 	
 	def Bind(self) -> None:
 		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.id)
@@ -87,7 +87,7 @@ class Framebuffer(gl.GLObject):
 	
 		self.__Invalidate(False)
 
-		Debug.Log(f"{self} resized to ({width}, {height}).", LogLevel.Info)
+		debug.log_info(f'{self} resized to ({width}, {height}).')
 
 	def delete(self) -> None:
 		GL.glDeleteFramebuffers(1, [self.id])
@@ -133,7 +133,7 @@ class Framebuffer(gl.GLObject):
 			GL.glTextureParameteri(_id, GL.GL_TEXTURE_WRAP_S, attachmentSpec.wrapMode)
 			GL.glTextureParameteri(_id, GL.GL_TEXTURE_WRAP_T, attachmentSpec.wrapMode)
 
-		Debug.GetGLError()
+		debug.get_gl_error()
 
 		return _id
 
