@@ -1,5 +1,6 @@
 from spyke import debug
 from spyke.enums import GLType
+from spyke import events
 from ..sync import Sync
 from ..rectangle import RectangleF
 from ..texturing import Texture
@@ -13,7 +14,6 @@ from ..contextInfo import ContextInfo
 from ...constants import _C_FLOAT_P, _GL_FILL_MODE_NAMES_MAP, _GL_FLOAT_SIZE, _NP_FLOAT, _NP_UINT
 from ...enums import Hint, InternalFormat, NvidiaIntegerName, Vendor, Keys
 from ...ecs import components
-from ...input import EventHook, EventHandler
 from ... import resourceManager as ResourceManager
 
 from OpenGL import GL
@@ -136,7 +136,6 @@ def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
 
 	_CreateFramebuffer(initialWidth, initialHeight, samples)
 	_SetGLSettings()
-	_SetRendererCallbacks()
 
 	if not os.path.exists(SCREENSHOT_DIRECTORY):
 		os.mkdir(SCREENSHOT_DIRECTORY)
@@ -166,7 +165,7 @@ def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
 	renderStats.Clear()
 	start = time.perf_counter()
 
-	_ubo.add_data(np.asarray(viewProjectionMatrix, dtype=np.float32).flatten())
+	_ubo.add_data(np.asarray(viewProjectionMatrix, dtype=np.float32).T.flatten())
 	_ubo.flip()
 	
 	_ubo.bind()
@@ -360,30 +359,26 @@ def _RenderFramebuffer(samplesToRender: int, attachmentToRender: int) -> None:
 	renderStats.vertexCount += VERTICES_PER_QUAD
 	_ResetCounters()
 
-def _KeyDownCallback(key: int, _, repeated: bool) -> bool:
+@events.register(events.KeyDownEvent, priority=-1)
+def _key_down_callback(e: events.KeyDownEvent) -> None:
 	global _currentFillMode
 
-	if repeated:
-		return False
+	if e.repeat:
+		return
 
-	if key == Keys.KeyGrave:
+	if e.key == Keys.KeyGrave:
 		_currentFillMode = next(_polygonModeIter)
 		debug.log_info(f'Renderer drawing mode set to: {_GL_FILL_MODE_NAMES_MAP[_currentFillMode]}')
-	elif key == Keys.KeyF1:
+	elif e.key == Keys.KeyF1:
 		CaptureFrame()
 
-	return False
+@events.register(events.ResizeEvent, priority=-1)
+def _resize_callback(e: events.ResizeEvent) -> None:
+	GL.glScissor(0, 0, e.width, e.height)
+	GL.glViewport(0, 0, e.width, e.height)
 
-def _ResizeCallback(width: int, height: int) -> bool:
-	if width == 0 or height == 0:
-		return False
-
-	GL.glScissor(0, 0, width, height)
-	GL.glViewport(0, 0, width, height)
-
-	_framebuffer.Resize(width, height)
-
-	return False
+	if e.width != 0 and e.height != 0:
+		_framebuffer.Resize(e.width, e.height)
 
 def _SetGLSettings() -> None:
 	GL.glEnable(GL.GL_MULTISAMPLE)
@@ -490,7 +485,3 @@ def _CreatePostProcessComponents() -> None:
 
 	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aPosition"), POST_DATA_BUFFER_BINDING, 3, GLType.Float, False)
 	_postProcessVao.AddLayout(_postProcessShader.GetAttribLocation("aTexCoord"), POST_DATA_BUFFER_BINDING, 2, GLType.Float, False)
-
-def _SetRendererCallbacks() -> None:
-	EventHandler.WindowResize += EventHook(_ResizeCallback, -1)
-	EventHandler.KeyDown += EventHook(_KeyDownCallback, -1)

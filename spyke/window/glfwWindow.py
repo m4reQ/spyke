@@ -1,9 +1,10 @@
 # from . import enginePreview
+from spyke.events.types import KeyDownEvent
 from spyke.graphics.gl import GLObject
 from spyke import debug
+from spyke import events
 from ..enums import Keys
 from ..graphics import Renderer
-from ..input import EventHandler
 from ..exceptions import GraphicsException, SpykeException
 from ..imgui import Imgui
 from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
@@ -115,7 +116,7 @@ class GlfwWindow(object):
 			start = glfw.get_time()
 
 			if glfw.window_should_close(self.__handle):
-				EventHandler.WindowClose.Invoke()
+				events.invoke(events.WindowCloseEvent())
 				isRunning = False
 			
 			Imgui._OnFrame()
@@ -138,53 +139,51 @@ class GlfwWindow(object):
 		Renderer.screenStats.width = width
 		Renderer.screenStats.height = height
 
-		EventHandler.WindowResize.Invoke(width, height)
+		events.invoke(events.ResizeEvent(width, height))
 
 		debug.log_info(f'Window resized to ({width}, {height})')
 	
 	def __WindowFocusCallback(self, _, value):
 		if value:
-			EventHandler.WindowFocus.Invoke()
+			events.invoke(events.WindowFocusEvent())
 		else:
-			EventHandler.WindowLostFocus.Invoke()
+			events.invoke(events.WindowLostFocusEvent())
 	
 	def __CursorPosCb(self, _, x, y):
-		EventHandler.MouseMove.Invoke(x, y)
+		events.invoke(events.MouseMoveEvent(x, y))
 	
 	def __WindowPosCallback(self, _, x, y):
 		self.positionX = x
 		self.positionY = y
 
-		EventHandler.WindowMove.Invoke(x, y)
+		events.invoke(events.WindowMoveEvent(x, y))
 
 	def __IconifyCb(self, _, value):
 		if value:
-			EventHandler.WindowResize.Invoke(0, 0)
-			EventHandler.WindowLostFocus.Invoke()
+			events.invoke(events.WindowLostFocusEvent())
 			self.isActive = False
 		else:
-			EventHandler.WindowResize.Invoke(Renderer.screenStats.width, Renderer.screenStats.height)
-			EventHandler.WindowFocus.Invoke()
+			events.invoke(events.WindowFocusEvent())
 			self.isActive = True
 		
 	def __MouseCb(self, _, button, action, mods):
 		if action == glfw.PRESS:
-			EventHandler.MouseButtonDown.Invoke(button)
+			events.invoke(events.MouseButtonDownEvent(button))
 		elif action == glfw.RELEASE:
-			EventHandler.MouseButtonUp.Invoke(button)
+			events.invoke(events.MouseButtonUpEvent(button))
 	
 	def __MouseScrollCb(self, _, xOffset, yOffset):
-		EventHandler.MouseScroll.Invoke(xOffset, yOffset)
+		events.invoke(events.MouseScrollEvent(xOffset, yOffset))
 	
 	def __KeyCb(self, _, key, scancode, action, mods):
 		if action == glfw.PRESS:
-			EventHandler.KeyDown.Invoke(key, mods, False)
+			events.invoke(events.KeyDownEvent(key, mods, False))
 			if key == Keys.KeyF2:
 				self.SetVsync(not Renderer.screenStats.vsync)
 		elif action == glfw.REPEAT:
-			EventHandler.KeyDown.Invoke(key, mods, True)
+			events.invoke(events.KeyDownEvent(key, mods, True))
 		elif action == glfw.RELEASE:
-			EventHandler.KeyUp.Invoke(key)
+			events.invoke(events.KeyUpEvent(key))
 	
 	def __LoadIcon(self, filepath: str) -> None:
 		img = Image.open(filepath)

@@ -12,7 +12,6 @@ from spyke.enums import *
 from spyke import ResourceManager
 from spyke.utils import *
 from spyke.math import *
-from spyke.input import *
 
 class Window(GlfwWindow):
 	def __init__(self, windowSpec):
@@ -38,7 +37,7 @@ class Window(GlfwWindow):
 
 		ResourceManager.LoadScene("tests/scene.scn")
 
-		EventHandler.KeyDown += EventHook(self.MoveCamera)
+		# EventHandler.KeyDown += EventHook(self.MoveCamera)
 	
 	def MoveCamera(self, key: int, mods: int, repeated: bool):
 		if key == Keys.KeyW:
