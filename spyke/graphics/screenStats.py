@@ -1,10 +1,14 @@
-from ..autoslot import Slots
-
-class ScreenStats(Slots):
-    __slots__ = ("__weakref__", )
+class ScreenStats:
+    __slots__ = (
+        '__weakref__',
+        'width',
+        'height',
+        'vsync',
+        'refresh_rate'
+    )
     
     def __init__(self):
-        self.width = 0
-        self.height = 0
-        self.vsync = False
-        self.refreshRate = 0.0
+        self.width: int = 0
+        self.height: int = 0
+        self.vsync: bool = False
+        self.refresh_rate: float = 0.0

@@ -1,8 +1,7 @@
 from spyke.graphics import gl
+from spyke.exceptions import GraphicsException
 from spyke import debug
-from ...exceptions import GraphicsException
 from ...constants import _GL_FB_ERROR_CODE_NAMES_MAP, _NP_FLOAT, _NP_INT
-from ...autoslot import Slots
 
 from OpenGL import GL
 from typing import List, Tuple
@@ -24,23 +23,36 @@ _TEXTURE_FORMAT_INTERNAL_FORMAT_MAP = {
 	GL.GL_DEPTH24_STENCIL8: GL.GL_DEPTH24_STENCIL8
 }
 
-class FramebufferAttachmentSpec(Slots):
-	__slots__ = ("__weakref__", )
+class FramebufferAttachmentSpec:
+	__slots__ = (
+		'__weakref__',
+		'textureFormat',
+		'wrapMode',
+		'minFilter',
+		'magFilter'
+	)
 
+	# TODO: Change _format type hint to use specific enum (IntenalFormat or something)
 	def __init__(self, _format: GL.GLenum):
-		self.textureFormat = _format
-		self.wrapMode = GL.GL_CLAMP_TO_EDGE
-		self.minFilter = GL.GL_LINEAR
-		self.magFilter = GL.GL_LINEAR
+		self.textureFormat: GL.GLenum = _format
+		self.wrapMode: GL.GLenum = GL.GL_CLAMP_TO_EDGE
+		self.minFilter: GL.GLenum = GL.GL_LINEAR
+		self.magFilter: GL.GLenum = GL.GL_LINEAR
 
-class FramebufferSpec(Slots):
-	__slots__ = ("__weakref__", )
+class FramebufferSpec:
+	__slots__ = (
+		'__weakref__',
+		'width',
+		'height',
+		'samples',
+		'attachment_specs'
+	)
 	
 	def __init__(self, width: int, height: int):
-		self.width = width
-		self.height = height
-		self.samples = 1
-		self.attachmentSpecs: List[FramebufferAttachmentSpec] = []
+		self.width: int = width
+		self.height: int = height
+		self.samples: int = 1
+		self.attachment_specs: List[FramebufferAttachmentSpec] = []
 
 class Framebuffer(gl.GLObject):
 	def __init__(self, specification: FramebufferSpec):
@@ -59,7 +71,7 @@ class Framebuffer(gl.GLObject):
 
 		self.specification = specification
 
-		for attachmentSpec in specification.attachmentSpecs:
+		for attachmentSpec in specification.attachment_specs:
 			if _ATTACHMENT_FORMAT_IS_COLOR_MAP[attachmentSpec.textureFormat]:
 				self.colorAttachmentSpecs.append(attachmentSpec)
 			else:

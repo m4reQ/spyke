@@ -46,9 +46,9 @@ def _OnFrame() -> None:
 	if not _isRunning:
 		return
 
-	_renderStatsWidget.Update(Renderer.renderStats.drawsCount, Renderer.renderStats.vertexCount, Renderer.renderStats.drawTime, \
-		_MAIN_PROCESS.memory_full_info().uss, Renderer.renderStats.videoMemoryUsed, (Renderer.screenStats.width, Renderer.screenStats.height), \
-		Renderer.screenStats.vsync, Renderer.screenStats.refreshRate)
+	_renderStatsWidget.Update(Renderer.renderStats.draws_count, Renderer.renderStats.vertex_count, Renderer.renderStats.draw_time, \
+		_MAIN_PROCESS.memory_full_info().uss, Renderer.renderStats.video_memory_used, (Renderer.screenStats.width, Renderer.screenStats.height), \
+		Renderer.screenStats.vsync, Renderer.screenStats.refresh_rate)
 	_window.update()
 
 def Initialize() -> None:
@@ -118,7 +118,7 @@ def _Setup() -> None:
 	_treeviewFrame = tk.Frame(_window, bd = 1, relief = "solid", bg = DEFAULT_IMGUI_BG_COLOR)
 
 	_renderStatsWidget = RenderStatsWidget(_infoFrame)
-	_contextInfoWidget = ContextInfoWidget(_infoFrame, Renderer.contextInfo.renderer, Renderer.contextInfo.version, Renderer.contextInfo.glslVersion, Renderer.contextInfo.vendor, Renderer.contextInfo.memoryAvailable)
+	_contextInfoWidget = ContextInfoWidget(_infoFrame, Renderer.contextInfo.renderer, Renderer.contextInfo.version, Renderer.contextInfo.glsl_version, Renderer.contextInfo.vendor, Renderer.contextInfo.memory_available)
 	
 	_infoFrame.rowconfigure(0, weight = DEFAULT_ROW_WEIGHT)
 	_infoFrame.rowconfigure(1, weight = DEFAULT_ROW_WEIGHT)

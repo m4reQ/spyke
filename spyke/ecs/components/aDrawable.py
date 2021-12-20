@@ -1,8 +1,6 @@
-from ...autoslot import Slots
-
-class ADrawable(Slots):
-    __slots__ = ("__weakref__", )
+class ADrawable:
+    __slots__ = ('__weakref__', 'material', 'model_id')
     
-    def __init__(self, material: str, modelId: int):
+    def __init__(self, material: str, model_id: int):
         self.material = material
-        self.modelId = modelId
+        self.model_id = model_id

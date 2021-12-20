@@ -35,7 +35,7 @@ class Window(GlfwWindow):
 
 		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
 
-		ResourceManager.LoadScene("tests/scene.scn")
+		# ResourceManager.LoadScene("tests/scene.scn")
 
 		# EventHandler.KeyDown += EventHook(self.MoveCamera)
 	
@@ -55,8 +55,8 @@ class Window(GlfwWindow):
 		if self.camera.shouldRecalculate:
 			self.camera.RecalculateMatrices()
 			
-		ResourceManager.GetCurrentScene().Process(dt = self.frameTime)
-		Renderer.RenderScene(ResourceManager.GetCurrentScene(), Matrix4(1.0))
+		# ResourceManager.GetCurrentScene().Process(dt = self.frameTime)
+		# Renderer.RenderScene(ResourceManager.GetCurrentScene(), Matrix4(1.0))
 
 		self.SetTitle(f"{self.baseTitle} | FrameTime: {self.frameTime:.5F} | FPS: {int(1 / self.frameTime)}")
 		debug.get_gl_error()

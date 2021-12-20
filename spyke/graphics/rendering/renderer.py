@@ -121,12 +121,12 @@ def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
 		debug.log_warning('Renderer already initialized.')
 		return
 	
-	contextInfo.GetInfo()
-	Texture._CompressionEnabled = contextInfo.capabilities.arbTextureCompressionEnabled
+	contextInfo.get_info()
+	Texture._CompressionEnabled = contextInfo.capabilities.arb_texture_compression_enabled
 
 	_CreateBasicComponents()
 
-	if not contextInfo.capabilities.intelFramebufferCMAAEnabled:
+	if not contextInfo.capabilities.intel_framebuffer_cmaa_enabled:
 		_CreatePostProcessComponents()
 
 	_whiteTexture = Texture.CreateWhiteTexture()
@@ -407,7 +407,7 @@ def _CreateFramebuffer(initialWidth: int, initialHeight: int, samples: int) -> N
 	global _framebuffer
 
 	fbSpec = FramebufferSpec(initialWidth, initialHeight)
-	fbSpec.samples = 1 if contextInfo.capabilities.intelFramebufferCMAAEnabled else samples
+	fbSpec.samples = 1 if contextInfo.capabilities.intel_framebuffer_cmaa_enabled else samples
 
 	colorAttachmentSpec = FramebufferAttachmentSpec(GL.GL_RGBA)
 
@@ -419,7 +419,7 @@ def _CreateFramebuffer(initialWidth: int, initialHeight: int, samples: int) -> N
 	depthAttachmentSpec.minFilter = GL.GL_NEAREST
 	depthAttachmentSpec.magFilter = GL.GL_NEAREST
 
-	fbSpec.attachmentSpecs = [
+	fbSpec.attachment_specs = [
 		colorAttachmentSpec,
 		entIdAttachmentSpec,
 		depthAttachmentSpec

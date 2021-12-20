@@ -1,7 +1,8 @@
-from ...autoslot import Slots
-
-class TagComponent(Slots):
-	__slots__ = ("__weakref__", )
+class TagComponent:
+	__slots__ = (
+		'__weakref__',
+		'name'
+	)
 	
-	def __init__(self, name):
-		self.name = name
+	def __init__(self, name: str):
+		self.name: str = name

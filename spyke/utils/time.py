@@ -1,28 +1,32 @@
-from ..autoslot import Slots
-
 import time
 
-class Delayer(Slots):
-	__slots__ = ("__weakref__", )
+class Delayer:
+	__slots__ = (
+		'__weakref__',
+		'_first_wait',
+		'_wait_time',
+		'_to_wait',
+		'_last_time'
+	)
 	
-	def __init__(self, waitTime: float):
-		self._firstWait = True
-		self._waitTime = waitTime
-		self._toWait = waitTime
-		self._lastTime = 0.0
+	def __init__(self, wait_time: float):
+		self._first_wait = True
+		self._wait_time = wait_time
+		self._to_wait = wait_time
+		self._last_time = 0.0
 
-	def IsWaiting(self) -> bool:
-		if self._firstWait:
-			self._lastTime = time.perf_counter()
-			self._firstWait = False
+	def is_waiting(self) -> bool:
+		if self._first_wait:
+			self._last_time = time.perf_counter()
+			self._first_wait = False
 
-		if self._toWait <= 0.0:
-			self._toWait = self._waitTime
+		if self._to_wait <= 0.0:
+			self._to_wait = self._wait_time
 			return False
 
 		curTime = time.perf_counter()
 
-		self._toWait -=  curTime - self._lastTime
-		self._lastTime = curTime
+		self._to_wait -=  curTime - self._last_time
+		self._last_time = curTime
 
 		return True

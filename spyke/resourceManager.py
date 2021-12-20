@@ -8,7 +8,6 @@ from .exceptions import GraphicsException, SpykeException
 from .graphics.texturing.texture import Texture, TextureData, TextureSpec
 from .graphics.text import Font, Glyph
 from .graphics.rectangle import RectangleF
-from .autoslot import Slots
 
 from OpenGL import GL
 from PIL import Image
@@ -38,9 +37,7 @@ DUMP_STANDARD_ARGS = {
 	"explicit_end": True
 }
 
-class ALoadingTask(Slots):
-	__slots__ = ("__weakref__", )
-
+class ALoadingTask:
 	def __init__(self, filepath: str):
 		self._thread: threading.Thread = None
 		self.filepath: str = filepath

@@ -49,7 +49,7 @@ class GlfwWindow(object):
 		# enginePreview.RenderPreview()
 		# glfw.swap_buffers(self.__handle)
 
-		glfw.set_input_mode(self.__handle, glfw.CURSOR, glfw.CURSOR_NORMAL if specification.cursorVisible else glfw.CURSOR_HIDDEN)
+		glfw.set_input_mode(self.__handle, glfw.CURSOR, glfw.CURSOR_NORMAL if specification.cursor_visible else glfw.CURSOR_HIDDEN)
 
 		glfw.set_framebuffer_size_callback(self.__handle, self.__ResizeCb)
 		glfw.set_cursor_pos_callback(self.__handle, self.__CursorPosCb)
@@ -61,11 +61,11 @@ class GlfwWindow(object):
 		glfw.set_window_focus_callback(self.__handle, self.__WindowFocusCallback)
 
 		#set icon
-		if specification.iconFilepath:
+		if specification.icon_filepath:
 			if not os.path.endswith('.ico'):
-				raise SpykeException(f'Invalid icon extension: {os.path.splitext(specification.iconFilepath)}.')
+				raise SpykeException(f'Invalid icon extension: {os.path.splitext(specification.icon_filepath)}.')
 			
-			self.__LoadIcon(specification.iconFilepath)
+			self.__LoadIcon(specification.icon_filepath)
 		else:
 			self.__LoadIcon(DEFAULT_ICON_FILEPATH)
 
@@ -232,7 +232,7 @@ class GlfwWindow(object):
 		Renderer.screenStats.width, Renderer.screenStats.height = glfw.get_framebuffer_size(self.__handle)
 		
 		vidmode = glfw.get_video_mode(glfw.get_primary_monitor())
-		Renderer.screenStats.refreshRate = vidmode.refresh_rate
+		Renderer.screenStats.refresh_rate = vidmode.refresh_rate
 		Renderer.screenStats.vsync = spec.vsync
 	
 	@property

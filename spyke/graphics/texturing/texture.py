@@ -1,15 +1,21 @@
 from spyke.graphics import gl
 from spyke import debug
-from ...constants import _NP_UBYTE
-from ...autoslot import Slots
 
 from OpenGL import GL
 import numpy as np
 import time
 
-class TextureData(Slots):
-	__slots__ = ("__weakref__", )
-
+class TextureData:
+	__slots__ = (
+		'__weakref__',
+		'width',
+		'height',
+		'data',
+		'format',
+		'filepath'
+	)
+	
+	# TODO: Use specific enums for type hints
 	def __init__(self, width: int, height: int):
 		self.width: int = width
 		self.height: int = height
@@ -17,14 +23,22 @@ class TextureData(Slots):
 		self.format: GL.GLenum = GL.GL_RGB
 		self.filepath: str = ""
 
-class TextureSpec(Slots):
-	__slots__ = ("__weakref__", )
+class TextureSpec:
+	__slots__ = (
+		'__weakref__',
+		'mipmaps',
+		'min_filter',
+		'mag_filter',
+		'wrap_mode',
+		'compress'
+	)
 	
+	# TODO: Use specific enums for type hints
 	def __init__(self):
 		self.mipmaps: int = 3
-		self.minFilter: GL.GLenum = GL.GL_LINEAR_MIPMAP_LINEAR
-		self.magFilter: GL.GLenum = GL.GL_LINEAR
-		self.wrapMode: GL.GLenum = GL.GL_REPEAT
+		self.min_filter: GL.GLenum = GL.GL_LINEAR_MIPMAP_LINEAR
+		self.mag_filter: GL.GLenum = GL.GL_LINEAR
+		self.wrap_mode: GL.GLenum = GL.GL_REPEAT
 		self.compress: bool = True
 		
 class Texture(gl.GLObject):
@@ -51,10 +65,10 @@ class Texture(gl.GLObject):
 
 		GL.glTextureStorage2D(self.id, tSpec.mipmaps, _format, tData.width, tData.height)
 		
-		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_S, tSpec.wrapMode)
-		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_T, tSpec.wrapMode)
-		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MIN_FILTER, tSpec.minFilter)
-		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MAG_FILTER, tSpec.magFilter)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_S, tSpec.wrap_mode)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_T, tSpec.wrap_mode)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MIN_FILTER, tSpec.min_filter)
+		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MAG_FILTER, tSpec.mag_filter)
 
 		GL.glTextureSubImage2D(self.id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data.obj)
 		GL.glGenerateTextureMipmap(self.id)
@@ -74,12 +88,12 @@ class Texture(gl.GLObject):
 	def CreateWhiteTexture(cls):
 		tData = TextureData(1, 1)
 
-		tData.data = memoryview(np.array([255, 255, 255, 255], dtype=_NP_UBYTE))
+		tData.data = memoryview(np.array([255, 255, 255, 255], dtype=np.ubyte))
 		tData.format = GL.GL_RGBA
 
 		spec = TextureSpec()
-		spec.minFilter = GL.GL_NEAREST
-		spec.magFilter = GL.GL_NEAREST
+		spec.min_filter = GL.GL_NEAREST
+		spec.mag_filter = GL.GL_NEAREST
 		spec.mipmaps = 1
 		spec.compress = False
 
