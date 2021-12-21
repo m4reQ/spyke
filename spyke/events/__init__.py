@@ -47,7 +47,7 @@ class Handler:
         self.func = function
         self.priority = priority
         self.consume = consume
-    
+
     def __call__(self, event: EventType) -> ReturnType:
         try:
             res = self.func(event)
@@ -59,9 +59,43 @@ class Handler:
 
         return res
 
+def register_method(method: Callable[[EventType], ReturnType], event_type: EventType, *, priority: int, consume: bool=False) -> None:
+    '''
+    Registers method bound to an object as a handler for events of given type.
+
+    :param method: Method that will be used as an event handler.
+
+    :param event_type: Indicates what type of events will be triggering
+    registered function.
+
+    :param priority: The priority tells event system in what order
+    to call registered functions. -1 is reserved for internal handlers
+    and will throw an error when user tries to use it.
+
+    :param consume: Indicates if handler should consume the event and
+    stop further calls to other handlers.
+    '''
+
+    handler = Handler(method, priority, consume)
+
+    if handler in _handlers:
+        debug.log_warning(f'Handler {handler.__name__} already registered for event type: {event_type.__name__}.')
+        return
+    
+    # raise error when we try to register funciton thats not part
+    # of spyke module, with negative priority
+    if priority < 0 and not method.__module__.startswith('spyke'):
+        raise SpykeException('Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
+    
+    _handlers[event_type].append(handler)
+    _handlers[event_type].sort(key=lambda x: x.priority)
+
+    debug.log_info(f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+
 def register(event_type: EventType, *, priority: int, consume: bool=False) -> Callable[[EventType], ReturnType]:
     '''
-    Registers new function as a handler for events of given type. Can be used as a decorator.
+    Registers new function as a handler for events of given type. Should be used as a decorator.
+    Warning: this function cannot register bound methods as event handlers. To do this use "register_method" function.
 
     :param event_type: Indicates what type of events will be triggering
     registered function.
@@ -75,6 +109,10 @@ def register(event_type: EventType, *, priority: int, consume: bool=False) -> Ca
     '''
 
     def inner(handler_fn: Callable[[EventType], ReturnType]):
+        # check if we are dealing with bound method
+        if '.' in handler_fn.__qualname__:
+            raise SpykeException('Cannot register bound method as event handler using "register". Please use "register_method" instead.')
+
         handler = Handler(handler_fn, priority, consume)
 
         def wrapper(event: EventType):
@@ -85,9 +123,9 @@ def register(event_type: EventType, *, priority: int, consume: bool=False) -> Ca
             return wrapper
         
         # raise error when we try to register funciton thats not part
-        # of spyke module, with priority -1
-        if priority == -1 and not handler_fn.__module__.startswith('spyke'):
-            raise SpykeException('Priority -1 is reserved for internal engine handlers and cannot be used to register user-defined functions.')
+        # of spyke module, with negative priority
+        if priority < 0 and not handler_fn.__module__.startswith('spyke'):
+            raise SpykeException('Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
         
         _handlers[event_type].append(handler)
         _handlers[event_type].sort(key=lambda x: x.priority)

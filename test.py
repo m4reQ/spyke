@@ -5,6 +5,7 @@ from spyke.ecs.components.transform import TransformComponent
 from spyke.ecs.components.tag import TagComponent
 from spyke.ecs import components
 from spyke import debug
+from spyke import events
 
 from spyke.window import GlfwWindow, WindowSpecs
 from spyke.graphics import *
@@ -38,18 +39,22 @@ class Window(GlfwWindow):
 		# ResourceManager.LoadScene("tests/scene.scn")
 
 		# EventHandler.KeyDown += EventHook(self.MoveCamera)
+		events.register_method(self.move_camera, events.KeyDownEvent, priority=0)
 	
-	def MoveCamera(self, key: int, mods: int, repeated: bool):
-		if key == Keys.KeyW:
+	# @events.register(events.KeyDownEvent, priority=0)
+	def move_camera(self, e: events.KeyDownEvent):
+		if e.key == Keys.KeyW:
 			self.camera.Move(Vector3(0.0, 0.1, 0.0), self.frameTime)
-		elif key == Keys.KeyS:
+		elif e.key == Keys.KeyS:
 			self.camera.Move(Vector3(0.0, -0.1, 0.0), self.frameTime)
-		elif key == Keys.KeyA:
+		elif e.key == Keys.KeyA:
 			self.camera.Move(Vector3(-0.1, 0.0, 0.0), self.frameTime)
-		elif key == Keys.KeyD:
+		elif e.key == Keys.KeyD:
 			self.camera.Move(Vector3(0.1, 0.0, 0.0), self.frameTime)
-		
-		return False
+		else:
+			return
+			
+		debug.log_info('Camera moved.')
 		
 	def OnFrame(self):
 		if self.camera.shouldRecalculate:
