@@ -1,3 +1,4 @@
+from spyke.enums import InternalFormat
 from spyke.graphics import gl
 from spyke import debug
 
@@ -19,8 +20,8 @@ class TextureData:
 	def __init__(self, width: int, height: int):
 		self.width: int = width
 		self.height: int = height
-		self.data: memoryview = None
-		self.format: GL.GLenum = GL.GL_RGB
+		self.data: np.ndarray = None
+		self.format: GL.GLenum = GL.GL_RGBA
 		self.filepath: str = ""
 
 class TextureSpec:
@@ -59,9 +60,7 @@ class Texture(gl.GLObject):
 
 		self._id = gl.create_texture(GL.GL_TEXTURE_2D)
 
-		_format = Texture._CompressedInternalFormat if tSpec.compress else Texture._InternalFormat
-		if not Texture._CompressionEnabled:
-			_format = Texture._InternalFormat
+		_format = Texture._CompressedInternalFormat if tSpec.compress and Texture._CompressionEnabled else Texture._InternalFormat
 
 		GL.glTextureStorage2D(self.id, tSpec.mipmaps, _format, tData.width, tData.height)
 		
@@ -70,10 +69,12 @@ class Texture(gl.GLObject):
 		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MIN_FILTER, tSpec.min_filter)
 		GL.glTextureParameteri(self.id, GL.GL_TEXTURE_MAG_FILTER, tSpec.mag_filter)
 
-		GL.glTextureSubImage2D(self.id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data.obj)
+		GL.glTextureSubImage2D(self.id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data)
 		GL.glGenerateTextureMipmap(self.id)
 
-		tData.data.release()
+		internal_format = GL.GLint()
+		GL.glGetTextureParameteriv(self.id, GL.GL_TEXTURE_INTERNAL_FORMAT, internal_format)
+		self.internal_format = InternalFormat(internal_format)
 
 		debug.get_gl_error()
 		debug.log_info(f'{self} initialized in {time.perf_counter() - start} seconds.')
@@ -88,7 +89,7 @@ class Texture(gl.GLObject):
 	def CreateWhiteTexture(cls):
 		tData = TextureData(1, 1)
 
-		tData.data = memoryview(np.array([255, 255, 255, 255], dtype=np.ubyte))
+		tData.data = np.array([255, 255, 255, 255], dtype=np.ubyte)
 		tData.format = GL.GL_RGBA
 
 		spec = TextureSpec()

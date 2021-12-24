@@ -123,6 +123,12 @@ class GLType(enum.IntEnum):
 	UnsignedShort = 				GL.GL_UNSIGNED_SHORT
 
 class InternalFormat(enum.IntEnum):
+	DepthComponent = 				GL.GL_DEPTH_COMPONENT
+	DepthStencil = 					GL.GL_DEPTH_STENCIL
+	Red = 							GL.GL_RED
+	Rg = 							GL.GL_RG
+	Rgb = 							GL.GL_RGB
+	Rgba = 							GL.GL_RGB
 	R8 = 							GL.GL_R8
 	R16 = 							GL.GL_R16
 	R16f = 							GL.GL_R16F
@@ -156,6 +162,20 @@ class InternalFormat(enum.IntEnum):
 	Rgba8ui = 						GL.GL_RGBA8UI
 	Rgba16ui = 						GL.GL_RGBA16UI
 	Rgba32ui = 						GL.GL_RGBA32UI
+	CompressedRed = 							GL.GL_COMPRESSED_RED
+	CompressedRg = 								GL.GL_COMPRESSED_RG
+	CompressedRgb = 							GL.GL_COMPRESSED_RGB
+	CompressedRgba = 							GL.GL_COMPRESSED_RGBA
+	CompressedSrgb = 							GL.GL_COMPRESSED_SRGB
+	CompressedSrgbAlpha = 						GL.GL_COMPRESSED_SRGB_ALPHA
+	CompressedRedRgtc1 = 						GL.GL_COMPRESSED_RED_RGTC1
+	CompressedSignedRedRgtc1 = 					GL.GL_COMPRESSED_SIGNED_RED_RGTC1
+	CompressedRgRgtc2 = 						GL.GL_COMPRESSED_RG_RGTC2
+	CompressedSignedRgRgtc2 = 					GL.GL_COMPRESSED_SIGNED_RG_RGTC2
+	CompressedRgbaBptcUnorm = 					GL.GL_COMPRESSED_RGBA_BPTC_UNORM
+	CompressedSrgbAlphaBptcUnorm = 				GL.GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM
+	CompressedRgbBptcSignedFloat = 				GL.GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT
+	CompressedRgbBptcUnsignedFloat = 			GL.GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT
 
 class VertexAttribType:
 	Float = 						GL.GL_FLOAT
