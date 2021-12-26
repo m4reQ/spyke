@@ -41,7 +41,7 @@ class Shader(gl.GLObject):
 		
 		infoLog = GL.glGetShaderInfoLog(shader)
 		if len(infoLog) != 0:
-			raise GraphicsException(f"Shader (file: '{filepath}') compilation error:\n{EnsureString(infoLog)}.")
+			raise GraphicsException(f'{self} compilation error:\n{infoLog.decode("ansi")}.')
 
 		GL.glAttachShader(self.id, shader)
 	
@@ -70,7 +70,7 @@ class Shader(gl.GLObject):
 
 		info_log = GL.glGetProgramInfoLog(self.id)
 		if len(info_log) != 0:
-			raise GraphicsException(f'{self} validation failure:\n{info_log}.')
+			raise GraphicsException(f'{self} validation failure:\n{info_log.decode("ansi")}.')
 		
 		debug.log_info(f'{self} has been validated succesfully.')
 	
@@ -113,7 +113,7 @@ class Shader(gl.GLObject):
 		GL.glUniformBlockBinding(self.id, loc, index)
 	
 	def SetUniformIntArray(self, name: str, values: list) -> None:
-		GL.glProgramUniform1iv(self.id, self.GetUniformLocation(name), len(values), np.asarray(values, dtype=_NP_INT))
+		GL.glProgramUniform1iv(self.id, self.GetUniformLocation(name), len(values), np.asarray(values, dtype=np.int32))
 
 	def SetUniform1i(self, name: str, value: int) -> None:
 		GL.glProgramUniform1i(self.id, self.GetUniformLocation(name), value)

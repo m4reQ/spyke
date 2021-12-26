@@ -2,6 +2,7 @@
 from spyke.events.types import KeyDownEvent
 from spyke.graphics.gl import GLObject
 from spyke import debug
+from spyke import resourceManager
 from spyke import events
 from ..enums import Keys
 from ..graphics import Renderer
@@ -76,6 +77,7 @@ class GlfwWindow(object):
 		Renderer.Initialize(Renderer.screenStats.width, Renderer.screenStats.height, specification.samples)
 
 		self.OnLoad()
+		resourceManager.FinishLoading()
 
 		if startImgui:
 			Imgui.Initialize()

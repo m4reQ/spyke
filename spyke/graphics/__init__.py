@@ -1,5 +1,6 @@
 from .rendering import renderer as Renderer
 from .cameras import *
+from .rectangle import RectangleF
 
 import glm
 

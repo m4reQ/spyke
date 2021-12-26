@@ -7,11 +7,11 @@ from ..math import LerpVec2, LerpVec4, LerpFloat
 class TransformProcessor(Processor):
 	def Process(self, *args, **kwargs):
 		for _, transform in self.scene.GetComponent(TransformComponent):
-			if transform.shouldRecalculate:
+			if transform.should_recalculate:
 				transform.RecalculateMatrices()
 		
 		for _, cameraComponent in self.scene.GetComponent(CameraComponent):
-			if cameraComponent.shouldRecalculate:
+			if cameraComponent.should_recalculate:
 				cameraComponent.RecalculateMatrices()
 				
 class AudioProcessor(Processor):

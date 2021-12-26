@@ -126,7 +126,7 @@ class FontLoadingTask(ALoadingTask):
 			bearX = int(lineData[5][8:])
 			bearY = int(lineData[6][8:])
 			adv = int(lineData[7][9:])
-			_ord = int(lineData[0][3:])
+			_chr = chr(int(lineData[0][3:]))
 
 			texX = int(lineData[1][2:])
 			texY = int(lineData[2][2:])
@@ -134,7 +134,7 @@ class FontLoadingTask(ALoadingTask):
 			texHeight = int(lineData[4][7:])
 			texRect = RectangleF(texX, texY, texWidth, texHeight)
 
-			self.glyphs[_ord] = Glyph(width, height, bearX, bearY, adv, texRect, _ord)
+			self.glyphs[_chr] = Glyph(width, height, bearX, bearY, adv, texRect, _chr)
 
 		f.close()
 		
@@ -156,13 +156,12 @@ class FontLoadingTask(ALoadingTask):
 			glyph.texRect.height /= tex.height
 
 		font = Font()
-		font.imageFilepath = tex.filepath
-		font.fontFilepath = self.filepath
+		font.image_filepath = tex.filepath
+		font.font_filepath = self.filepath
 		font.name = self.fontName
 		font.texture = self.texName
 		font.characters = self.glyphs
-		font.baseSize = self.baseSize
-		
+		font.base_size = self.baseSize
 
 		if self.fontName in _fonts:
 			debug.log_warning('Font with given name already exists. Font will be overwritten.')
@@ -196,9 +195,9 @@ def FinishLoading():
 
 	global _loadingTasksCount
 
-	toRemove = []
-
 	while _loadingTasksCount != 0:
+		toRemove = []
+
 		for task in _loadingTasks:
 			if not task.isFinished:
 				continue
@@ -237,32 +236,34 @@ def CreateTexture(filepath: str, name: str="", texSpec=TextureSpec()):
 	_loadingTasksCount += 1
 	loadingTask.Start()
 
-def CreateFont(filepath: str, imageFilepath: str, name: str = "") -> None:
+def CreateFont(filepath: str, image_filepath: str, name: str = "") -> None:
 	"""
 	Creates a spyke font from given font and image files
 	and associates it with a name. If the name argument is empty
 	the name becomes the font filename.
 
-	param fontfilepath: font file (.fnt)
-	param imageFilepath: image file
-	param name: name that will be used to access font
+	:param filepath: font file (.fnt)
+	:param image_filepath: image file
+	:param name: name that will be used to access font
 	"""
 
 	global _loadingTasksCount
 
 	tSpec = TextureSpec()
-	tSpec.minFilter = GL.GL_NEAREST
-	tSpec.magFilter = GL.GL_NEAREST
+	tSpec.min_filter = GL.GL_NEAREST
+	tSpec.mag_filter = GL.GL_NEAREST
 	tSpec.mipmaps = 1
-	tSpec.wrapMode = GL.GL_CLAMP_TO_EDGE
+	tSpec.wrap_mode = GL.GL_CLAMP_TO_EDGE
 	tSpec.compress = False
 
-	CreateTexture(imageFilepath, imageFilepath, tSpec)
+	tex_name = f'font_{name}_texture'
+
+	CreateTexture(image_filepath, tex_name, tSpec)
 
 	if not name:
 		name = filepath
 	
-	loadingTask = FontLoadingTask(filepath, imageFilepath, name)
+	loadingTask = FontLoadingTask(filepath, tex_name, name)
 
 	_loadingSemaphore.acquire()
 	_loadingTasks.append(loadingTask)
