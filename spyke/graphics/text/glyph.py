@@ -1,7 +1,7 @@
-from ..rectangle import RectangleF
+from spyke.graphics import RectangleF
 
 class Glyph(object):
-	def __init__(self, width: int, height: int, bearingX: int, bearingY: int, advance: int, texRect: RectangleF, _ord: int):
+	def __init__(self, width: int, height: int, bearingX: int, bearingY: int, advance: int, texRect: RectangleF, char: str):
 		self.texRect = texRect
 		self.width = width
 		self.height = height
@@ -9,7 +9,7 @@ class Glyph(object):
 		self.bearingY = bearingY
 		self.advance = advance
 
-		self.__ord = _ord
+		self._char = char
 	
 	def __repr__(self):
-		return chr(self.__ord)
+		return self._char

@@ -3,8 +3,6 @@ from .glyph import Glyph
 from typing import Dict
 from functools import lru_cache
 
-INVALID_GLYPH_ID = 0
-
 class Font:
 	__slots__ = (
 		'__weakref__',
@@ -24,10 +22,9 @@ class Font:
 		self.base_size: int = 0
 		self.texture: Texture = None
 
-	# TODO: Use char as string not an integer
 	@lru_cache
-	def GetGlyph(self, char_id: int) -> Glyph:
-		if char_id not in self.characters:
-			return self.characters[INVALID_GLYPH_ID]
+	def GetGlyph(self, char: str) -> Glyph:
+		if char not in self.characters:
+			return self.characters[chr(0)]
 		else:
-			return self.characters[char_id]
+			return self.characters[char]
