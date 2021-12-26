@@ -1,4 +1,4 @@
-class RectangleF(object):
+class RectangleF:
     def __init__(self, *args):
         self.x = 0.0
         self.y = 0.0
@@ -47,11 +47,11 @@ class RectangleF(object):
     
     @property
     def bottom(self):
-        return self.y
+        return self.y + self.height
     
     @property
     def top(self):
-        return self.y + self.height
+        return self.y
     
     @classmethod
     def One(cls):
