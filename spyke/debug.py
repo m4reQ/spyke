@@ -58,7 +58,7 @@ _con_handler.setLevel(logging.INFO)
 _con_handler.setFormatter(ConsoleFormatter())
 _logger.addHandler(_con_handler)
 
-sys.excepthook = lambda exc_type, val: log_error(f'{exc_type}: {val}')
+# sys.excepthook = lambda exc_type, val, _: log_error(f'{exc_type.__name__}: {val}')
 
 def log_info(msg: str) -> None:
     _logger.info(msg)

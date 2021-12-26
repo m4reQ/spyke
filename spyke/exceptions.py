@@ -2,6 +2,8 @@ from spyke.enums import ErrorCode
 from typing import Union
 
 class GraphicsException(Exception):
+    __module__ = None
+    
     def __init__(self, error: Union[str, ErrorCode, int]):
         error_str = ''
 
@@ -17,5 +19,7 @@ class GraphicsException(Exception):
         super().__init__(error_str)
 
 class SpykeException(Exception):
+    __module__ = None
+
     def __init__(self, message: str):
         super().__init__(message)
