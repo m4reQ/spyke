@@ -6,7 +6,7 @@ import OpenGL
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
 OpenGL.UNSIGNED_BYTE_IMAGES_AS_STRING = True
-OpenGL.ERROR_CHECKING = True
+OpenGL.ERROR_CHECKING = False
 
 from .constants import *
 from . import resourceManager as ResourceManager

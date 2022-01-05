@@ -1,9 +1,25 @@
-from .functional import *
-from .compat import *
-from .converters import *
-from .time import Delayer
+from .math import *
+from .convert import gl_type_to_size
 
-def CreateQuadIndices(quadsCount: int) -> list:
+from typing import Iterable, List
+import time
+
+__all__ = [
+    'lerp_float',
+    'lerp_vector',
+    'create_translation',
+    'create_scale',
+    'create_rotation_x',
+    'create_rotation_y',
+    'create_rotation_z',
+    'create_transform_3d',
+    'gl_type_to_size',
+    'Iterator',
+    'Delayer'
+]
+
+
+def create_quad_indices(quadsCount: int) -> List[int]:
     data = []
 
     offset = 0
@@ -16,8 +32,66 @@ def CreateQuadIndices(quadsCount: int) -> list:
             2 + offset,
             3 + offset,
             0 + offset])
-        
+
         offset += 4
         i += 1
-    
+
     return data
+
+
+class Iterator:
+    __slots__ = (
+        '__weakref__',
+        '_iterable',
+        '_last_pos',
+        'looping'
+    )
+
+    def __init__(self, iterable: Iterable, looping: bool = False):
+        self._iterable = iterable
+        self._last_pos = 0
+        self.looping = looping
+
+    def __next__(self):
+        pos = self._last_pos
+        self._last_pos += 1
+
+        if self._last_pos >= len(self._iterable):
+            if self.looping:
+                self._last_pos = 0
+            else:
+                raise StopIteration
+
+        return self._iterable[pos]
+
+
+class Delayer:
+    __slots__ = (
+        '__weakref__',
+        '_first_wait',
+        '_wait_time',
+        '_to_wait',
+        '_last_time'
+    )
+
+    def __init__(self, wait_time: float):
+        self._first_wait = True
+        self._wait_time = wait_time
+        self._to_wait = wait_time
+        self._last_time = 0.0
+
+    def is_waiting(self) -> bool:
+        if self._first_wait:
+            self._last_time = time.perf_counter()
+            self._first_wait = False
+
+        if self._to_wait <= 0.0:
+            self._to_wait = self._wait_time
+            return False
+
+        curTime = time.perf_counter()
+
+        self._to_wait -= curTime - self._last_time
+        self._last_time = curTime
+
+        return True

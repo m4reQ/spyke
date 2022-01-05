@@ -1,8 +1,3 @@
-import spyke
-
-# from spyke.ecs.components.sprite import SpriteComponent
-from spyke.ecs.components.transform import TransformComponent
-from spyke.ecs.components.tag import TagComponent
 from spyke.ecs import components
 from spyke import debug
 from spyke import events
@@ -12,64 +7,124 @@ from spyke.graphics import *
 from spyke.enums import *
 from spyke import ResourceManager
 from spyke.utils import *
-from spyke.math import *
+
+# TODO: Add vector aliases to the engine core
+from glm import vec3 as Vector3, vec2 as Vector2
+
 
 class Window(GlfwWindow):
-	def __init__(self, windowSpec):
-		super().__init__(windowSpec, True)
-	
-	def OnLoad(self):
-		# LoadScene("tests/newScene.scn")
+    def __init__(self, windowSpec):
+        super().__init__(windowSpec, True)
 
-		# self.ent4 = EntityManager.CreateEntity("Particles")
-		# self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
-		# self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
-		# self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
-		# self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
-		# self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
-		# self.particleSystem1.velocity = Vector2(0.1, 0.3)
-		# self.particleSystem1.rotationVelocity = 0.0
-		# self.particleSystem1.randomizeMovement = True
-		# self.particleSystem1.fadeOut = True
-		# self.particleSystem1.texHandle = "tests/test1.jpg"
-		# ecs.CurrentScene.AddComponent(self.ent4, self.particleSystem1)
+    def on_load(self):
+        ResourceManager.SetSceneCurrent(ResourceManager.CreateScene('Test'))
+        ResourceManager.CreateTexture('tests/test1.jpg', 'tex1')
+        ResourceManager.CreateTexture('tests/test2.png', 'tex2')
+        ResourceManager.CreateTexture('tests/test3.jpg', 'tex3')
+        ResourceManager.CreateFont(
+            'tests/ArialNative.fnt', 'tests/ArialNative.png', 'arial')
 
-		self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
+        ResourceManager.GetCurrentScene().CreateEntity(
+            components.TagComponent('texture'),
+            components.TransformComponent(
+                Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+            components.SpriteComponent(
+                'tex1', Vector2(1.0), Color(1.0, 1.0, 1.0, 0.3))
+        )
 
-		# ResourceManager.LoadScene("tests/scene.scn")
+        ResourceManager.GetCurrentScene().CreateEntity(
+            components.TagComponent('texture3'),
+            components.TransformComponent(
+                Vector3(0.2, 0.7, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0)),
+            components.SpriteComponent(
+                'tex3', Vector2(1.0), Color(1.0, 0.0, 1.0, 0.3))
+        )
 
-		# EventHandler.KeyDown += EventHook(self.MoveCamera)
-		events.register_method(self.move_camera, events.KeyDownEvent, priority=0)
-	
-	# @events.register(events.KeyDownEvent, priority=0)
-	def move_camera(self, e: events.KeyDownEvent):
-		if e.key == Keys.KeyW:
-			self.camera.Move(Vector3(0.0, 0.1, 0.0), self.frameTime)
-		elif e.key == Keys.KeyS:
-			self.camera.Move(Vector3(0.0, -0.1, 0.0), self.frameTime)
-		elif e.key == Keys.KeyA:
-			self.camera.Move(Vector3(-0.1, 0.0, 0.0), self.frameTime)
-		elif e.key == Keys.KeyD:
-			self.camera.Move(Vector3(0.1, 0.0, 0.0), self.frameTime)
-		else:
-			return
-			
-		debug.log_info('Camera moved.')
-		
-	def OnFrame(self):
-		if self.camera.shouldRecalculate:
-			self.camera.RecalculateMatrices()
-			
-		# ResourceManager.GetCurrentScene().Process(dt = self.frameTime)
-		# Renderer.RenderScene(ResourceManager.GetCurrentScene(), Matrix4(1.0))
+        ResourceManager.GetCurrentScene().CreateEntity(
+            components.TagComponent('text'),
+            components.TransformComponent(
+                Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+            components.TextComponent(
+                'TEST', 80, 'arial', Color(1.0, 0.0, 0.0, 1.0))
+        )
 
-		self.SetTitle(f"{self.baseTitle} | FrameTime: {self.frameTime:.5F} | FPS: {int(1 / self.frameTime)}")
-		debug.get_gl_error()
+        ResourceManager.GetCurrentScene().CreateEntity(
+            components.TagComponent('text2'),
+            components.TransformComponent(
+                Vector3(0.4), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+            components.TextComponent(
+                'TEST2', 42, 'arial', Color(1.0, 1.0, 0.0, 1.0))
+        )
+
+        ResourceManager.GetCurrentScene().CreateEntity(
+            components.TagComponent('texture2'),
+            components.TransformComponent(
+                Vector3(0.5), Vector3(0.5, 0.5, 0.0), Vector3(0.0)),
+            components.SpriteComponent(
+                'tex2', Vector2(1.0), Color(1.0, 1.0, 1.0, 1.0))
+        )
+        # ResourceManager.GetCurrentScene().CreateEntity(
+        # 	components.TagComponent('font_texture'),
+        # 	components.TransformComponent(Vector3(0.3), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+        # 	components.SpriteComponent('font_arial_texture', Vector2(1.0), Color(1.0, 0.0, 0.0, 1.0))
+        # )
+        # LoadScene("tests/newScene.scn")
+
+        # self.ent4 = EntityManager.CreateEntity("Particles")
+        # self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
+        # self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
+        # self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
+        # self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
+        # self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
+        # self.particleSystem1.velocity = Vector2(0.1, 0.3)
+        # self.particleSystem1.rotationVelocity = 0.0
+        # self.particleSystem1.randomizeMovement = True
+        # self.particleSystem1.fadeOut = True
+        # self.particleSystem1.texHandle = "tests/test1.jpg"
+        # ecs.CurrentScene.AddComponent(self.ent4, self.particleSystem1)
+
+        self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
+
+        # ResourceManager.LoadScene("tests/scene.scn")
+
+        events.register_method(
+            self.move_camera, events.KeyDownEvent, priority=0)
+
+    def move_camera(self, e: events.KeyDownEvent):
+        frametime = self.frame_stats.frametime
+
+        if e.key == Keys.KeyW:
+            self.camera.Move(Vector3(0.0, 0.01, 0.0), frametime)
+        elif e.key == Keys.KeyS:
+            self.camera.Move(Vector3(0.0, -0.01, 0.0), frametime)
+        elif e.key == Keys.KeyA:
+            self.camera.Move(Vector3(-0.01, 0.0, 0.0), frametime)
+        elif e.key == Keys.KeyD:
+            self.camera.Move(Vector3(0.01, 0.0, 0.0), frametime)
+        else:
+            return
+
+        debug.log_info('Camera moved.')
+
+    def on_frame(self):
+        # TODO: Move below check to internal scene processors
+        if self.camera.shouldRecalculate:
+            self.camera.RecalculateMatrices()
+
+        ResourceManager.GetCurrentScene().Process(dt=self.frame_stats.frametime)
+        Renderer.RenderScene(ResourceManager.GetCurrentScene(),
+                             self.camera.viewProjectionMatrix)
+
+        debug.get_gl_error()
+
+    def on_close(self):
+        pass
+
 
 if __name__ == "__main__":
-	specs = WindowSpecs(1080, 720, "TestWindow")
-	specs.samples = 2
-	specs.vsync = True
-	
-	win = Window(specs)
-	win.Run()
+    specs = WindowSpecs(1080, 720, "TestWindow")
+    specs.samples = 2
+    specs.vsync = True
+
+    win = Window(specs)
+    win.run()

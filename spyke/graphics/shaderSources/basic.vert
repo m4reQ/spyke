@@ -14,7 +14,7 @@ out vec2 vTexCoord;
 out int vTexIdx;
 out int vEntId;
 
-layout (std140) uniform uMatrices
+layout(std140) uniform uMatrices
 {
     mat4 viewProjection;
 };

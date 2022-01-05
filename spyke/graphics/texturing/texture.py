@@ -72,14 +72,14 @@ class Texture(gl.GLObject):
 		GL.glTextureSubImage2D(self.id, 0, 0, 0, tData.width, tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data)
 		GL.glGenerateTextureMipmap(self.id)
 
-		internal_format = GL.GLint()
-		GL.glGetTextureParameteriv(self.id, GL.GL_TEXTURE_INTERNAL_FORMAT, internal_format)
-		self.internal_format = InternalFormat(internal_format)
+		is_compressed = GL.GLint()
+		GL.glGetTextureLevelParameteriv(self.id, 0, GL.GL_TEXTURE_COMPRESSED, is_compressed)
+		self._is_compressed = True if is_compressed.value else False
 
 		debug.get_gl_error()
 		debug.log_info(f'{self} initialized in {time.perf_counter() - start} seconds.')
 
-	def BindToUnit(self, slot) -> None:
+	def bind_to_unit(self, slot) -> None:
 		GL.glBindTextureUnit(slot, self.id)
 
 	def delete(self) -> None:
@@ -99,3 +99,7 @@ class Texture(gl.GLObject):
 		spec.compress = False
 
 		return cls(tData, spec)
+	
+	@property
+	def is_compressed(self) -> bool:
+		return self._is_compressed

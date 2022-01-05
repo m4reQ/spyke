@@ -48,21 +48,15 @@ class DynamicBuffer(ABuffer):
         GL.glNamedBufferStorage(self.id, self.size, None, GL.GL_DYNAMIC_STORAGE_BIT)
     
     def flip(self) -> None:
-        GL.glNamedBufferSubData(self.id, 0, self._offset, self.data)
+        GL.glNamedBufferSubData(self.id, 0, self._offset * convert.gl_type_to_size(self.data_type), self.data)
         self._offset = 0
     
-    def add_data(self, data: np.ndarray, offset: int=-1) -> None:
-        _offset = offset if offset != -1 else self._offset
-        if _offset + data.nbytes > self.size:
+    def add_data(self, data: np.ndarray) -> None:
+        if self._offset * convert.gl_type_to_size(self.data_type) + data.nbytes > self.size:
             raise GraphicsException(f'Transfer of {data.nbytes} bytes at {self} would cause buffer overflow.')
         
-        new_size = _offset + data.nbytes
-        if new_size > self._offset:
-            self._offset = new_size
-
-        start = _offset // convert.gl_type_to_size(self.data_type)
-        end = start + data.size
-        self._data[start:end] = data
+        self._data[self._offset:self._offset + data.size] = data
+        self._offset += data.size
     
     @property
     def data(self) -> np.ndarray:

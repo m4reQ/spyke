@@ -74,3 +74,7 @@ def get_gl_error():
 
     if err != GL.GL_NO_ERROR:
         raise GraphicsException(err)
+
+def get_bound_texture(unit: int) -> int:
+    GL.glActiveTexture(GL.GL_TEXTURE0 + unit)
+    return GL.glGetInteger(GL.GL_TEXTURE_BINDING_2D)

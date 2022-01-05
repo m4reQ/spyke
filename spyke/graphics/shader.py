@@ -1,125 +1,161 @@
-#region Import
+from typing import List, Union
 from spyke.graphics import gl
 from spyke import debug
-from ..utils import EnsureString
-from ..exceptions import GraphicsException, SpykeException
-from ..constants import _NP_INT, _NP_FLOAT
+from spyke.exceptions import GraphicsException, SpykeException
 
 from OpenGL import GL
 import numpy as np
 import glm
 from functools import lru_cache
-#endregion
+
 
 class Shader(gl.GLObject):
-	def __init__(self):
-		super().__init__()
+    def __init__(self):
+        super().__init__()
 
-		self._id = gl.create_program()
+        self._id = gl.create_program()
 
-		self.uniforms = {}
-		self.__stages = []
+        self.uniforms = {}
+        self._stages = []
 
-		self.__compiled = False
-	
-	def AddStage(self, stage: int, filepath: str) -> None:
-		if self.__compiled:
-			debug.log_warning('Tried to add shader stage to already compiled shader.')
-			return
+        self._compiled = False
 
-		try:
-			with open(filepath, "r") as f:
-				source = f.read()
-		except FileNotFoundError as e:
-			raise SpykeException(f"Cannot find shader file named '{e.filename}'")
+    def add_stage(self, stage: int, filepath: str) -> None:
+        if self._compiled:
+            debug.log_warning(
+                'Tried to add shader stage to already compiled shader.')
+            return
 
-		shader = GL.glCreateShader(stage)
-		self.__stages.append(shader)
+        try:
+            with open(filepath, "r") as f:
+                source = f.read()
+        except FileNotFoundError as e:
+            raise SpykeException(
+                f"Cannot find shader file named '{e.filename}'")
 
-		GL.glShaderSource(shader, source)
-		GL.glCompileShader(shader)
-		
-		infoLog = GL.glGetShaderInfoLog(shader)
-		if len(infoLog) != 0:
-			raise GraphicsException(f'{self} compilation error:\n{infoLog.decode("ansi")}.')
+        shader = GL.glCreateShader(stage)
+        self._stages.append(shader)
 
-		GL.glAttachShader(self.id, shader)
-	
-	def Compile(self) -> None:
-		if self.__compiled:
-			debug.log_warning('Shader already compiled.')
-			return
+        GL.glShaderSource(shader, source)
+        GL.glCompileShader(shader)
 
-		GL.glLinkProgram(self.id)
+        infoLog = GL.glGetShaderInfoLog(shader)
+        if len(infoLog) != 0:
+            raise GraphicsException(
+                f'{self} compilation error:\n{infoLog.decode("ansi")}.')
 
-		for stage in self.__stages:
-			GL.glDetachShader(self.id, stage)
-			GL.glDeleteShader(stage)
+        GL.glAttachShader(self.id, shader)
 
-		self.__stages.clear()
-		self.__compiled = True
+    def compile(self) -> None:
+        if self._compiled:
+            debug.log_warning('Shader already compiled.')
+            return
 
-		debug.log_info(f'{self} compiled succesfully.')
-	
-	def Validate(self) -> None:
-		if not self.__compiled:
-			debug.log_warning('Cannot validate not compiled shader program.')
-			return
-		
-		GL.glValidateProgram(self.id)
+        GL.glLinkProgram(self.id)
 
-		info_log = GL.glGetProgramInfoLog(self.id)
-		if len(info_log) != 0:
-			raise GraphicsException(f'{self} validation failure:\n{info_log.decode("ansi")}.')
-		
-		debug.log_info(f'{self} has been validated succesfully.')
-	
-	def Use(self) -> None:
-		GL.glUseProgram(self.id)
+        for stage in self._stages:
+            GL.glDetachShader(self.id, stage)
+            GL.glDeleteShader(stage)
 
-	def delete(self) -> None:
-		GL.glDeleteProgram(self.id)
+        self._stages.clear()
+        self._compiled = True
 
-	@lru_cache
-	def GetAttribLocation(self, name: str) -> int:
-		loc = GL.glGetAttribLocation(self.id, name)
-		if loc == -1:
-			raise GraphicsException(f'Cannot find attribute named "{name}".')
+        debug.log_info(f'{self} compiled succesfully.')
 
-		return loc
+    def validate(self) -> None:
+        if not self._compiled:
+            debug.log_warning('Cannot validate not compiled shader program.')
+            return
 
-	def GetUniformLocation(self, name: str) -> int:
-		if name in self.uniforms:
-			return self.uniforms[name]
+        GL.glValidateProgram(self.id)
 
-		loc = GL.glGetUniformLocation(self.id, name)
-		if loc == -1:
-			raise GraphicsException(f'Cannot find uniform named "{name}".')
+        info_log = GL.glGetProgramInfoLog(self.id)
+        if len(info_log) != 0:
+            raise GraphicsException(
+                f'{self} validation failure:\n{info_log.decode("ansi")}.')
 
-		self.uniforms[name] = loc
-		
-		return loc
-	
-	@lru_cache
-	def GetUniformBlockLocation(self, name: str) -> int:
-		loc = GL.glGetUniformBlockIndex(self.id, name)
-		if loc == -1:
-			raise GraphicsException(f'Cannot find uniform block named "{name}".')
-		
-		return loc
-	
-	def SetUniformBlockBinding(self, name: str, index: int) -> None:
-		loc = self.GetUniformBlockLocation(name)
-		GL.glUniformBlockBinding(self.id, loc, index)
-	
-	def SetUniformIntArray(self, name: str, values: list) -> None:
-		GL.glProgramUniform1iv(self.id, self.GetUniformLocation(name), len(values), np.asarray(values, dtype=np.int32))
+        debug.log_info(f'{self} has been validated succesfully.')
 
-	def SetUniform1i(self, name: str, value: int) -> None:
-		GL.glProgramUniform1i(self.id, self.GetUniformLocation(name), value)
+    def use(self) -> None:
+        GL.glUseProgram(self.id)
 
-	def SetUniform1f(self, name: str, value: float) -> None:
-		GL.glProgramUniform1f(self.id, self.GetUniformLocation(name), value)
-	
-	def SetUniformMat4(self, name: str, value: glm.mat4, transpose: bool) -> None:
-		GL.glProgramUniformMatrix4fv(self.id, self.GetUniformLocation(name), 1, transpose, glm.value_ptr(value))
+    def delete(self) -> None:
+        GL.glDeleteProgram(self.id)
+
+    @lru_cache
+    def get_attrib_location(self, name: str) -> int:
+        loc = GL.glGetAttribLocation(self.id, name)
+        if loc == -1:
+            raise GraphicsException(f'Cannot find attribute named "{name}".')
+
+        return loc
+
+    def get_uniform_location(self, name: str) -> int:
+        if name in self.uniforms:
+            return self.uniforms[name]
+
+        loc = GL.glGetUniformLocation(self.id, name)
+        if loc == -1:
+            raise GraphicsException(f'Cannot find uniform named "{name}".')
+
+        self.uniforms[name] = loc
+
+        return loc
+
+    @lru_cache
+    def get_uniform_block_location(self, name: str) -> int:
+        loc = GL.glGetUniformBlockIndex(self.id, name)
+        if loc == -1:
+            raise GraphicsException(
+                f'Cannot find uniform block named "{name}".')
+
+        return loc
+
+    def set_uniform_block_binding(self, name: str, index: int) -> None:
+        loc = self.get_uniform_block_location(name)
+        GL.glUniformBlockBinding(self.id, loc, index)
+
+    def set_uniform_int(self, name: str, value: Union[int, List[int]]) -> None:
+        loc = self.get_uniform_location(name)
+
+        if isinstance(value, int):
+            GL.glProgramUniform1i(self.id, loc, value)
+        elif isinstance(value, list):
+            GL.glProgramUniform1iv(self.id, loc, len(
+                value), np.asarray(value, dtype=np.int32))
+        else:
+            raise GraphicsException(
+                f'Invalid type of uniform value: {type(value).__name__}')
+
+    def set_uniform_float(self, name: str, value: Union[float, List[float]]) -> None:
+        loc = self.get_uniform_location(name)
+
+        if isinstance(value, int):
+            GL.glProgramUniform1f(self.id, loc, value)
+        elif isinstance(value, list):
+            GL.glProgramUniform1fv(self.id, loc, len(
+                value), np.asarray(value, dtype=np.float32))
+        else:
+            raise GraphicsException(
+                f'Invalid type of uniform value: {type(value).__name__}')
+
+    def set_uniform_double(self, name: str, value: Union[float, List[float]]) -> None:
+        loc = self.get_uniform_location(name)
+
+        if isinstance(value, int):
+            GL.glProgramUniform1d(self.id, loc, value)
+        elif isinstance(value, list):
+            GL.glProgramUniform1dv(self.id, loc, len(
+                value), np.asarray(value, dtype=np.float64))
+        else:
+            raise GraphicsException(
+                f'Invalid type of uniform value: {type(value).__name__}')
+
+    # TODO: Add generic typing for `value` parameter
+    # TODO: Add support for matrices which width and height differ
+    def set_uniform_matrix(self, name: str, value, transpose: bool) -> None:
+        # TODO: Implement faster way of getting appropreriate function (maybe caching?)
+        fn = getattr(GL, f'glProgramUniformMatrix{value.length}fv')
+
+        fn(self.id, self.get_uniform_location(name),
+           1, transpose, glm.value_ptr(value))

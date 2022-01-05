@@ -23,4 +23,4 @@ class WindowSpecs:
 		self.fullscreen: bool = False
 		self.borderless: bool = False
 		self.cursor_visible: bool = True
-		self.icon_filepath: str = ""
+		self.icon_filepath: str = ''

@@ -1,3 +1,5 @@
+# TODO: Rewrite this class to use descriptors that return values previously retrieved from context
+
 class Capabilities:
     __slots__ = (
         '__weakref__',
