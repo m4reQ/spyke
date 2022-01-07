@@ -1,18 +1,17 @@
 # from . import enginePreview
-from spyke.events.types import KeyDownEvent
 from spyke.graphics.gl import GLObject
 from spyke import debug
 from spyke import resourceManager
 from spyke import events
-from ..enums import Keys
-from ..graphics import Renderer
-from ..exceptions import GraphicsException, SpykeException
-from ..imgui import Imgui
-from ..constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
-from .windowSpecs import WindowSpecs
+from spyke.enums import Keys
+from spyke.graphics import Renderer
+from spyke.exceptions import GraphicsException, SpykeException
+from spyke.imgui import Imgui
+from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
+from spyke.windowSpecs import WindowSpecs
 
 import time
-import sys
+import glm
 import atexit
 import glfw
 import os
@@ -41,13 +40,12 @@ class FrameStats:
         self.window_active: bool = True
 
 
-class GlfwWindow(ABC):
-    # TODO: Possibly change the name to `App` and move it somewhere else to indicate that this is the main entry to our program
+class Application(ABC):
     def __init__(self, specification: WindowSpecs, startImgui: bool = False):
         start = time.perf_counter()
 
         # TODO: Move all window-related statistics objects here.
-        # TODO: Make renderer instancable and do something with it
+        # TODO: Make renderer instanciable and do something with it
         self.frame_stats = FrameStats()
 
         if not glfw.init():
@@ -153,7 +151,12 @@ class GlfwWindow(ABC):
 
             Imgui._OnFrame()
 
+            resourceManager.GetCurrentScene().Process(dt=self.frame_stats.frametime)
+
             if self.frame_stats.window_active:
+                # TODO: Crete camera component and default primary camera entity (for now using identity matrix)
+                Renderer.RenderScene(
+                    resourceManager.GetCurrentScene(), glm.mat4(1.0))
                 self.on_frame()
                 glfw.swap_buffers(self._handle)
 
@@ -237,8 +240,6 @@ class GlfwWindow(ABC):
 
         glfw.terminate()
         debug.log_info('Glfw terminated.')
-
-        sys.exit()
 
     def _create_window_normal(self, spec):
         glfw.window_hint(glfw.RESIZABLE, spec.resizable)

@@ -1,9 +1,10 @@
 from OpenGL import GL
 from PIL import Image
 from pathlib import Path
-from ..loaders import dds_loader
 import numpy as np
-import gc, os, ctypes
+import gc
+import os
+import ctypes
 
 GL_COMPRESSED_RGBA_S3TC_DXT1_EXT = 0x83F1
 
@@ -21,11 +22,12 @@ vertexData = [
     1.0, -1.0, 0.0,  1.0, 1.0,
     -1.0, -1.0, 0.0, 0.0, 1.0]
 
-_filepath = os.path.join(Path(__file__).parent.parent.parent, "branding/spykeLogo.dds")
+_filepath = os.path.join(
+    Path(__file__).parent.parent.parent, "branding/spykeLogo.dds")
 tex = dds_loader.DDSTexture()
 tex.load(_filepath)
-    
-texData = np.fromstring(tex.data, dtype = np.uint8)
+
+texData = np.fromstring(tex.data, dtype=np.uint8)
 texImageSize = tex.real_size
 
 vertSource = """
@@ -54,6 +56,7 @@ void main() {
 }
 """
 
+
 def __SetupShader():
     global SHADER
 
@@ -78,12 +81,15 @@ def __SetupShader():
     GL.glDeleteShader(vert)
     GL.glDeleteShader(frag)
 
+
 def __SetupVbo():
     global VBO
 
     VBO = GL.glGenBuffers(1)
     GL.glBindBuffer(GL.GL_ARRAY_BUFFER, VBO)
-    GL.glBufferData(GL.GL_ARRAY_BUFFER, len(vertexData) * ctypes.sizeof(ctypes.c_float), np.asarray(vertexData, dtype = np.float32), GL.GL_STATIC_DRAW)
+    GL.glBufferData(GL.GL_ARRAY_BUFFER, len(vertexData) * ctypes.sizeof(ctypes.c_float),
+                    np.asarray(vertexData, dtype=np.float32), GL.GL_STATIC_DRAW)
+
 
 def __SetupVao():
     global VAO
@@ -95,11 +101,14 @@ def __SetupVao():
 
     GL.glBindBuffer(GL.GL_ARRAY_BUFFER, VBO)
 
-    GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, False, vertexSize, ctypes.c_void_p(0))
+    GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, False,
+                             vertexSize, ctypes.c_void_p(0))
     GL.glEnableVertexAttribArray(0)
 
-    GL.glVertexAttribPointer(1, 2, GL.GL_FLOAT, False, vertexSize, ctypes.c_void_p(3 * ctypes.sizeof(ctypes.c_float)))
+    GL.glVertexAttribPointer(1, 2, GL.GL_FLOAT, False, vertexSize, ctypes.c_void_p(
+        3 * ctypes.sizeof(ctypes.c_float)))
     GL.glEnableVertexAttribArray(1)
+
 
 def __SetupTexture():
     global TEXTURE
@@ -107,9 +116,11 @@ def __SetupTexture():
     TEXTURE = GL.glGenTextures(1)
     GL.glBindTexture(GL.GL_TEXTURE_2D, TEXTURE)
 
-    GL.glCompressedTexImage2D(GL.GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1024, 1024, texImageSize, texData)
+    GL.glCompressedTexImage2D(
+        GL.GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1024, 1024, texImageSize, texData)
     GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
     GL.glTexParameter(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+
 
 def CleanupPreview():
     global vertexData, texData, vertSource, fragSource
@@ -132,9 +143,10 @@ def CleanupPreview():
 
     gc.collect()
 
+
 def RenderPreview():
     global VBO, VAO, TEXTURE, SHADER
-    
+
     __SetupShader()
     __SetupVbo()
     __SetupVao()
@@ -142,7 +154,7 @@ def RenderPreview():
 
     GL.glEnable(GL.GL_BLEND)
     GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-    
+
     GL.glUseProgram(SHADER)
     GL.glBindVertexArray(VAO)
     GL.glBindTexture(GL.GL_TEXTURE_2D, TEXTURE)

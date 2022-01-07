@@ -1,6 +1,12 @@
+from spyke.application import Application
+from . import resourceManager as ResourceManager
+from .constants import *
 import sys
+
+from spyke.exceptions import SpykeException
 if sys.version_info.major < 3 or (sys.version_info.major >= 3 and sys.version_info.minor < 7):
-    raise RuntimeError(f'To run spyke you require python version at least 3.7 (currently using {sys.version_info.major}.{sys.version_info.minor}).')
+    raise SpykeException(
+        f'To run spyke you require python version at least 3.7 (currently using {sys.version_info.major}.{sys.version_info.minor}).')
 
 import OpenGL
 OpenGL.USE_ACCELERATE = True
@@ -8,5 +14,16 @@ OpenGL.FORWARD_COMPATIBLE_ONLY = True
 OpenGL.UNSIGNED_BYTE_IMAGES_AS_STRING = True
 OpenGL.ERROR_CHECKING = False
 
-from .constants import *
-from . import resourceManager as ResourceManager
+
+def run(app: Application, run_editor: bool = False) -> None:
+    if not __debug__ and run_editor:
+        raise SpykeException(
+            'You cannot run application in spyke editor with optimization enabled.')
+
+    if run_editor:
+        editor = Editor(app=app)
+        editor.run()
+    else:
+        app.run()
+
+    sys.exit(0)

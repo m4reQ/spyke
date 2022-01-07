@@ -111,10 +111,6 @@ class Window(GlfwWindow):
         if self.camera.shouldRecalculate:
             self.camera.RecalculateMatrices()
 
-        ResourceManager.GetCurrentScene().Process(dt=self.frame_stats.frametime)
-        Renderer.RenderScene(ResourceManager.GetCurrentScene(),
-                             self.camera.viewProjectionMatrix)
-
         debug.get_gl_error()
 
     def on_close(self):
