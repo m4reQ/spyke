@@ -6,13 +6,11 @@ from spyke import events
 from spyke.enums import Keys
 from spyke.graphics import Renderer
 from spyke.exceptions import GraphicsException, SpykeException
-from spyke.imgui import Imgui
 from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
-from spyke.windowSpecs import WindowSpecs
+from spyke.graphics.windowSpecs import WindowSpecs
 
 import time
 import glm
-import atexit
 import glfw
 import os
 import gc
@@ -41,7 +39,7 @@ class FrameStats:
 
 
 class Application(ABC):
-    def __init__(self, specification: WindowSpecs, startImgui: bool = False):
+    def __init__(self, specification: WindowSpecs):
         start = time.perf_counter()
 
         # TODO: Move all window-related statistics objects here.
@@ -103,10 +101,6 @@ class Application(ABC):
         Renderer.Initialize(Renderer.screenStats.width,
                             Renderer.screenStats.height, specification.samples)
 
-        if startImgui:
-            Imgui.Initialize()
-            atexit.register(Imgui.Close)
-
         gc.collect()
 
         debug.log_info(
@@ -133,7 +127,7 @@ class Application(ABC):
 
         debug.log_info(f'Vsync set to: {value}.')
 
-    def run(self):
+    def _run(self):
         # TODO: Add loading time profiling
         self.on_load()
         resourceManager.FinishLoading()
@@ -148,8 +142,6 @@ class Application(ABC):
             if glfw.window_should_close(self._handle):
                 events.invoke(events.WindowCloseEvent())
                 isRunning = False
-
-            Imgui._OnFrame()
 
             resourceManager.GetCurrentScene().Process(dt=self.frame_stats.frametime)
 
@@ -230,9 +222,6 @@ class Application(ABC):
         img.close()
 
     def _close(self):
-        atexit.unregister(Imgui.Close)
-        Imgui.Close()
-
         GLObject.delete_all()
 
         glfw.destroy_window(self._handle)

@@ -1,4 +1,5 @@
 from spyke.application import Application
+from spyke.graphics import WindowSpecs
 from . import resourceManager as ResourceManager
 from .constants import *
 import sys
@@ -21,9 +22,10 @@ def run(app: Application, run_editor: bool = False) -> None:
             'You cannot run application in spyke editor with optimization enabled.')
 
     if run_editor:
+        # TODO: Implement `Editor`
         editor = Editor(app=app)
         editor.run()
     else:
-        app.run()
+        app._run()
 
     sys.exit(0)

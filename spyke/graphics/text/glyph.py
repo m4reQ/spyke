@@ -1,4 +1,4 @@
-from spyke.graphics import RectangleF
+from ..rectangle import RectangleF
 
 
 class Glyph:

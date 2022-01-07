@@ -1,21 +1,19 @@
 from spyke.ecs import components
 from spyke import debug
 from spyke import events
-
-from spyke.window import GlfwWindow, WindowSpecs
+from spyke import Application
+from spyke import WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
 from spyke import ResourceManager
 from spyke.utils import *
+import spyke
 
 # TODO: Add vector aliases to the engine core
 from glm import vec3 as Vector3, vec2 as Vector2
 
 
-class Window(GlfwWindow):
-    def __init__(self, windowSpec):
-        super().__init__(windowSpec, True)
-
+class App(Application):
     def on_load(self):
         ResourceManager.SetSceneCurrent(ResourceManager.CreateScene('Test'))
         ResourceManager.CreateTexture('tests/test1.jpg', 'tex1')
@@ -118,9 +116,9 @@ class Window(GlfwWindow):
 
 
 if __name__ == "__main__":
-    specs = WindowSpecs(1080, 720, "TestWindow")
+    specs = WindowSpecs(1080, 720, 'TestWindow')
     specs.samples = 2
     specs.vsync = True
 
-    win = Window(specs)
-    win.run()
+    app = App(specs)
+    spyke.run(app, run_editor=False)
