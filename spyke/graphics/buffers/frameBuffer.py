@@ -51,11 +51,12 @@ class FramebufferSpec:
         'attachment_specs'
     )
 
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, **kwargs):
         self.width: int = width
         self.height: int = height
-        self.samples: int = 1
-        self.attachment_specs: List[FramebufferAttachmentSpec] = []
+        self.samples: int = kwargs.get('samples', 1)
+        self.attachment_specs: List[FramebufferAttachmentSpec] = kwargs.get(
+            'attachment_specs', [])
 
 
 class Framebuffer(gl.GLObject):
