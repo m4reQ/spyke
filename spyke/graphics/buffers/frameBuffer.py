@@ -27,18 +27,19 @@ _TEXTURE_FORMAT_INTERNAL_FORMAT_MAP = {
 class FramebufferAttachmentSpec:
     __slots__ = (
         '__weakref__',
-        'textureFormat',
-        'wrapMode',
-        'minFilter',
-        'magFilter'
+        'texture_format',
+        'wrap_mode',
+        'min_filter',
+        'mag_filter'
     )
 
     # TODO: Change _format type hint to use specific enum (IntenalFormat or something)
-    def __init__(self, _format: GL.GLenum):
-        self.textureFormat: GL.GLenum = _format
-        self.wrapMode: GL.GLenum = GL.GL_CLAMP_TO_EDGE
-        self.minFilter: GL.GLenum = GL.GL_LINEAR
-        self.magFilter: GL.GLenum = GL.GL_LINEAR
+    def __init__(self, _format: GL.GLenum, **kwargs):
+        self.texture_format: GL.GLenum = _format
+        self.wrap_mode: GL.GLenum = kwargs.get(
+            'wrap_mode', GL.GL_CLAMP_TO_EDGE)
+        self.min_filter: GL.GLenum = kwargs.get('min_filter', GL.GL_LINEAR)
+        self.mag_filter: GL.GLenum = kwargs.get('mag_filter', GL.GL_LINEAR)
 
 
 class FramebufferSpec:
@@ -75,10 +76,10 @@ class Framebuffer(gl.GLObject):
         self.specification = specification
 
         for attachmentSpec in specification.attachment_specs:
-            if _ATTACHMENT_FORMAT_IS_COLOR_MAP[attachmentSpec.textureFormat]:
+            if _ATTACHMENT_FORMAT_IS_COLOR_MAP[attachmentSpec.texture_format]:
                 self.colorAttachmentSpecs.append(attachmentSpec)
             else:
-                if self.depthAttachmentSpec.textureFormat:
+                if self.depthAttachmentSpec.texture_format:
                     debug.log_warning(
                         f'{self} found more than one depth texture format in the specification. Additional depth textures will not be created.')
                     continue
@@ -138,7 +139,7 @@ class Framebuffer(gl.GLObject):
     def __CreateFramebufferAttachment(self, attachmentSpec: FramebufferAttachmentSpec) -> int:
         multisample = self.specification.samples > 1
         target = GL.GL_TEXTURE_2D_MULTISAMPLE if multisample else GL.GL_TEXTURE_2D
-        internalFormat = _TEXTURE_FORMAT_INTERNAL_FORMAT_MAP[attachmentSpec.textureFormat]
+        internalFormat = _TEXTURE_FORMAT_INTERNAL_FORMAT_MAP[attachmentSpec.texture_format]
 
         _id = gl.create_texture(target).value
 
@@ -150,15 +151,15 @@ class Framebuffer(gl.GLObject):
                                   self.width, self.height)
 
             GL.glTextureParameteri(
-                _id, GL.GL_TEXTURE_MIN_FILTER, attachmentSpec.minFilter)
+                _id, GL.GL_TEXTURE_MIN_FILTER, attachmentSpec.min_filter)
             GL.glTextureParameteri(
-                _id, GL.GL_TEXTURE_MAG_FILTER, attachmentSpec.magFilter)
+                _id, GL.GL_TEXTURE_MAG_FILTER, attachmentSpec.mag_filter)
             GL.glTextureParameteri(
-                _id, GL.GL_TEXTURE_WRAP_R, attachmentSpec.wrapMode)
+                _id, GL.GL_TEXTURE_WRAP_R, attachmentSpec.wrap_mode)
             GL.glTextureParameteri(
-                _id, GL.GL_TEXTURE_WRAP_S, attachmentSpec.wrapMode)
+                _id, GL.GL_TEXTURE_WRAP_S, attachmentSpec.wrap_mode)
             GL.glTextureParameteri(
-                _id, GL.GL_TEXTURE_WRAP_T, attachmentSpec.wrapMode)
+                _id, GL.GL_TEXTURE_WRAP_T, attachmentSpec.wrap_mode)
 
         debug.get_gl_error()
 
@@ -183,7 +184,7 @@ class Framebuffer(gl.GLObject):
             self.__AttachFramebufferTexture(texture, idx, False)
             self.colorAttachments.append(texture)
 
-        if self.depthAttachmentSpec.textureFormat:
+        if self.depthAttachmentSpec.texture_format:
             texture = self.__CreateFramebufferAttachment(
                 self.depthAttachmentSpec)
             self.__AttachFramebufferTexture(texture, 0, True)
