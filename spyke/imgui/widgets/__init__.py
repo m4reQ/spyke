@@ -1,2 +1,2 @@
-from spyke.graphics.rendering.renderStats import RenderStats
+from spyke.graphics.rendering.rendererInfo import RendererInfo
 from .renderStats import RenderStatsWidget

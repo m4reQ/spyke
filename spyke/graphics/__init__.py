@@ -1,4 +1,4 @@
-from .rendering import renderer as Renderer
+from .rendering import *
 from .cameras import *
 from .windowSpecs import WindowSpecs
 

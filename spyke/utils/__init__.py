@@ -1,7 +1,7 @@
 from .math import *
 from .convert import gl_type_to_size
 
-from typing import Iterable, List
+from typing import Iterable, List, Generic, TypeVar
 import time
 
 __all__ = [
@@ -39,20 +39,25 @@ def create_quad_indices(quadsCount: int) -> List[int]:
     return data
 
 
-class Iterator:
+T = TypeVar('T')
+
+
+class Iterator(Generic[T]):
     __slots__ = (
         '__weakref__',
         '_iterable',
         '_last_pos',
+        '_current',
         'looping'
     )
 
-    def __init__(self, iterable: Iterable, looping: bool = False):
+    def __init__(self, iterable: Iterable[T], *, looping: bool = False):
         self._iterable = iterable
         self._last_pos = 0
+        self._current = self._iterable[0]
         self.looping = looping
 
-    def __next__(self):
+    def __next__(self) -> T:
         pos = self._last_pos
         self._last_pos += 1
 
@@ -62,7 +67,13 @@ class Iterator:
             else:
                 raise StopIteration
 
-        return self._iterable[pos]
+        self._current = self._iterable[pos]
+
+        return self._current
+
+    @property
+    def current(self) -> T:
+        return self._current
 
 
 class Delayer:

@@ -1,31 +1,32 @@
+# TODO: Remove unused import statements
 from spyke import debug
 from spyke.enums import GLType
 from spyke import events
+from spyke.graphics.rendering.frameStats import FrameStats
 from ..rectangle import RectangleF
 from ..texturing import Texture
 from ..vertexArray import VertexArray
 from ...utils import create_quad_indices, Iterator
-from .renderStats import RenderStats
+from .rendererInfo import RendererInfo
 from ..shader import Shader
 from ..buffers import *
-from ..screenStats import ScreenStats
-from ..contextInfo import ContextInfo
-from ...constants import _C_FLOAT_P, _GL_FILL_MODE_NAMES_MAP, _GL_FLOAT_SIZE, _NP_FLOAT, _NP_UINT
-from ...enums import Hint, InternalFormat, NvidiaIntegerName, Vendor, Keys
+from ...constants import _GL_FLOAT_SIZE
+from ...enums import ClearMask, Hint, InternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, Vendor, Keys
 from ...ecs import components
 from ... import resourceManager as ResourceManager
 
 from OpenGL import GL
 from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
+from typing import List
 from PIL import Image
 import glm
 import time
 import numpy as np
 import os
 
-##############################################
-# RESTORE PARTICLE RENDERER (REFACTORIZE IT) #
-##############################################
+# TODO: Restore particle rendering
+# TODO: Fix textures not displaying properly
+# TODO: Remove unnecessary constants
 
 SCREENSHOT_DIRECTORY = "screenshots/"
 SHADER_SOURCES_DIRECTORY = "spyke/graphics/shaderSources/"
@@ -65,433 +66,396 @@ NORMAL_TEXTURE_SAMPLER = 1
 
 BUFFER_TEXTURE_SAMPLER = 15
 
+# TODO: Eventually get this data while loading model for instanced rendering
 _quadVertices = [
     0.0, 1.0, 0.0,
     1.0, 1.0, 0.0,
     1.0, 0.0, 0.0,
     0.0, 0.0, 0.0]
 
-_textures = [0] * MAX_TEXTURES_COUNT
-_lastTexture = 1
 
-_quadsCount = 0
+class Renderer:
+    # TODO: Break renderer apart into smaller pieces for easier menagement
+
+    def __init__(self):
+        self.is_initialized: bool = False
+
+        self.stats = FrameStats()
+        self.info = RendererInfo()
+
+        self.polygon_mode_iterator: Iterator[PolygonMode] = Iterator(
+            [PolygonMode.Fill, PolygonMode.Line, PolygonMode.Point], looping=True)
+
+        self.ubo: UniformBuffer = None
+        self.ibo: StaticBuffer = None
+        self.instance_data_buffer: DynamicBuffer = None
+        self.pos_data_buffer: StaticBuffer = None
+        self.vertex_data_buffer: TextureBuffer = None
+        self.basic_shader: Shader = None
+        self.vao: VertexArray = None
+        self.framebuffer: Framebuffer = None
+
+        self.last_texture: int = 1
+        self.instance_count: int = 0
+        self.textures: List[int] = [0] * MAX_TEXTURES_COUNT
+
+    def initialize(self) -> None:
+        if self.is_initialized:
+            debug.log_warning('Renderer already initialized.')
+            return
+
+        # register callbacks
+        events.register_method(self._key_down_callback,
+                               events.KeyDownEvent, priority=-1)
+        events.register_method(self._resize_callback,
+                               events.ResizeEvent, priority=-1)
+
+        # TODO: Possibly move this to resource manager
+        if not os.path.exists(SCREENSHOT_DIRECTORY):
+            os.mkdir(SCREENSHOT_DIRECTORY)
+
+        # set vendor-specific properties of the renderer
+        # TODO: Add support for nv_commands_lists here
+        if self.info.extension_present('gl_arb_texture_compression'):
+            Texture.set_compression_flag()
+
+        if self.info.vendor == Vendor.Nvidia:
+            GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)
+
+        # enable all required OpenGL settings
+        GL.glEnable(GL.GL_MULTISAMPLE)
+        GL.glHint(GL.GL_TEXTURE_COMPRESSION_HINT, GL.GL_NICEST)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(GL.GL_LEQUAL)
+        GL.glCullFace(GL.GL_FRONT)
+        GL.glFrontFace(GL.GL_CW)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+        GL.glPointSize(4.0)
+        GL.glEnable(GL.GL_LINE_SMOOTH)
+        GL.glClearColor(0.0, 0.0, 0.0, 1.0)
+
+        # create all components (buffers, vaos, etc.)
+        self.pos_data_buffer = StaticBuffer(_quadVertices, GLType.Float)
+        self.instance_data_buffer = DynamicBuffer(
+            BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, GLType.Float)
+        self.vertex_data_buffer = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE *
+                                                MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, InternalFormat.Rg32f)
+        self.ibo = StaticBuffer(create_quad_indices(
+            MAX_QUADS_COUNT), GLType.UnsignedInt)
+        self.basic_shader = Shader()
+        self.ubo = UniformBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
+        self.vao = VertexArray()
+        self.textures[0] = Texture.CreateWhiteTexture().id
+
+        colorAttachmentSpec = FramebufferAttachmentSpec(GL.GL_RGBA)
+
+        entIdAttachmentSpec = FramebufferAttachmentSpec(
+            GL.GL_RED_INTEGER,
+            min_filter=MinFilter.Nearest,
+            mag_filter=MagFilter.Nearest
+        )
+
+        depthAttachmentSpec = FramebufferAttachmentSpec(
+            GL.GL_DEPTH24_STENCIL8,
+            min_filter=MinFilter.Nearest,
+            mag_filter=MagFilter.Nearest
+        )
+
+        attachment_specs = [
+            colorAttachmentSpec,
+            entIdAttachmentSpec,
+            depthAttachmentSpec
+        ]
+
+        # TODO: Handle usage of framebuffer with different size than the window
+        fbSpec = FramebufferSpec(
+            self.info.window_width,
+            self.info.window_height,
+            # TODO: Get samples count from some kind of settings file
+            samples=1 if self.info.extension_present(
+                'GL_INTEL_framebuffer_CMAA') else 2,
+            attachment_specs=attachment_specs
+        )
+
+        self.framebuffer = Framebuffer(fbSpec)
+        self.info.framebuffer_width = self.framebuffer.width
+        self.info.framebuffer_height = self.framebuffer.height
+
+        # set up all renderer's components
+        self.basic_shader.add_stage(GL.GL_VERTEX_SHADER,
+                                    SHADER_SOURCES_DIRECTORY + 'basic.vert')
+        self.basic_shader.add_stage(GL.GL_FRAGMENT_SHADER,
+                                    SHADER_SOURCES_DIRECTORY + 'basic.frag')
+        self.basic_shader.compile()
+
+        self.basic_shader.set_uniform_int(
+            'uTextures', list(range(MAX_TEXTURES_COUNT)))
+        self.basic_shader.set_uniform_int(
+            'uTexCoordsBuffer', BUFFER_TEXTURE_SAMPLER)
+        self.basic_shader.set_uniform_block_binding(
+            'uMatrices', MATRICES_UNIFORM_BLOCK_INDEX)
+        self.basic_shader.validate()
 
-_isInitialized = False
-_polygonModeIter = Iterator(
-    [GL.GL_LINE, GL.GL_POINT, GL.GL_FILL], looping=True)
-_currentFillMode = GL.GL_FILL
+        self.vao.bind_vertex_buffer(
+            POS_DATA_BUFFER_BINDING, self.pos_data_buffer, 0, POS_DATA_VERTEX_SIZE)
+        self.vao.bind_vertex_buffer(
+            INSTANCE_DATA_BUFFER_BINDING, self.instance_data_buffer, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
+        self.vao.bind_element_buffer(self.ibo)
 
-_basicShader: Shader = None
-_posVbo: StaticBuffer = None
-_instanceDataVbo: DynamicBuffer = None
-_vertexDataTbo: TextureBuffer = None
-_ibo: StaticBuffer = None
-_ubo: UniformBuffer = None
-_basicVao: VertexArray = None
-_whiteTexture: Texture = None
-_framebuffer: Framebuffer = None
+        self.vao.add_layout(self.basic_shader.get_attrib_location(
+            'aPosition'), POS_DATA_BUFFER_BINDING, 3, GLType.Float, False)
+        self.vao.add_layout(self.basic_shader.get_attrib_location(
+            'aColor'), INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float, False, 1)
+        self.vao.add_layout(self.basic_shader.get_attrib_location(
+            'aTilingFactor'), INSTANCE_DATA_BUFFER_BINDING, 2, GLType.Float, False, 1)
+        self.vao.add_layout(self.basic_shader.get_attrib_location(
+            'aTexIdx'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
+        self.vao.add_layout(self.basic_shader.get_attrib_location(
+            'aEntId'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
+        self.vao.add_matrix_layout(self.basic_shader.get_attrib_location(
+            'aTransform'), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float, False, 1)
 
-renderStats = RenderStats()
-screenStats = ScreenStats()
-contextInfo = ContextInfo()
+        self.ubo.bind_to_uniform(MATRICES_UNIFORM_BLOCK_INDEX)
 
+        debug.get_gl_error()
+        debug.log_info('Master renderer fully initialized.')
 
-def Initialize(initialWidth: int, initialHeight: int, samples: int) -> None:
-    global _ubo, _isInitialized, _whiteTexture
+        self.is_initialized = True
 
-    if _isInitialized:
-        debug.log_warning('Renderer already initialized.')
-        return
+    def clear_screen(self) -> None:
+        GL.glClear(ClearMask.ColorBufferBit | ClearMask.DepthBufferBit)
 
-    contextInfo.get_info()
-    Texture._CompressionEnabled = contextInfo.capabilities.arb_texture_compression_enabled
+    def set_clear_color(self, r: float, g: float, b: float, a: float) -> None:
+        GL.glClearColor(r, g, b, a)
 
-    _CreateBasicComponents()
+    def capture_frame(self) -> None:
+        # TODO: Decide whether we want to capture frame with the size
+        # of framebuffer or if we want to scale it to the window size
 
-    # if not contextInfo.capabilities.intel_framebuffer_cmaa_enabled:
-    # 	_CreatePostProcessComponents()
+        width, height = self.info.framebuffer_size
+        pixels = GL.glReadPixels(0, 0, width, height,
+                                 GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
 
-    _CreateFramebuffer(initialWidth, initialHeight, samples)
-    _SetGLSettings()
+        img = Image.frombytes(
+            'RGB', (width, height), pixels)
+        img = img.transpose(Image.FLIP_TOP_BOTTOM)
 
-    if not os.path.exists(SCREENSHOT_DIRECTORY):
-        os.mkdir(SCREENSHOT_DIRECTORY)
+        filename = os.path.join(SCREENSHOT_DIRECTORY,
+                                f'screenshot_{time.time()}.jpg')
+        img.save(filename, 'JPEG')
+        debug.log_info(f'Screenshot was saved as "{filename}".')
 
-    _isInitialized = True
+    # TODO: Add type hint for `scene` parameter
+    # TODO: Retrieve projection matrix from main scene camera
+    def render_scene(self, scene, view_projection_matrix: glm.mat4) -> None:
+        self.stats = FrameStats()
 
-    debug.get_gl_error()
-    debug.log_info('Master renderer fully initialized.')
+        # TODO: Decide if we really want to measure draw time even without performing glFlush
+        start = time.perf_counter()
 
+        self.ubo.add_data(np.asarray(view_projection_matrix,
+                                     dtype=np.float32).T.flatten())
+        self.ubo.flip()
 
-def CaptureFrame():
-    pixels = GL.glReadPixels(0, 0, screenStats.width, screenStats.height,
-                             GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
+        self.ubo.bind()
 
-    img = Image.frombytes(
-        'RGB', (screenStats.width, screenStats.height), pixels)
-    img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        # _framebuffer.bind()
 
-    filename = os.path.join(SCREENSHOT_DIRECTORY,
-                            f'screenshot_{time.time()}.jpg')
-    img.save(filename, 'JPEG')
-    debug.log_info(f'Screenshot was saved as "{filename}".')
+        self.clear_screen()
 
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK,
+                         self.polygon_mode_iterator.current)
+        GL.glEnable(GL.GL_DEPTH_TEST)
 
-def ClearScreen() -> None:
-    GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        # drawables = [x for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
+        # opaque = [x for x in drawables if x[1][0].color.w == 1.0]
+        # alpha = [x for x in drawables if x not in opaque]
 
+        # alpha.sort(key = lambda x: x[1][0].color.w, reverse = True)
+        # for ent, (sprite, transform) in opaque:
+        # 	_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tiling_factor, entId=int(ent))
 
-def SetClearColor(r: float, g: float, b: float, a: float):
-    GL.glClearColor(r, g, b, a)
+        # _Flush()
 
+        # GL.glDisable(GL.GL_DEPTH_TEST)
+        # for ent, (sprite, transform) in alpha:
+        # 	_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tiling_factor, entId=int(ent))
 
-def RenderScene(scene, viewProjectionMatrix: glm.mat4) -> None:
-    renderStats.Clear()
-    start = time.perf_counter()
+        # _Flush()
 
-    _ubo.add_data(np.asarray(viewProjectionMatrix,
-                  dtype=np.float32).T.flatten())
-    _ubo.flip()
+        for ent, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
+            self._render_quad(transform.matrix, sprite.color, ResourceManager.GetTexture(
+                sprite.texture), sprite.tiling_factor, entId=int(ent))
 
-    _ubo.bind()
+        self._flush()
 
-    # _framebuffer.bind()
+        GL.glDisable(GL.GL_DEPTH_TEST)
 
-    ClearScreen()
+        text_transform = glm.mat4(1.0)
 
-    GL.glPolygonMode(GL.GL_FRONT_AND_BACK, _currentFillMode)
-    GL.glEnable(GL.GL_DEPTH_TEST)
+        for ent, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
+            font = ResourceManager.GetFont(text.font)
+            texture = ResourceManager.GetTexture(font.texture)
 
-    # drawables = [x for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
-    # opaque = [x for x in drawables if x[1][0].color.w == 1.0]
-    # alpha = [x for x in drawables if x not in opaque]
+            advSum = 0.0
 
-    # alpha.sort(key = lambda x: x[1][0].color.w, reverse = True)
-    # for ent, (sprite, transform) in opaque:
-    # 	_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tiling_factor, entId=int(ent))
+            for char in text.text:
+                glyph = font.get_glyph(char)
 
-    # _Flush()
+                adv = advSum / self.info.framebuffer_width * \
+                    (text.size / font.base_size)
 
-    # GL.glDisable(GL.GL_DEPTH_TEST)
-    # for ent, (sprite, transform) in alpha:
-    # 	_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tiling_factor, entId=int(ent))
+                scWidth = glyph.width / self.info.framebuffer_width * \
+                    (text.size / font.base_size)
+                scHeight = glyph.height / self.info.framebuffer_height * \
+                    (text.size / font.base_size)
 
-    # _Flush()
+                advSum += glyph.advance
 
-    for ent, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
-        _RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(
-            sprite.texture), sprite.tiling_factor, entId=int(ent))
+                text_transform[3, 0] = transform.position.x + adv
+                text_transform[3, 1] = transform.position.y
+                text_transform[3, 2] = transform.position.z
+                text_transform[0, 0] = scWidth
+                text_transform[1, 1] = scHeight
 
-    _Flush()
+                self._render_quad(text_transform, text.color, texture,
+                                  glm.vec2(1.0, 1.0), glyph.texRect, int(ent))
 
-    GL.glDisable(GL.GL_DEPTH_TEST)
+        self._flush()
 
-    text_transform = glm.mat4(1.0)
+        # for _, system in scene.GetComponent(components.ParticleSystemComponent):
+        # 	for particle in system.particlePool:
+        # 		if particle.isAlive:
+        # 			Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
 
-    for ent, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
-        font = ResourceManager.GetFont(text.font)
-        texture = ResourceManager.GetTexture(font.texture)
+        # Renderer.__ParticleRenderer.EndScene()
 
-        advSum = 0.0
+        # _basicRenderer.RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
+        # _basicRenderer.EndScene()
 
-        for char in text.text:
-            glyph = font.get_glyph(char)
+        # if contextInfo.capabilities.intel_framebuffer_cmaa_enabled and _framebuffer.specification.samples > 1:
+        # 	glApplyFramebufferAttachmentCMAAINTEL()
 
-            adv = advSum / screenStats.width * (text.size / font.base_size)
+        # _framebuffer.Unbind()
 
-            scWidth = glyph.width / screenStats.width * \
-                (text.size / font.base_size)
-            scHeight = glyph.height / screenStats.height * \
-                (text.size / font.base_size)
+        # ClearScreen()
+        # GL.glViewport(0, 0, screenStats.width, screenStats.height)
+        # GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
 
-            advSum += glyph.advance
+        # viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
+        # viewProjectionData[2, 2] = -1.0
+        # _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
 
-            text_transform[3, 0] = transform.position.x + adv
-            text_transform[3, 1] = transform.position.y
-            text_transform[3, 2] = transform.position.z
-            text_transform[0, 0] = scWidth
-            text_transform[1, 1] = scHeight
+        # viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
+        # _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
 
-            _RenderQuad(text_transform, text.color, texture,
-                        glm.vec2(1.0, 1.0), glyph.texRect, int(ent))
+        # if contextInfo.capabilities.intel_framebuffer_cmaa_enabled:
+        # 	# _RenderQuad(glm.mat4(1.0), glm.vec4(1.0), DEFAULT_RENDER_COLOR_ATTACHMENT, glm.vec2(1.0))
+        # 	_RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
+        # 	_Flush()
+        # else:
+        # 	_RenderFramebuffer(_framebuffer.specification.samples, _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
 
-    _Flush()
+        if self.info.vendor == Vendor.Nvidia:
+            self.stats.video_memory_used = self.info.memory_available - \
+                GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
 
-    # for _, system in scene.GetComponent(components.ParticleSystemComponent):
-    # 	for particle in system.particlePool:
-    # 		if particle.isAlive:
-    # 			Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
+        self.stats.drawtime = time.perf_counter() - start
 
-    # Renderer.__ParticleRenderer.EndScene()
+    def _flush(self) -> None:
+        if not self.instance_count:
+            return
 
-    # _basicRenderer.RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
-    # _basicRenderer.EndScene()
+        self.vertex_data_buffer.flip()
+        self.instance_data_buffer.flip()
 
-    # if contextInfo.capabilities.intel_framebuffer_cmaa_enabled and _framebuffer.specification.samples > 1:
-    # 	glApplyFramebufferAttachmentCMAAINTEL()
+        for i in range(self.last_texture):
+            GL.glBindTextureUnit(i, self.textures[i])
 
-    # _framebuffer.Unbind()
+        GL.glBindTextureUnit(15, self.vertex_data_buffer.texture_id)
 
-    # ClearScreen()
-    # GL.glViewport(0, 0, screenStats.width, screenStats.height)
-    # GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+        self.vao.bind()
+        self.basic_shader.use()
 
-    # viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
-    # viewProjectionData[2, 2] = -1.0
-    # _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
+        # TODO: Later unhardcode `INDICES_PER_QUAD` to match actual count of
+        # vertices per rendered object instance
+        GL.glDrawElementsInstanced(
+            GL.GL_TRIANGLES, self.instance_count * INDICES_PER_QUAD, self.ibo.data_type, None, self.instance_count)
 
-    # viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
-    # _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
+        self.stats.draw_calls += 1
+        self.stats.accumulated_vertex_count += self.instance_count * VERTICES_PER_QUAD
 
-    # if contextInfo.capabilities.intel_framebuffer_cmaa_enabled:
-    # 	# _RenderQuad(glm.mat4(1.0), glm.vec4(1.0), DEFAULT_RENDER_COLOR_ATTACHMENT, glm.vec2(1.0))
-    # 	_RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
-    # 	_Flush()
-    # else:
-    # 	_RenderFramebuffer(_framebuffer.specification.samples, _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
+        self.instance_count = 0
+        self.last_texture = 1
 
-    if contextInfo.vendor == Vendor.Nvidia:
-        renderStats.videoMemoryUsed = contextInfo.memoryAvailable - \
-            GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
+    # TODO: Create some kind of precompiled quad data object that stores below informations
+    def _render_quad(self, transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2, texRect: RectangleF = RectangleF.one(), entId: int = -1) -> None:
+        # TODO: Unhardcode this to match maximum capacity of the vertex buffer
+        # with value given by `instance_count * current_model_vertices_per_instance`
+        if self.instance_count > MAX_QUADS_COUNT:
+            self._flush()
 
-    renderStats.draw_time = time.perf_counter() - start
+        tex_idx = 0
 
+        if texture:
+            for i in range(1, self.last_texture):
+                if self.textures[i] == texture.id:
+                    tex_idx = i
+                    break
 
-def _Flush():
-    global _quadsCount, _lastTexture
+            if tex_idx == 0:
+                if self.last_texture >= MAX_TEXTURES_COUNT:
+                    self._flush()
 
-    if not _quadsCount:
-        return
+                tex_idx = self.last_texture
+                self.textures[self.last_texture] = texture.id
+                self.last_texture += 1
 
-    _vertexDataTbo.flip()
-    _instanceDataVbo.flip()
+        vertex_data = np.array([
+            texRect.left, texRect.top,
+            texRect.right, texRect.top,
+            texRect.right, texRect.bottom,
+            texRect.left, texRect.bottom,
+        ], dtype=np.float32)
 
-    for i in range(_lastTexture):
-        GL.glBindTextureUnit(i, _textures[i])
+        self.vertex_data_buffer.add_data(vertex_data)
 
-    # GL.glBindTextures(0, len(textures), np.asarray(textures, dtype=np.uint32))
-    GL.glBindTextureUnit(15, _vertexDataTbo.texture_id)
+        instance_data = np.concatenate((
+            np.array([
+                color.x,
+                color.y,
+                color.z,
+                color.w,
+                tilingFactor.x,
+                tilingFactor.y,
+                tex_idx,
+                entId
+            ], dtype=np.float32),
+            np.asarray(transform, dtype=np.float32).T.flatten()
+        ))
 
-    _basicVao.bind()
-    _basicShader.use()
+        self.instance_data_buffer.add_data(instance_data)
 
-    GL.glDrawElementsInstanced(
-        GL.GL_TRIANGLES, _quadsCount * INDICES_PER_QUAD, _ibo.data_type, None, _quadsCount)
+        self.instance_count += 1
 
-    renderStats.draws_count += 1
-    renderStats.vertex_count += _quadsCount * VERTICES_PER_QUAD
-    _quadsCount = 0
-    _lastTexture = 1
+    def _key_down_callback(self, e: events.KeyDownEvent) -> None:
+        if e.repeat:
+            return
 
+        if e.key == Keys.KeyGrave:
+            mode = next(self.polygon_mode_iterator)
+            debug.log_info(f'Renderer drawing mode set to: {mode.name}')
+        elif e.key == Keys.KeyF1:
+            self.capture_frame()
 
-def _RenderQuad(transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2, texRect: RectangleF = RectangleF.one(), entId: int = -1):
-    global _lastTexture, _lastVertexPos, _lastInstancePos, _quadsCount
+    def _resize_callback(self, e: events.ResizeEvent) -> None:
+        GL.glScissor(0, 0, e.width, e.height)
+        GL.glViewport(0, 0, e.width, e.height)
 
-    if _quadsCount >= MAX_QUADS_COUNT:
-        _Flush()
-
-    texIdx = 0
-
-    if texture:
-        for i in range(1, _lastTexture):
-            if _textures[i] == texture.id:
-                texIdx = i
-                break
-
-        if texIdx == 0:
-            if _lastTexture >= MAX_TEXTURES_COUNT:
-                _Flush()
-
-            texIdx = _lastTexture
-            _textures[_lastTexture] = texture.id
-            _lastTexture += 1
-
-    vertex_data = np.array([
-        texRect.left, texRect.top,
-        texRect.right, texRect.top,
-        texRect.right, texRect.bottom,
-        texRect.left, texRect.bottom,
-    ], dtype=np.float32)
-
-    _vertexDataTbo.add_data(vertex_data)
-
-    instance_data = np.concatenate((
-        np.array([
-            color.x,
-            color.y,
-            color.z,
-            color.w,
-            tilingFactor.x,
-            tilingFactor.y,
-            texIdx,
-            entId
-        ], dtype=np.float32),
-        np.asarray(transform, dtype=np.float32).T.flatten()
-    ))
-
-    _instanceDataVbo.add_data(instance_data)
-
-    _quadsCount += 1
-
-# def _RenderFramebuffer(samplesToRender: int, attachmentToRender: int) -> None:
-# 	_postProcessVao.bind()
-
-# 	_postProcessShader.Use()
-# 	_postProcessShader.SetUniform1i("uSamples", samplesToRender)
-
-# 	GL.glBindTextureUnit(MULTISAMPLE_TEXTURE_SAMPLER if samplesToRender > 1 else NORMAL_TEXTURE_SAMPLER, attachmentToRender)
-
-# 	GL.glDrawElementsInstanced(GL.GL_TRIANGLES, INDICES_PER_QUAD, _ibo.dataType, None, 1)
-
-# 	renderStats.drawsCount += 1
-# 	renderStats.vertexCount += VERTICES_PER_QUAD
-# 	_ResetCounters()
-
-
-@events.register(events.KeyDownEvent, priority=-1)
-def _key_down_callback(e: events.KeyDownEvent) -> None:
-    global _currentFillMode
-
-    if e.repeat:
-        return
-
-    if e.key == Keys.KeyGrave:
-        _currentFillMode = next(_polygonModeIter)
-        debug.log_info(
-            f'Renderer drawing mode set to: {_GL_FILL_MODE_NAMES_MAP[_currentFillMode]}')
-    elif e.key == Keys.KeyF1:
-        CaptureFrame()
-
-
-@events.register(events.ResizeEvent, priority=-1)
-def _resize_callback(e: events.ResizeEvent) -> None:
-    GL.glScissor(0, 0, e.width, e.height)
-    GL.glViewport(0, 0, e.width, e.height)
-
-    if e.width != 0 and e.height != 0:
-        _framebuffer.Resize(e.width, e.height)
-
-
-def _SetGLSettings() -> None:
-    GL.glEnable(GL.GL_MULTISAMPLE)
-
-    if contextInfo.vendor == Vendor.Nvidia:
-        GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)
-
-    GL.glHint(GL.GL_TEXTURE_COMPRESSION_HINT, GL.GL_NICEST)
-
-    GL.glEnable(GL.GL_BLEND)
-    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-
-    GL.glEnable(GL.GL_DEPTH_TEST)
-    GL.glDepthFunc(GL.GL_LEQUAL)
-
-    GL.glCullFace(GL.GL_FRONT)
-    GL.glFrontFace(GL.GL_CW)
-    GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-
-    GL.glPointSize(4.0)
-
-    GL.glEnable(GL.GL_LINE_SMOOTH)
-
-    GL.glClearColor(0.0, 0.0, 0.0, 1.0)
-
-
-def _CreateFramebuffer(initialWidth: int, initialHeight: int, samples: int) -> None:
-    global _framebuffer
-
-    fbSpec = FramebufferSpec(initialWidth, initialHeight)
-    fbSpec.samples = 1 if contextInfo.capabilities.intel_framebuffer_cmaa_enabled else samples
-
-    colorAttachmentSpec = FramebufferAttachmentSpec(GL.GL_RGBA)
-
-    entIdAttachmentSpec = FramebufferAttachmentSpec(GL.GL_RED_INTEGER)
-    entIdAttachmentSpec.minFilter = GL.GL_NEAREST
-    entIdAttachmentSpec.magFilter = GL.GL_NEAREST
-
-    depthAttachmentSpec = FramebufferAttachmentSpec(GL.GL_DEPTH24_STENCIL8)
-    depthAttachmentSpec.minFilter = GL.GL_NEAREST
-    depthAttachmentSpec.magFilter = GL.GL_NEAREST
-
-    fbSpec.attachment_specs = [
-        colorAttachmentSpec,
-        entIdAttachmentSpec,
-        depthAttachmentSpec
-    ]
-
-    _framebuffer = Framebuffer(fbSpec)
-
-
-def _CreateBasicComponents() -> None:
-    global _posVbo, _instanceDataVbo, _vertexDataTbo, _ibo, _basicShader, _basicVao, _vertexData, _instanceData, _ubo
-
-    _posVbo = StaticBuffer(_quadVertices, GLType.Float)
-    _instanceDataVbo = DynamicBuffer(
-        BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, GLType.Float)
-    _vertexDataTbo = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE *
-                                   MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, InternalFormat.Rg32f)
-    _ibo = StaticBuffer(create_quad_indices(
-        MAX_QUADS_COUNT), GLType.UnsignedInt)
-
-    _basicShader = Shader()
-    _basicShader.add_stage(GL.GL_VERTEX_SHADER,
-                           SHADER_SOURCES_DIRECTORY + 'basic.vert')
-    _basicShader.add_stage(GL.GL_FRAGMENT_SHADER,
-                           SHADER_SOURCES_DIRECTORY + 'basic.frag')
-    _basicShader.compile()
-
-    _basicShader.set_uniform_int(
-        'uTextures', list(range(MAX_TEXTURES_COUNT)))
-    _basicShader.set_uniform_int('uTexCoordsBuffer', BUFFER_TEXTURE_SAMPLER)
-    _basicShader.set_uniform_block_binding(
-        'uMatrices', MATRICES_UNIFORM_BLOCK_INDEX)
-    _basicShader.validate()
-
-    _basicVao = VertexArray()
-
-    _basicVao.bind_vertex_buffer(
-        POS_DATA_BUFFER_BINDING, _posVbo, 0, POS_DATA_VERTEX_SIZE)
-    _basicVao.bind_vertex_buffer(
-        INSTANCE_DATA_BUFFER_BINDING, _instanceDataVbo, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
-    _basicVao.bind_element_buffer(_ibo)
-
-    _basicVao.add_layout(_basicShader.get_attrib_location(
-        'aPosition'), POS_DATA_BUFFER_BINDING, 3, GLType.Float, False)
-    _basicVao.add_layout(_basicShader.get_attrib_location(
-        'aColor'), INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float, False, 1)
-    _basicVao.add_layout(_basicShader.get_attrib_location(
-        'aTilingFactor'), INSTANCE_DATA_BUFFER_BINDING, 2, GLType.Float, False, 1)
-    _basicVao.add_layout(_basicShader.get_attrib_location(
-        'aTexIdx'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
-    _basicVao.add_layout(_basicShader.get_attrib_location(
-        'aEntId'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
-    _basicVao.add_matrix_layout(_basicShader.get_attrib_location(
-        'aTransform'), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float, False, 1)
-
-    _textures[0] = Texture.CreateWhiteTexture().id
-
-    _ubo = UniformBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
-    _ubo.bind_to_uniform(MATRICES_UNIFORM_BLOCK_INDEX)
-
-# def _CreatePostProcessComponents() -> None:
-# 	global _postProcessVao, _postProcessShader, _postDataVbo
-
-# 	# _postDataVbo = StaticBuffer(_postData, GLType.Float)
-
-# 	_postProcessShader = Shader()
-# 	_postProcessShader.add_stage(GL.GL_VERTEX_SHADER, SHADER_SOURCES_DIRECTORY + "post.vert")
-# 	_postProcessShader.add_stage(GL.GL_FRAGMENT_SHADER, SHADER_SOURCES_DIRECTORY + "post.frag")
-# 	_postProcessShader.Compile()
-
-# 	_postProcessShader.SetUniform1i("uTexture", NORMAL_TEXTURE_SAMPLER)
-# 	_postProcessShader.SetUniform1i("uTextureMS", MULTISAMPLE_TEXTURE_SAMPLER)
-# 	_postProcessShader.set_uniform_block_binding("uMatrices", MATRICES_UNIFORM_BLOCK_INDEX)
-# 	_postProcessShader.Validate()
-
-# 	_postProcessVao = VertexArray()
-
-# 	_postProcessVao.bind_vertex_buffer(POST_DATA_BUFFER_BINDING, _postDataVbo, 0, POST_VERTEX_DATA_VERTEX_SIZE)
-# 	_postProcessVao.bind_element_buffer(_ibo)
-
-# 	_postProcessVao.add_layout(_postProcessShader.get_attrib_location("aPosition"), POST_DATA_BUFFER_BINDING, 3, GLType.Float, False)
-# 	_postProcessVao.add_layout(_postProcessShader.get_attrib_location("aTexCoord"), POST_DATA_BUFFER_BINDING, 2, GLType.Float, False)
+        # TODO: Handle usage of different framebuffer size here
+        if e.width != 0 and e.height != 0:
+            self.framebuffer.Resize(e.width, e.height)
+            self.info.framebuffer_width = self.framebuffer.width
+            self.info.framebuffer_height = self.framebuffer.height

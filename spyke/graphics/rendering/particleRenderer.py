@@ -1,5 +1,5 @@
 # region Import
-from .renderStats import RenderStats
+from .rendererInfo import RenderStats
 from ..shader import Shader
 from ..buffers import VertexBuffer
 from ..vertexArray import VertexArray
