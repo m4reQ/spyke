@@ -158,10 +158,10 @@ class FontLoadingTask(ALoadingTask):
             texY = int(lineData[2][2:])
             texWidth = int(lineData[3][6:])
             texHeight = int(lineData[4][7:])
-            texRect = RectangleF(texX, texY, texWidth, texHeight)
+            tex_rect = RectangleF(texX, texY, texWidth, texHeight)
 
             self.glyphs[_chr] = Glyph(
-                width, height, bearX, bearY, adv, texRect, _chr)
+                width, height, bearX, bearY, adv, tex_rect, _chr)
 
         f.close()
 
@@ -177,10 +177,10 @@ class FontLoadingTask(ALoadingTask):
         tex = _textures[self.texName]
 
         for glyph in self.glyphs.values():
-            glyph.texRect.x /= tex.width
-            glyph.texRect.y /= tex.height
-            glyph.texRect.width /= tex.width
-            glyph.texRect.height /= tex.height
+            glyph.tex_rect.x /= tex.width
+            glyph.tex_rect.y /= tex.height
+            glyph.tex_rect.width /= tex.width
+            glyph.tex_rect.height /= tex.height
 
         font = Font()
         font.image_filepath = tex.filepath

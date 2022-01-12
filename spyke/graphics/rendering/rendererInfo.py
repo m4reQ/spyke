@@ -22,7 +22,13 @@ class RendererInfo:
         'glsl_version',
         'vendor',
         'video_memory_available',
-        'extensions'
+        'extensions',
+        'frametime',
+        'drawtime',
+        'draw_calls',
+        'accumulated_vertex_count',
+        'window_active',
+        'video_memory_used'
     )
 
     def __init__(self):
@@ -39,10 +45,16 @@ class RendererInfo:
         self.version: str = ''
         self.glsl_version: str = ''
         self.vendor: Vendor = Vendor.Unknown
-        # TODO: `video_memory_available` shouldn't be accessible if vendor
-        # doesn't support querying this information
         self.video_memory_available: int = -1
+
         self.extensions: List[str] = []
+
+        self.frametime: float = 1.0
+        self.drawtime: float = 0.0
+        self.draw_calls: int = 0
+        self.accumulated_vertex_count: int = 0
+        self.window_active: bool = True
+        self.video_memory_used: int = -1
 
     def _get(self, handle) -> None:
         self.glfw_version = '.'.join(str(x) for x in glfw.get_version())
@@ -97,3 +109,11 @@ class RendererInfo:
 
     def extension_present(self, ext_name: str) -> bool:
         return ext_name.lower() in self.extensions
+
+    def reset_frame_stats(self) -> None:
+        self.frametime = 1.0
+        self.drawtime = 0.0
+        self.draw_calls = 0
+        self.accumulated_vertex_count = 0
+        self.window_active = True
+        self.video_memory_used = -1

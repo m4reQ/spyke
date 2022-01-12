@@ -2,8 +2,8 @@
 from spyke import debug
 from spyke.enums import GLType
 from spyke import events
-from spyke.graphics.rendering.frameStats import FrameStats
-from ..rectangle import RectangleF
+from spyke.events.types import ToggleVsyncEvent
+from ..rectangle import Rectangle
 from ..texturing import Texture
 from ..vertexArray import VertexArray
 from ...utils import create_quad_indices, Iterator
@@ -80,7 +80,6 @@ class Renderer:
     def __init__(self):
         self.is_initialized: bool = False
 
-        self.stats = FrameStats()
         self.info = RendererInfo()
 
         self.polygon_mode_iterator: Iterator[PolygonMode] = Iterator(
@@ -250,7 +249,7 @@ class Renderer:
     # TODO: Add type hint for `scene` parameter
     # TODO: Retrieve projection matrix from main scene camera
     def render_scene(self, scene, view_projection_matrix: glm.mat4) -> None:
-        self.stats = FrameStats()
+        self.info.reset_frame_stats()
 
         # TODO: Decide if we really want to measure draw time even without performing glFlush
         start = time.perf_counter()
@@ -321,7 +320,7 @@ class Renderer:
                 text_transform[1, 1] = scHeight
 
                 self._render_quad(text_transform, text.color, texture,
-                                  glm.vec2(1.0, 1.0), glyph.texRect, int(ent))
+                                  glm.vec2(1.0, 1.0), glyph.tex_rect, int(ent))
 
         self._flush()
 
@@ -359,10 +358,10 @@ class Renderer:
         # 	_RenderFramebuffer(_framebuffer.specification.samples, _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
 
         if self.info.vendor == Vendor.Nvidia:
-            self.stats.video_memory_used = self.info.memory_available - \
+            self.info.video_memory_used = self.info.memory_available - \
                 GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
 
-        self.stats.drawtime = time.perf_counter() - start
+        self.info.drawtime = time.perf_counter() - start
 
     def _flush(self) -> None:
         if not self.instance_count:
@@ -384,14 +383,14 @@ class Renderer:
         GL.glDrawElementsInstanced(
             GL.GL_TRIANGLES, self.instance_count * INDICES_PER_QUAD, self.ibo.data_type, None, self.instance_count)
 
-        self.stats.draw_calls += 1
-        self.stats.accumulated_vertex_count += self.instance_count * VERTICES_PER_QUAD
+        self.info.draw_calls += 1
+        self.info.accumulated_vertex_count += self.instance_count * VERTICES_PER_QUAD
 
         self.instance_count = 0
         self.last_texture = 1
 
     # TODO: Create some kind of precompiled quad data object that stores below informations
-    def _render_quad(self, transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2, texRect: RectangleF = RectangleF.one(), entId: int = -1) -> None:
+    def _render_quad(self, transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2, tex_rect: Rectangle = Rectangle.one(), entId: int = -1) -> None:
         # TODO: Unhardcode this to match maximum capacity of the vertex buffer
         # with value given by `instance_count * current_model_vertices_per_instance`
         if self.instance_count > MAX_QUADS_COUNT:
@@ -414,10 +413,10 @@ class Renderer:
                 self.last_texture += 1
 
         vertex_data = np.array([
-            texRect.left, texRect.top,
-            texRect.right, texRect.top,
-            texRect.right, texRect.bottom,
-            texRect.left, texRect.bottom,
+            tex_rect.left, tex_rect.top,
+            tex_rect.right, tex_rect.top,
+            tex_rect.right, tex_rect.bottom,
+            tex_rect.left, tex_rect.bottom,
         ], dtype=np.float32)
 
         self.vertex_data_buffer.add_data(vertex_data)
@@ -449,10 +448,15 @@ class Renderer:
             debug.log_info(f'Renderer drawing mode set to: {mode.name}')
         elif e.key == Keys.KeyF1:
             self.capture_frame()
+        elif e.key == Keys.KeyF2:
+            events.invoke(ToggleVsyncEvent(not self.info.vsync))
 
     def _resize_callback(self, e: events.ResizeEvent) -> None:
         GL.glScissor(0, 0, e.width, e.height)
         GL.glViewport(0, 0, e.width, e.height)
+
+        self.info.window_width = e.width
+        self.info.window_height = e.height
 
         # TODO: Handle usage of different framebuffer size here
         if e.width != 0 and e.height != 0:

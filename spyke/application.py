@@ -1,14 +1,13 @@
 # from . import enginePreview
+from spyke.events.types import ToggleVsyncEvent
 from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
 from spyke import debug
 from spyke import resourceManager
 from spyke import events
-from spyke.enums import Keys
 from spyke.graphics import Renderer
 from spyke.exceptions import GraphicsException, SpykeException
 from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
-from spyke.graphics.rendering.rendererInfo import RendererInfo
 from spyke.graphics.windowSpecs import WindowSpecs
 
 import time
@@ -56,6 +55,9 @@ class Application(ABC):
         glfw.set_window_focus_callback(
             self._handle, self._window_focus_callback)
 
+        events.register_method(self._toggle_vsync_callback,
+                               ToggleVsyncEvent, priority=-1)
+
         # TODO: Move this to resource manager
         if specification.icon_filepath:
             if not os.path.endswith('.ico'):
@@ -95,9 +97,6 @@ class Application(ABC):
 
     def set_vsync(self, value: bool) -> None:
         glfw.swap_interval(int(value))
-        # TODO: Create separate event `VsyncChanged` and handle this directly in Renderer class
-        self._renderer.info.vsync = value
-
         debug.log_info(f'Vsync set to: {value}.')
 
     def _run(self):
@@ -117,7 +116,7 @@ class Application(ABC):
                 isRunning = False
 
             scene = resourceManager.GetCurrentScene()
-            scene.Process(dt=self._renderer.stats.frametime)
+            scene.Process(dt=self._renderer.info.frametime)
 
             if self._renderer.stats.window_active:
                 # TODO: Create camera component and default primary camera entity (for now using identity matrix)
@@ -127,7 +126,7 @@ class Application(ABC):
 
             glfw.poll_events()
 
-            self._renderer.stats.frametime = glfw.get_time() - start
+            self._renderer.info.frametime = glfw.get_time() - start
 
         self.on_close()
         self._close()
@@ -136,9 +135,6 @@ class Application(ABC):
         raise GraphicsException(f'GLFW error: {message} ({code}).')
 
     def _resize_cb(self, _, width, height):
-        self._renderer.info.window_width = width
-        self._renderer.info.window_height = height
-
         events.invoke(events.ResizeEvent(width, height))
 
         debug.log_info(f'Window resized to ({width}, {height})')
@@ -161,10 +157,10 @@ class Application(ABC):
     def _iconify_callback(self, _, value):
         if value:
             events.invoke(events.WindowLostFocusEvent())
-            self._renderer.stats.window_active = False
+            self._renderer.info.window_active = False
         else:
             events.invoke(events.WindowFocusEvent())
-            self._renderer.stats.window_active = True
+            self._renderer.info.window_active = True
 
     def _mouse_callback(self, _, button, action, mods):
         if action == glfw.PRESS:
@@ -178,12 +174,13 @@ class Application(ABC):
     def _key_callback(self, _, key, scancode, action, mods):
         if action == glfw.PRESS:
             events.invoke(events.KeyDownEvent(key, mods, False))
-            if key == Keys.KeyF2:
-                self.set_vsync(not self._renderer.info.vsync)
         elif action == glfw.REPEAT:
             events.invoke(events.KeyDownEvent(key, mods, True))
         elif action == glfw.RELEASE:
             events.invoke(events.KeyUpEvent(key))
+
+    def _toggle_vsync_callback(self, e: ToggleVsyncEvent):
+        self.set_vsync(e.state)
 
     # TODO: Move this somewhere else. Maybe to resource manager
     def _load_icon(self, filepath: str) -> None:
