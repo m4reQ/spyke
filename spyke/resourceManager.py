@@ -6,7 +6,7 @@ from .constants import _IMAGE_FORMAT_MAP, MAX_LOADING_TASKS_COUNT
 from .exceptions import GraphicsException, SpykeException
 from .graphics.texturing.texture import Texture, TextureData, TextureSpec
 from .graphics.text import Font, Glyph
-from .graphics.rectangle import RectangleF
+from .graphics.rectangle import Rectangle
 
 from OpenGL import GL
 from PIL import Image
@@ -158,7 +158,7 @@ class FontLoadingTask(ALoadingTask):
             texY = int(lineData[2][2:])
             texWidth = int(lineData[3][6:])
             texHeight = int(lineData[4][7:])
-            tex_rect = RectangleF(texX, texY, texWidth, texHeight)
+            tex_rect = Rectangle(texX, texY, texWidth, texHeight)
 
             self.glyphs[_chr] = Glyph(
                 width, height, bearX, bearY, adv, tex_rect, _chr)

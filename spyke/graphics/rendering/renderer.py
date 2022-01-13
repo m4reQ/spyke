@@ -1,5 +1,7 @@
 # TODO: Remove unused import statements
 from spyke import debug
+from spyke.ecs.components.camera import CameraComponent
+from spyke.ecs.components.transform import TransformComponent
 from spyke.enums import GLType
 from spyke import events
 from spyke.events.types import ToggleVsyncEvent
@@ -248,14 +250,24 @@ class Renderer:
 
     # TODO: Add type hint for `scene` parameter
     # TODO: Retrieve projection matrix from main scene camera
-    def render_scene(self, scene, view_projection_matrix: glm.mat4) -> None:
+    def render_scene(self, scene) -> None:
         self.info.reset_frame_stats()
 
         # TODO: Decide if we really want to measure draw time even without performing glFlush
         start = time.perf_counter()
 
-        self.ubo.add_data(np.asarray(view_projection_matrix,
-                                     dtype=np.float32).T.flatten())
+        primary_camera = None
+        for _, camera in scene.GetComponent(CameraComponent):
+            if camera.is_primary:
+                primary_camera = camera
+
+        if not primary_camera:
+            view_projection = glm.mat4(1.0)
+        else:
+            view_projection = primary_camera.view_projection
+
+        self.ubo.add_data(np.asarray(
+            view_projection, dtype=np.float32).T.flatten())
         self.ubo.flip()
 
         self.ubo.bind()

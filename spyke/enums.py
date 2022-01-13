@@ -18,6 +18,11 @@ class AudioState:
 # region Graphics
 
 
+class CameraType(enum.Enum):
+    Orthographic = enum.auto()
+    Perspective = enum.auto()
+
+
 class Vendor:
     Nvidia = "NVIDIA"
     Intel = "INTEL"

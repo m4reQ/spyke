@@ -1,37 +1,65 @@
+from spyke.graphics.rectangle import Rectangle
+from spyke.enums import CameraType
+from spyke.exceptions import SpykeException
+from typing import Optional, Tuple
 import glm
 
-class CameraType:
-	Orthographic, Perspective = range(2)
 
 class CameraComponent:
-	__slots__ = (
-		'__weakref__',
-		'is_primary',
-		'should_recalculate',
-		'_projection_matrix',
-		'_view_matrix',
-		'_view_projection_matrix',
-		'_projection_func'
-	)
-	
-	@staticmethod
-	def _CreateOrtho():
-		pass
+    __slots__ = (
+        '__weakref__',
+        'is_primary',
+        'type',
+        'viewport',
+        'clipping',
+        'fov',
+        'aspect',
+        'projection',
+        'view',
+        '_should_recalculate'
+    )
 
-	@staticmethod
-	def _CreatePerspective():
-		pass
+    @classmethod
+    def orthographic(cls, viewport: Rectangle, *, clipping: Optional[Tuple[int, int]] = None, is_primary: bool = False):
+        return cls(CameraType.Orthographic, viewport, clipping=clipping, is_primary=is_primary)
 
-	def __init__(self, camera_type: CameraType):
-		self.is_primary = False
-		
-		self.should_recalculate = False
+    @classmethod
+    def perspective(cls, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, is_primary: bool = False):
+        return cls(CameraType.Perspective, viewport, fov=fov, aspect=aspect, is_primary=is_primary)
 
-		self._projection_matrix = glm.mat4(1.0)
-		self._view_matrix = glm.mat4(1.0)
-		self._view_projection_matrix = glm.mat4(1.0)
+    def __init__(self, _type: CameraType, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, clipping: Optional[Tuple[int, int]] = None, is_primary: bool = False):
+        if not len(clipping) == 2:
+            raise SpykeException(
+                'Tuple passed for "clipping" parameter must be the length of 2.')
 
-		if camera_type == CameraType.Orthographic:
-			self._projection_func = CameraComponent._CreateOrtho
-		else:
-			self._projection_func = CameraComponent._CreatePerspective
+        self.is_primary: bool = is_primary
+        self.type: CameraType = _type
+        self.viewport: Rectangle = viewport
+        self.clipping: Tuple[int, int] = clipping if clipping else (-1.0, 10.0)
+        self.fov: float = fov
+        self.aspect: float = aspect
+
+        self.projection: glm.mat4 = glm.mat4(1.0)
+        self.view: glm.mat4 = glm.mat4(1.0)
+
+        self._should_recalculate: bool = False
+
+    def recalculate(self, transform: glm.mat4) -> None:
+        self._should_recalculate = False
+
+        self.view = glm.inverse(transform)
+
+        if self.type == CameraType.Orthographic:
+            self.projection = glm.ortho(*tuple(self.viewport), *self.clipping)
+        elif self.type == CameraType.Perspective:
+            self.projection = glm.perspective(
+                self.fov, self.aspect, *self.clipping)
+
+    @property
+    def should_recalculate(self) -> bool:
+        return self._should_recalculate
+
+    @property
+    def view_projection(self) -> glm.mat4:
+        # TODO: Check if the multiplication order is correct
+        return self.projection * self.view

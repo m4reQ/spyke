@@ -5,3 +5,13 @@ from .sprite import SpriteComponent
 from .text import TextComponent
 from .transform import TransformComponent
 from .tag import TagComponent
+
+__all__ = (
+    'AudioComponent',
+    'CameraComponent',
+    'ParticleSystemComponent',
+    'SpriteComponent',
+    'TextComponent',
+    'TransformComponent',
+    'TagComponent'
+)

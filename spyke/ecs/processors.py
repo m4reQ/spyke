@@ -7,11 +7,11 @@ class TransformProcessor(Processor):
     def Process(self, *args, **kwargs):
         for _, transform in self.scene.GetComponent(TransformComponent):
             if transform.should_recalculate:
-                transform.RecalculateMatrices()
+                transform.recalculate()
 
-        for _, cameraComponent in self.scene.GetComponent(CameraComponent):
-            if cameraComponent.should_recalculate:
-                cameraComponent.RecalculateMatrices()
+        for _, (camera, transform) in self.scene.GetComponents(CameraComponent, TransformComponent):
+            if camera.should_recalculate:
+                camera.recalculate(transform.matrix)
 
 
 class AudioProcessor(Processor):

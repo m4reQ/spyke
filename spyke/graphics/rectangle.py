@@ -15,6 +15,12 @@ class Rectangle:
     def __eq__(self, other):
         return all(self.x == other.x, self.y == other.y, self.width == other.width, self.height == other.height)
 
+    def __iter__(self):
+        yield self.x
+        yield self.y
+        yield self.width
+        yield self.height
+
     def to_screen_coordinates(self, screen_width: int, screen_height: int):
         x_mapped = int(self.x * screen_width)
         y_mapped = int(self.y * screen_height)

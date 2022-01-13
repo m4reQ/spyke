@@ -118,9 +118,8 @@ class Application(ABC):
             scene = resourceManager.GetCurrentScene()
             scene.Process(dt=self._renderer.info.frametime)
 
-            if self._renderer.stats.window_active:
-                # TODO: Create camera component and default primary camera entity (for now using identity matrix)
-                self._renderer.render_scene(scene, glm.mat4(1.0))
+            if self._renderer.info.window_active:
+                self._renderer.render_scene(scene)
                 self.on_frame()
                 glfw.swap_buffers(self._handle)
 
