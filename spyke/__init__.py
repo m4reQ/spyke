@@ -13,7 +13,7 @@ import OpenGL
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
 OpenGL.UNSIGNED_BYTE_IMAGES_AS_STRING = True
-OpenGL.ERROR_CHECKING = False
+OpenGL.ERROR_CHECKING = __debug__
 
 
 def run(app: Application, run_editor: bool = False) -> None:

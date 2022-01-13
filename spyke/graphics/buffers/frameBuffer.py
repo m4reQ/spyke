@@ -1,10 +1,10 @@
+from spyke.enums import FramebufferStatus
 from spyke.graphics import gl
 from spyke.exceptions import GraphicsException
 from spyke import debug
-from ...constants import _GL_FB_ERROR_CODE_NAMES_MAP, _NP_FLOAT, _NP_INT
 
 from OpenGL import GL
-from typing import List, Tuple
+from typing import List
 import numpy as np
 
 _ATTACHMENT_FORMAT_IS_COLOR_MAP = {
@@ -131,11 +131,11 @@ class Framebuffer(gl.GLObject):
 
     def ClearBufferInt(self, bufferTraget: GL.GLenum, drawBuffer: int, value) -> None:
         GL.glClearNamedFramebufferiv(
-            self.id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_INT))
+            self.id, bufferTraget, drawBuffer, np.asarray(value, dtype=np.int32))
 
     def ClearBufferFloat(self, bufferTraget: GL.GLenum, drawBuffer: int, value) -> None:
         GL.glClearNamedFramebufferfv(
-            self.id, bufferTraget, drawBuffer, np.asarray(value, dtype=_NP_FLOAT))
+            self.id, bufferTraget, drawBuffer, np.asarray(value, dtype=np.float32))
 
     def __CreateFramebufferAttachment(self, attachmentSpec: FramebufferAttachmentSpec) -> int:
         multisample = self.specification.samples > 1
@@ -207,8 +207,8 @@ class Framebuffer(gl.GLObject):
             GL.glNamedFramebufferDrawBuffer(self.id, GL.GL_COLOR_ATTACHMENT0)
 
         if checkComplete:
-            status = GL.glCheckNamedFramebufferStatus(
-                self.id, GL.GL_FRAMEBUFFER)
-            if status != GL.GL_FRAMEBUFFER_COMPLETE:
+            status = FramebufferStatus(GL.glCheckNamedFramebufferStatus(
+                self.id, GL.GL_FRAMEBUFFER))
+            if status != FramebufferStatus.Complete:
                 raise GraphicsException(
-                    f"Framebuffer incomplete: {_GL_FB_ERROR_CODE_NAMES_MAP[status]}.")
+                    f"Framebuffer incomplete: {status.name}.")

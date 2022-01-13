@@ -37,6 +37,7 @@ for _, _type in _types:
     if _type != types.Event and issubclass(_type, types.Event):
         _handlers[_type] = list()
 
+
 class Handler:
     '''
     Represents a usable handler, which calls specific function
@@ -52,20 +53,22 @@ class Handler:
         try:
             res = self.func(event)
         except Exception as e:
-            raise RuntimeError(f'An error occured in handler "{self.func.__name__}": {e}.') from None
-        
+            raise SpykeException(
+                f'An error occured in handler "{self.func.__name__}": {e}.') from None
+
         if self.consume:
             event.consumed = True
 
         return res
 
-def register_method(method: Callable[[EventType], ReturnType], event_type: EventType, *, priority: int, consume: bool=False) -> None:
+
+def register_method(method: Callable[[EventType], ReturnType], event_type: EventType, *, priority: int, consume: bool = False) -> None:
     '''
     Registers method bound to an object as a handler for events of given type.
 
     :param method: Method that will be used as an event handler.
 
-    :param event_type: Indicates what type of events will be triggering
+    :param event_type: Indicates what type of events will trigger
     registered function.
 
     :param priority: The priority tells event system in what order
@@ -79,20 +82,24 @@ def register_method(method: Callable[[EventType], ReturnType], event_type: Event
     handler = Handler(method, priority, consume)
 
     if handler in _handlers:
-        debug.log_warning(f'Handler {handler.__name__} already registered for event type: {event_type.__name__}.')
+        debug.log_warning(
+            f'Handler {handler.__name__} already registered for event type: {event_type.__name__}.')
         return
-    
+
     # raise error when we try to register funciton thats not part
     # of spyke module, with negative priority
     if priority < 0 and not method.__module__.startswith('spyke'):
-        raise SpykeException('Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
-    
+        raise SpykeException(
+            'Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
+
     _handlers[event_type].append(handler)
     _handlers[event_type].sort(key=lambda x: x.priority)
 
-    debug.log_info(f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+    debug.log_info(
+        f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
 
-def register(event_type: EventType, *, priority: int, consume: bool=False) -> Callable[[EventType], ReturnType]:
+
+def register(event_type: EventType, *, priority: int, consume: bool = False) -> Callable[[EventType], ReturnType]:
     '''
     Registers new function as a handler for events of given type. Should be used as a decorator.
     Warning: this function cannot register bound methods as event handlers. To do this use "register_method" function.
@@ -111,30 +118,35 @@ def register(event_type: EventType, *, priority: int, consume: bool=False) -> Ca
     def inner(handler_fn: Callable[[EventType], ReturnType]):
         # check if we are dealing with bound method
         if '.' in handler_fn.__qualname__:
-            raise SpykeException('Cannot register bound method as event handler using "register". Please use "register_method" instead.')
+            raise SpykeException(
+                'Cannot register bound method as event handler using "register". Please use "register_method" instead.')
 
         handler = Handler(handler_fn, priority, consume)
 
         def wrapper(event: EventType):
             return handler(event)
-    
+
         if handler in _handlers:
-            debug.log_warning(f'Handler {handler.__name__} already registered for event type: {event_type.__name__}.')
+            debug.log_warning(
+                f'Handler {handler.__name__} already registered for event type: {event_type.__name__}.')
             return wrapper
-        
+
         # raise error when we try to register funciton thats not part
         # of spyke module, with negative priority
         if priority < 0 and not handler_fn.__module__.startswith('spyke'):
-            raise SpykeException('Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
-        
+            raise SpykeException(
+                'Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
+
         _handlers[event_type].append(handler)
         _handlers[event_type].sort(key=lambda x: x.priority)
-    
-        debug.log_info(f'Function {handler_fn.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
-        
+
+        debug.log_info(
+            f'Function {handler_fn.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+
         return wrapper
-    
+
     return inner
+
 
 def invoke(event: types.Event) -> None:
     '''
@@ -147,13 +159,15 @@ def invoke(event: types.Event) -> None:
     event_type = type(event)
 
     if not event_type in _handlers:
-        raise RuntimeError(f'Invalid event type: {event_type}. Maybe you forgot to register it using "register_user_event".')
-    
+        raise RuntimeError(
+            f'Invalid event type: {event_type}. Maybe you forgot to register it using "register_user_event".')
+
     for handler in _handlers[event_type]:
         if event.consumed:
             break
 
         handler(event)
+
 
 def register_user_event(event_type: types.Event) -> None:
     '''
@@ -164,10 +178,12 @@ def register_user_event(event_type: types.Event) -> None:
     '''
 
     if not issubclass(event_type, types.Event):
-        raise RuntimeError('User-defined events have to be subclasses of the Event class.')
-    
+        raise RuntimeError(
+            'User-defined events have to be subclasses of the Event class.')
+
     if event_type in _handlers:
-        debug.log_warning(f'User-defined event type "{event_type.__name__}" already registered.')
+        debug.log_warning(
+            f'User-defined event type "{event_type.__name__}" already registered.')
         return
-    
+
     _handlers[event_type] = list()

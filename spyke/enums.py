@@ -83,6 +83,18 @@ class ShaderType:
     TessEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
 
 
+class FramebufferStatus(enum.IntEnum):
+    Complete = GL.GL_FRAMEBUFFER_COMPLETE
+    Undefined = GL.GL_FRAMEBUFFER_UNDEFINED
+    IncompleteAttachment = GL.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT
+    MissingAttachment = GL.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT
+    IncompleteDrawBuffer = GL.GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER
+    IncompleteReadBuffer = GL.GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER
+    Unsupported = GL.GL_FRAMEBUFFER_UNSUPPORTED
+    IncompleteMultisample = GL.GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE
+    IncompleteLayerTargets = GL.GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS
+
+
 class ErrorCode(enum.IntEnum):
     NoError = GL.GL_NO_ERROR
     InvalidEnum = GL.GL_INVALID_ENUM

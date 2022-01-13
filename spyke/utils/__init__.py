@@ -15,7 +15,11 @@ __all__ = [
     'create_transform_3d',
     'gl_type_to_size',
     'Iterator',
-    'Delayer'
+    'Delayer',
+    'Vector2',
+    'Vector3',
+    'Vector4',
+    'Matrix4'
 ]
 
 

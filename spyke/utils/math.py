@@ -1,6 +1,7 @@
 import glm
 from typing import Tuple, Union
 from spyke.exceptions import SpykeException
+from glm import vec2 as Vector2, vec3 as Vector3, vec4 as Vector4, mat4 as Matrix4
 
 
 def create_translation(pos: Union[glm.vec3, Tuple[float, float, float]]) -> glm.mat4:

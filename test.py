@@ -9,9 +9,6 @@ from spyke import ResourceManager
 from spyke.utils import *
 import spyke
 
-# TODO: Add vector aliases to the engine core
-from glm import vec3 as Vector3, vec2 as Vector2
-
 
 class App(Application):
     def on_load(self):
@@ -27,7 +24,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.SpriteComponent(
-                'tex1', Vector2(1.0), Color(1.0, 1.0, 1.0, 0.3))
+                'tex1', Vector2(1.0), color(1.0, 1.0, 1.0, 0.3))
         )
 
         ResourceManager.GetCurrentScene().CreateEntity(
@@ -35,7 +32,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(0.2, 0.7, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0)),
             components.SpriteComponent(
-                'tex3', Vector2(1.0), Color(1.0, 0.0, 1.0, 0.3))
+                'tex3', Vector2(1.0), color(1.0, 0.0, 1.0, 0.3))
         )
 
         ResourceManager.GetCurrentScene().CreateEntity(
@@ -43,7 +40,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'TEST', 80, 'arial', Color(1.0, 0.0, 0.0, 1.0))
+                'TEST', 80, 'arial', color(1.0, 0.0, 0.0, 1.0))
         )
 
         ResourceManager.GetCurrentScene().CreateEntity(
@@ -51,7 +48,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(0.4), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'TEST2', 42, 'arial', Color(1.0, 1.0, 0.0, 1.0))
+                'TEST2', 42, 'arial', color(1.0, 1.0, 0.0, 1.0))
         )
 
         ResourceManager.GetCurrentScene().CreateEntity(
@@ -59,19 +56,19 @@ class App(Application):
             components.TransformComponent(
                 Vector3(0.5), Vector3(0.5, 0.5, 0.0), Vector3(0.0)),
             components.SpriteComponent(
-                'tex2', Vector2(1.0), Color(1.0, 1.0, 1.0, 1.0))
+                'tex2', Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
         )
         # ResourceManager.GetCurrentScene().CreateEntity(
         # 	components.TagComponent('font_texture'),
         # 	components.TransformComponent(Vector3(0.3), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
-        # 	components.SpriteComponent('font_arial_texture', Vector2(1.0), Color(1.0, 0.0, 0.0, 1.0))
+        # 	components.SpriteComponent('font_arial_texture', Vector2(1.0), color(1.0, 0.0, 0.0, 1.0))
         # )
         # LoadScene("tests/newScene.scn")
 
         # self.ent4 = EntityManager.CreateEntity("Particles")
         # self.particleSystem1 = ParticleSystemComponent(Vector2(0.5, 0.5), 3.0, 50)
-        # self.particleSystem1.colorBegin = Color(1.0, 0.0, 1.0, 1.0)
-        # self.particleSystem1.colorEnd = Color(0.0, 1.0, 1.0, 1.0)
+        # self.particleSystem1.colorBegin = color(1.0, 0.0, 1.0, 1.0)
+        # self.particleSystem1.colorEnd = color(0.0, 1.0, 1.0, 1.0)
         # self.particleSystem1.sizeBegin = Vector2(0.25, 0.25)
         # self.particleSystem1.sizeEnd = Vector2(0.1, 0.1)
         # self.particleSystem1.velocity = Vector2(0.1, 0.3)
@@ -81,12 +78,10 @@ class App(Application):
         # self.particleSystem1.texHandle = "tests/test1.jpg"
         # ecs.CurrentScene.AddComponent(self.ent4, self.particleSystem1)
 
-        self.camera = OrthographicCamera(0.0, 1.0, 0.0, 1.0)
-
         # ResourceManager.LoadScene("tests/scene.scn")
 
-        events.register_method(
-            self.move_camera, events.KeyDownEvent, priority=0)
+        # events.register_method(
+        #     self.move_camera, events.KeyDownEvent, priority=0)
 
     def move_camera(self, e: events.KeyDownEvent):
         frametime = self.frame_stats.frametime
@@ -104,12 +99,10 @@ class App(Application):
 
         debug.log_info('Camera moved.')
 
-    def on_frame(self):
-        # TODO: Move below check to internal scene processors
-        if self.camera.shouldRecalculate:
-            self.camera.RecalculateMatrices()
-
         debug.get_gl_error()
+
+    def on_frame(self):
+        pass
 
     def on_close(self):
         pass
