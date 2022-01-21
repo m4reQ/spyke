@@ -1,9 +1,10 @@
+from typing import Callable
 from spyke.exceptions import GraphicsException
-from spyke.enums import ErrorCode
+import glfw
 import logging
-import sys
 import colorama
 import os
+import time
 from OpenGL import GL
 
 LOG_FILE = 'nova_log.log'
@@ -58,23 +59,56 @@ _con_handler.setLevel(logging.INFO)
 _con_handler.setFormatter(ConsoleFormatter())
 _logger.addHandler(_con_handler)
 
-# sys.excepthook = lambda exc_type, val, _: log_error(f'{exc_type.__name__}: {val}')
-
 def log_info(msg: str) -> None:
-    _logger.info(msg)
+    if __debug__:
+        _logger.info(msg)
 
 def log_warning(msg: str) -> None:
-    _logger.warning(msg)
+    if __debug__:
+        _logger.warning(msg)
 
 def log_error(msg: str, log_info: bool=True) -> None:
-    _logger.error(msg, log_info)
+    if __debug__:
+        _logger.error(msg, log_info)
 
 def get_gl_error():
-    err = GL.glGetError()
+    if not __debug__:
+        return
 
+    err = GL.glGetError()
     if err != GL.GL_NO_ERROR:
         raise GraphicsException(err)
 
 def get_bound_texture(unit: int) -> int:
+    if not __debug__:
+        return
+
     GL.glActiveTexture(GL.GL_TEXTURE0 + unit)
     return GL.glGetInteger(GL.GL_TEXTURE_BINDING_2D)
+
+def timed(func: Callable) -> Callable:
+    def inner(*args, **kwargs):
+        if not __debug__:
+            return func(*args, **kwargs)
+
+        start = time.perf_counter()
+        res = func(*args, **kwargs)
+
+        log_info(f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
+
+        return res
+    
+    return inner
+
+
+def check_context() -> None:
+    '''
+    Checks if OpenGL context has been set. If not raises
+    GraphicsException.
+    '''
+
+    if not __debug__:
+        return
+
+    if glfw.get_current_context() is None:
+        raise GraphicsException('Required OpenGL context but no context was made current.')

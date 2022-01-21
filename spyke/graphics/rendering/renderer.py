@@ -25,6 +25,10 @@ import glm
 import time
 import numpy as np
 import os
+import typing
+
+if typing.TYPE_CHECKING:
+    import glfw
 
 # TODO: Restore particle rendering
 # TODO: Fix textures not displaying properly
@@ -82,7 +86,7 @@ class Renderer:
     def __init__(self):
         self.is_initialized: bool = False
 
-        self.info = RendererInfo()
+        self.info: RendererInfo = RendererInfo()
 
         self.polygon_mode_iterator: Iterator[PolygonMode] = Iterator(
             [PolygonMode.Fill, PolygonMode.Line, PolygonMode.Point], looping=True)
@@ -100,16 +104,22 @@ class Renderer:
         self.instance_count: int = 0
         self.textures: List[int] = [0] * MAX_TEXTURES_COUNT
 
-    def initialize(self) -> None:
+    def initialize(self, window_handle: glfw._GLFWwindow) -> None:
         if self.is_initialized:
             debug.log_warning('Renderer already initialized.')
             return
+
+        debug.check_context()
+
+        self.info._get(window_handle)
 
         # register callbacks
         events.register_method(self._key_down_callback,
                                events.KeyDownEvent, priority=-1)
         events.register_method(self._resize_callback,
                                events.ResizeEvent, priority=-1)
+        events.register_method(self._window_move_callback,
+                               events.WindowMoveEvent, priority=-1)
 
         # TODO: Possibly move this to resource manager
         if not os.path.exists(SCREENSHOT_DIRECTORY):
@@ -451,7 +461,14 @@ class Renderer:
 
         self.instance_count += 1
 
-    def _key_down_callback(self, e: events.KeyDownEvent) -> None:
+    def _window_change_focus_callback(self, e: 'events.WindowChangeFocusEvent') -> None:
+        self.info.window_active = e.value
+
+    def _window_move_callback(self, e: 'events.WindowMoveEvent') -> None:
+        self.info.window_position_x = e.x
+        self.info.window_position_y = e.y
+
+    def _key_down_callback(self, e: 'events.KeyDownEvent') -> None:
         if e.repeat:
             return
 

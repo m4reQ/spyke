@@ -8,12 +8,13 @@ class Event(ABC):
 
 
 class KeyDownEvent(Event):
-    def __init__(self, key: int, mods: int, repeat: bool):
+    def __init__(self, key: int, mods: int, scancode: int, repeat: bool):
         super().__init__()
 
-        self.key = key
-        self.mods = mods
-        self.repeat = repeat
+        self.key: int = key
+        self.mods: int = mods
+        self.scancode: int = scancode
+        self.repeat: bool = repeat
 
 
 class KeyUpEvent(Event):
@@ -36,10 +37,11 @@ class ResizeEvent(Event):
 
 
 class MouseButtonDownEvent(Event):
-    def __init__(self, button: int):
+    def __init__(self, button: int, mods: int):
         super().__init__()
 
-        self.button = button
+        self.button: int = button
+        self.mods: int = mods
 
 
 class MouseButtonUpEvent(Event):
@@ -81,12 +83,11 @@ class WindowMoveEvent(Event):
         return (self.x, self.y)
 
 
-class WindowFocusEvent(Event):
-    pass
+class WindowChangeFocusEvent(Event):
+    def __init__(self, value: bool):
+        super().__init__()
 
-
-class WindowLostFocusEvent(Event):
-    pass
+        self.value: bool = value
 
 
 class WindowCloseEvent(Event):
@@ -96,3 +97,7 @@ class WindowCloseEvent(Event):
 class ToggleVsyncEvent(Event):
     def __init__(self, state: bool):
         self.state: bool = state
+
+
+class FrameEndEvent(Event):
+    pass

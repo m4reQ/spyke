@@ -19,13 +19,13 @@ __all__ = [
     'MouseMoveEvent',
     'MouseScrollEvent',
     'WindowMoveEvent',
-    'WindowFocusEvent',
-    'WindowLostFocusEvent',
+    'WindowChangeFocusEvent',
     'WindowCloseEvent',
     'Handler',
     'register_user_event',
     'invoke',
-    'register'
+    'register',
+    'register_method'
 ]
 
 _handlers = {}
