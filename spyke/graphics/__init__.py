@@ -1,6 +1,3 @@
-from .rendering import *
-from .windowSpecs import WindowSpecs
-
 import glm
 
 

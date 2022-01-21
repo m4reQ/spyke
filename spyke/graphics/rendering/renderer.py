@@ -13,7 +13,7 @@ from .rendererInfo import RendererInfo
 from ..shader import Shader
 from ..buffers import *
 from ...constants import _GL_FLOAT_SIZE
-from ...enums import ClearMask, Hint, InternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, Vendor, Keys
+from ...enums import ClearMask, Hint, InternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys
 from ...ecs import components
 from ... import resourceManager as ResourceManager
 
@@ -195,9 +195,9 @@ class Renderer:
         self.info.framebuffer_height = self.framebuffer.height
 
         # set up all renderer's components
-        self.basic_shader.add_stage(GL.GL_VERTEX_SHADER,
+        self.basic_shader.add_stage(ShaderType.VertexShader,
                                     SHADER_SOURCES_DIRECTORY + 'basic.vert')
-        self.basic_shader.add_stage(GL.GL_FRAGMENT_SHADER,
+        self.basic_shader.add_stage(ShaderType.FragmentShader,
                                     SHADER_SOURCES_DIRECTORY + 'basic.frag')
         self.basic_shader.compile()
 

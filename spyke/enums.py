@@ -268,6 +268,15 @@ class SizedInternalFormat(enum.IntEnum):
     Depth32fStencil8 = GL.GL_DEPTH32F_STENCIL8
 
 
+class ShaderType(enum.IntEnum):
+    ComputeShader = GL.GL_COMPUTE_SHADER
+    VertexShader = GL.GL_VERTEX_SHADER
+    TessControlShader = GL.GL_TESS_CONTROL_SHADER
+    TexxEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
+    GeometryShader = GL.GL_GEOMETRY_SHADER
+    FragmentShader = GL.GL_FRAGMENT_SHADER
+
+
 class TextureTarget(enum.IntEnum):
     Texture1d = GL.GL_TEXTURE_1D
     Texture2d = GL.GL_TEXTURE_2D

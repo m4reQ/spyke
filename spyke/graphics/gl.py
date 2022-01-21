@@ -86,4 +86,8 @@ class GLObject(ABC):
                 raise GraphicsException(
                     f'Tried to use uninitialized OpenGL object of type {type(self).__name__}.')
 
+            if self._deleted:
+                raise GraphicsException(
+                    'Tried to use OpenGL object that is already deleted.')
+
         return self._id.value

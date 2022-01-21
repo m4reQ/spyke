@@ -1,12 +1,16 @@
-from typing import List, Union
 from spyke.graphics import gl
 from spyke import debug
+from typing import List, Union
+import typing
 from spyke.exceptions import GraphicsException, SpykeException
 
 from OpenGL import GL
 import numpy as np
 import glm
 from functools import lru_cache
+
+if typing.TYPE_CHECKING:
+    from spyke.enums import ShaderType
 
 
 class Shader(gl.GLObject):
@@ -20,7 +24,7 @@ class Shader(gl.GLObject):
 
         self._compiled = False
 
-    def add_stage(self, stage: int, filepath: str) -> None:
+    def add_stage(self, stage: ShaderType, filepath: str) -> None:
         if self._compiled:
             debug.log_warning(
                 'Tried to add shader stage to already compiled shader.')
