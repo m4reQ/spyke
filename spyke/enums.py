@@ -121,6 +121,14 @@ class MagFilter(enum.IntEnum):
     Linear = GL.GL_LINEAR
 
 
+class WrapMode(enum.IntEnum):
+    ClampToEdge = GL.GL_CLAMP_TO_EDGE
+    ClampToBorder = GL.GL_CLAMP_TO_BORDER
+    MirroredRepeat = GL.GL_MIRRORED_REPEAT
+    Repeat = GL.GL_REPEAT
+    MirrorClampToEdge = GL.GL_MIRROR_CLAMP_TO_EDGE
+
+
 class PrimitiveMode:
     Triangles = GL.GL_TRIANGLES
     Points = GL.GL_POINTS
@@ -179,13 +187,110 @@ class GLType(enum.IntEnum):
     UnsignedShort = GL.GL_UNSIGNED_SHORT
 
 
+class TextureFormat(enum.Enum):
+    Red = GL.GL_RED
+    Rg = GL.GL_RG
+    Rgb = GL.GL_RGB
+    Bgr = GL.GL_BGR
+    Rgba = GL.GL_RGBA
+    Bgra = GL.GL_BGRA
+    DepthComponent = GL.GL_DEPTH_COMPONENT
+    StencilIndex = GL.GL_STENCIL_INDEX
+
+
+class SizedInternalFormat(enum.IntEnum):
+    R8 = GL.GL_R8
+    R8Snorm = GL.GL_R8_SNORM
+    R16 = GL.GL_R16
+    R16Snorm = GL.GL_R16_SNORM
+    Rg8 = GL.GL_RG8
+    Rg8Snorm = GL.GL_RG8_SNORM
+    Rg16 = GL.GL_RG16
+    Rg16Snorm = GL.GL_RG16_SNORM
+    R3g3b2 = GL.GL_R3_G3_B2
+    Rgb4 = GL.GL_RGB4
+    Rgb5 = GL.GL_RGB5
+    Rgb8 = GL.GL_RGB8
+    Rgb8Snorm = GL.GL_RGB8_SNORM
+    Rgb10 = GL.GL_RGB10
+    Rgb12 = GL.GL_RGB12
+    Rgb16Snorm = GL.GL_RGB16_SNORM
+    Rgba2 = GL.GL_RGBA2
+    Rgba4 = GL.GL_RGBA4
+    Rgb5a1 = GL.GL_RGB5_A1
+    Rgba8 = GL.GL_RGBA8
+    Rgba8Snorm = GL.GL_RGBA8_SNORM
+    Rgb10a2 = GL.GL_RGB10_A2
+    Rgb10a2ui = GL.GL_RGB10_A2UI
+    Rgba12 = GL.GL_RGBA12
+    Rgba16 = GL.GL_RGBA16
+    Srgb8 = GL.GL_SRGB8
+    Srgb8Alpha8 = GL.GL_SRGB8_ALPHA8
+    R16f = GL.GL_R16F
+    Rg16f = GL.GL_RG16F
+    Rgb16f = GL.GL_RGB16F
+    Rgba16f = GL.GL_RGBA16F
+    R32f = GL.GL_R32F
+    Rg32f = GL.GL_RG32F
+    Rgb32f = GL.GL_RGB32F
+    Rgba32f = GL.GL_RGBA32F
+    R11fg11fb10f = GL.GL_R11F_G11F_B10F
+    Rgb9e5 = GL.GL_RGB9_E5
+    R8i = GL.GL_R8I
+    R8ui = GL.GL_R8UI
+    R16i = GL.GL_R16I
+    R16ui = GL.GL_R16UI
+    R32i = GL.GL_R32I
+    R32ui = GL.GL_R32UI
+    Rg8i = GL.GL_RG8I
+    Rg8ui = GL.GL_RG8UI
+    Rg16i = GL.GL_RG16I
+    Rg16ui = GL.GL_RG16UI
+    Rg32i = GL.GL_RG32I
+    Rg32ui = GL.GL_RG32UI
+    Rgb8i = GL.GL_RGB8I
+    Rgb8ui = GL.GL_RGB8UI
+    Rgb16i = GL.GL_RGB16I
+    Rgb16ui = GL.GL_RGB16UI
+    Rgb32i = GL.GL_RGB32I
+    Rgb32ui = GL.GL_RGB32UI
+    Rgba8i = GL.GL_RGBA8I
+    Rgba8ui = GL.GL_RGBA8UI
+    Rgba16i = GL.GL_RGBA16I
+    Rgba16ui = GL.GL_RGBA16UI
+    Rgba32i = GL.GL_RGBA32I
+    Rgba32ui = GL.GL_RGBA32UI
+    DepthComponent16 = GL.GL_DEPTH_COMPONENT16
+    DepthComponent24 = GL.GL_DEPTH_COMPONENT24
+    DepthComponent32f = GL.GL_DEPTH_COMPONENT32F
+    StencilIndex8 = GL.GL_STENCIL_INDEX8
+    Depth24Stencil8 = GL.GL_DEPTH24_STENCIL8
+    Depth32fStencil8 = GL.GL_DEPTH32F_STENCIL8
+
+
+class TextureTarget(enum.IntEnum):
+    Texture1d = GL.GL_TEXTURE_1D
+    Texture2d = GL.GL_TEXTURE_2D
+    Texture3d = GL.GL_TEXTURE_3D
+    Texture1dArray = GL.GL_TEXTURE_1D_ARRAY
+    Texture2dArray = GL.GL_TEXTURE_2D_ARRAY
+    TextureRectangle = GL.GL_TEXTURE_RECTANGLE
+    TextureCubeMap = GL.GL_TEXTURE_CUBE_MAP
+    TextureCubeMapArray = GL.GL_TEXTURE_CUBE_MAP_ARRAY
+    TextureBuffer = GL.GL_TEXTURE_BUFFER
+    Texture2dMultisample = GL.GL_TEXTURE_2D_MULTISAMPLE
+    Texture2dMultisampleArray = GL.GL_TEXTURE_2D_MULTISAMPLE_ARRAY
+
+# TODO: Check if those values are correct
+
+
 class InternalFormat(enum.IntEnum):
     DepthComponent = GL.GL_DEPTH_COMPONENT
     DepthStencil = GL.GL_DEPTH_STENCIL
     Red = GL.GL_RED
     Rg = GL.GL_RG
     Rgb = GL.GL_RGB
-    Rgba = GL.GL_RGB
+    Rgba = GL.GL_RGBA
     R8 = GL.GL_R8
     R16 = GL.GL_R16
     R16f = GL.GL_R16F

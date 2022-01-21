@@ -1,10 +1,13 @@
 from spyke import debug
 from spyke.graphics import gl
-from spyke.graphics.buffers import ABuffer
 from spyke.utils import convert
-from spyke.enums import GLType
 
 from OpenGL import GL
+import typing
+
+if typing.TYPE_CHECKING:
+    from spyke.graphics.buffers import ABuffer
+    from spyke.enums import GLType
 
 
 class VertexArray(gl.GLObject):

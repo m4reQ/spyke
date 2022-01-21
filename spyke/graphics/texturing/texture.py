@@ -1,94 +1,42 @@
-from spyke.enums import InternalFormat
+from spyke.enums import MinFilter, TextureFormat, TextureTarget
 from spyke.graphics import gl
 from spyke import debug
 
 from OpenGL import GL
 import numpy as np
-import time
+import typing
 
-
-class TextureData:
-    __slots__ = (
-        '__weakref__',
-        'width',
-        'height',
-        'data',
-        'format',
-        'filepath'
-    )
-
-    # TODO: Use specific enums for type hints
-    def __init__(self, width: int, height: int):
-        self.width: int = width
-        self.height: int = height
-        self.data: np.ndarray = None
-        self.format: GL.GLenum = GL.GL_RGBA
-        self.filepath: str = ""
-
-
-class TextureSpec:
-    __slots__ = (
-        '__weakref__',
-        'mipmaps',
-        'min_filter',
-        'mag_filter',
-        'wrap_mode',
-        'compress'
-    )
-
-    # TODO: Use specific enums for type hints
-    def __init__(self):
-        self.mipmaps: int = 3
-        self.min_filter: GL.GLenum = GL.GL_LINEAR_MIPMAP_LINEAR
-        self.mag_filter: GL.GLenum = GL.GL_LINEAR
-        self.wrap_mode: GL.GLenum = GL.GL_REPEAT
-        self.compress: bool = True
+if typing.TYPE_CHECKING:
+    from spyke.graphics.texturing import TextureSpec, TextureData
+    from spyke.enums import SizedInternalFormat
 
 
 class Texture(gl.GLObject):
-    _CompressionFlag: bool = False
-
-    @staticmethod
-    def set_compression_flag() -> None:
-        Texture._CompressionFlag = True
-
-    def __init__(self, tData: TextureData, tSpec: TextureSpec):
-        start = time.perf_counter()
-
+    @debug.timed
+    def __init__(self, tex_data: TextureData, tex_spec: TextureSpec, internal_format: SizedInternalFormat):
         super().__init__()
 
-        self.width = tData.width
-        self.height = tData.height
+        self.width: int = tex_data.width
+        self.height: int = tex_data.height
+        self.filepath: str = tex_data.filepath
 
-        self.filepath = tData.filepath
-        self.specification = tSpec
+        self._id = gl.create_texture(TextureTarget.Texture2d)
 
-        self._id = gl.create_texture(GL.GL_TEXTURE_2D)
+        GL.glTextureStorage2D(self.id, tex_spec.mipmaps,
+                              internal_format, tex_data.width, tex_data.height)
 
-        _format = InternalFormat.CompressedRgba if tSpec.compress and Texture._CompressionFlag else InternalFormat.Rgba8
-
-        GL.glTextureStorage2D(self.id, tSpec.mipmaps,
-                              _format, tData.width, tData.height)
-
-        GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_S, tSpec.wrap_mode)
-        GL.glTextureParameteri(self.id, GL.GL_TEXTURE_WRAP_T, tSpec.wrap_mode)
         GL.glTextureParameteri(
-            self.id, GL.GL_TEXTURE_MIN_FILTER, tSpec.min_filter)
+            self.id, GL.GL_TEXTURE_WRAP_S, tex_spec.wrap_mode)
         GL.glTextureParameteri(
-            self.id, GL.GL_TEXTURE_MAG_FILTER, tSpec.mag_filter)
+            self.id, GL.GL_TEXTURE_WRAP_T, tex_spec.wrap_mode)
+        GL.glTextureParameteri(
+            self.id, GL.GL_TEXTURE_MIN_FILTER, tex_spec.min_filter)
+        GL.glTextureParameteri(
+            self.id, GL.GL_TEXTURE_MAG_FILTER, tex_spec.mag_filter)
 
-        GL.glTextureSubImage2D(self.id, 0, 0, 0, tData.width,
-                               tData.height, tData.format, GL.GL_UNSIGNED_BYTE, tData.data)
+        GL.glTextureSubImage2D(self.id, 0, 0, 0, tex_data.width,
+                               tex_data.height, tex_data.format, GL.GL_UNSIGNED_BYTE, tex_data.data)
         GL.glGenerateTextureMipmap(self.id)
-
-        is_compressed = GL.GLint()
-        GL.glGetTextureLevelParameteriv(
-            self.id, 0, GL.GL_TEXTURE_COMPRESSED, is_compressed)
-        self._is_compressed = True if is_compressed.value else False
-
-        debug.get_gl_error()
-        debug.log_info(
-            f'{self} initialized in {time.perf_counter() - start} seconds.')
 
     def bind_to_unit(self, slot) -> None:
         GL.glBindTextureUnit(slot, self.id)
@@ -98,19 +46,15 @@ class Texture(gl.GLObject):
 
     @classmethod
     def CreateWhiteTexture(cls):
-        tData = TextureData(1, 1)
+        tex_data = TextureData(1, 1)
 
-        tData.data = np.array([255, 255, 255, 255], dtype=np.ubyte)
-        tData.format = GL.GL_RGBA
+        tex_data.data = np.array([255, 255, 255, 255], dtype=np.ubyte)
+        tex_data.format = TextureFormat.Rgba
 
         spec = TextureSpec()
-        spec.min_filter = GL.GL_NEAREST
-        spec.mag_filter = GL.GL_NEAREST
+        spec.min_filter = MinFilter.Nearest
+        spec.mag_filter = MinFilter.Nearest
         spec.mipmaps = 1
         spec.compress = False
 
-        return cls(tData, spec)
-
-    @property
-    def is_compressed(self) -> bool:
-        return self._is_compressed
+        return cls(tex_data, spec, SizedInternalFormat.Rgba8)

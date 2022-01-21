@@ -2,15 +2,22 @@ from spyke import debug
 from spyke.exceptions import GraphicsException
 from OpenGL import GL
 from abc import ABC, abstractmethod
+import typing
+
+if typing.TYPE_CHECKING:
+    from spyke.enums import TextureTarget
+
 
 def create_program() -> GL.GLint:
     return GL.GLint(GL.glCreateProgram())
 
-def create_texture(target: GL.GLenum) -> GL.GLint:
+
+def create_texture(target: TextureTarget) -> GL.GLint:
     _id = GL.GLint()
     GL.glCreateTextures(target, 1, _id)
 
     return _id
+
 
 def create_vertex_array() -> GL.GLint:
     _id = GL.GLint()
@@ -18,17 +25,20 @@ def create_vertex_array() -> GL.GLint:
 
     return _id
 
+
 def create_buffer() -> GL.GLint:
     _id = GL.GLint()
     GL.glCreateBuffers(1, _id)
 
     return _id
 
+
 def create_framebuffer() -> GL.GLint:
     _id = GL.GLint()
     GL.glCreateFramebuffers(1, _id)
 
     return _id
+
 
 class GLObject(ABC):
     _objects = []
@@ -39,7 +49,7 @@ class GLObject(ABC):
 
         for obj in GLObject._objects:
             obj._delete()
-        
+
         GLObject._objects.clear()
 
         debug.log_info(f'{cnt} OpenGL objects have been deleted.')
@@ -49,13 +59,13 @@ class GLObject(ABC):
         self._deleted: bool = False
 
         GLObject._objects.append(self)
-    
+
     def __str__(self):
         return f'{type(self).__name__} (id: {self._id.value})'
-    
+
     def __repr__(self):
         return str(self)
-    
+
     def _delete(self) -> None:
         if self._deleted:
             return
@@ -68,11 +78,12 @@ class GLObject(ABC):
     @abstractmethod
     def delete(self) -> None:
         pass
-    
+
     @property
     def id(self) -> int:
         if __debug__:
             if self._id.value == -1:
-                raise GraphicsException(f'Tried to use uninitialized OpenGL object of type {type(self).__name__}.')
-            
+                raise GraphicsException(
+                    f'Tried to use uninitialized OpenGL object of type {type(self).__name__}.')
+
         return self._id.value

@@ -114,4 +114,4 @@ if __name__ == "__main__":
     specs.vsync = True
 
     app = App(specs)
-    spyke.run(app, run_editor=True)
+    spyke.run(app, run_editor=False)
