@@ -1,8 +1,9 @@
+from __future__ import annotations
 import typing
-
 if typing.TYPE_CHECKING:
-    from spyke.enums import TextureFormat
     import numpy as np
+
+from spyke.enums import TextureFormat
 
 
 class TextureData:

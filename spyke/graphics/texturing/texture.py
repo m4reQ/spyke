@@ -1,19 +1,16 @@
-from spyke.enums import MinFilter, TextureFormat, TextureTarget
+from .textureSpec import TextureSpec
+from .textureData import TextureData
+from spyke.enums import MagFilter, MinFilter, TextureFormat, TextureTarget, SizedInternalFormat
 from spyke.graphics import gl
 from spyke import debug
 
 from OpenGL import GL
 import numpy as np
-import typing
-
-if typing.TYPE_CHECKING:
-    from spyke.graphics.texturing import TextureSpec, TextureData
-    from spyke.enums import SizedInternalFormat
 
 
 class Texture(gl.GLObject):
     @debug.timed
-    def __init__(self, tex_data: TextureData, tex_spec: TextureSpec, internal_format: SizedInternalFormat):
+    def __init__(self, tex_data: TextureData, tex_spec: TextureSpec):
         super().__init__()
 
         self.width: int = tex_data.width
@@ -22,8 +19,9 @@ class Texture(gl.GLObject):
 
         self._id = gl.create_texture(TextureTarget.Texture2d)
 
+        # TODO: Determine SizedInternalFormat based on type of data that's passed as pixels
         GL.glTextureStorage2D(self.id, tex_spec.mipmaps,
-                              internal_format, tex_data.width, tex_data.height)
+                              SizedInternalFormat.Rgba8, tex_data.width, tex_data.height)
 
         GL.glTextureParameteri(
             self.id, GL.GL_TEXTURE_WRAP_S, tex_spec.wrap_mode)
@@ -53,8 +51,8 @@ class Texture(gl.GLObject):
 
         spec = TextureSpec()
         spec.min_filter = MinFilter.Nearest
-        spec.mag_filter = MinFilter.Nearest
+        spec.mag_filter = MagFilter.Nearest
         spec.mipmaps = 1
         spec.compress = False
 
-        return cls(tex_data, spec, SizedInternalFormat.Rgba8)
+        return cls(tex_data, spec)

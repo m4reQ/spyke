@@ -4,7 +4,7 @@ from .ecs.components import *
 from .ecs.processors import *
 from .constants import _IMAGE_FORMAT_MAP, MAX_LOADING_TASKS_COUNT
 from .exceptions import GraphicsException, SpykeException
-from .graphics.texturing.texture import Texture, TextureData, TextureSpec
+from .graphics.texturing import Texture, TextureData, TextureSpec
 from .graphics.text import Font, Glyph
 from .graphics.rectangle import Rectangle
 

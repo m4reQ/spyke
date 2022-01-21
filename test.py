@@ -1,11 +1,11 @@
 from spyke.ecs import components
 from spyke import debug
 from spyke import events
-from spyke import Application
-from spyke import WindowSpecs
+from spyke.application import Application
+from spyke.graphics import WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
-from spyke import ResourceManager
+from spyke import resourceManager as ResourceManager
 from spyke.utils import *
 import spyke
 

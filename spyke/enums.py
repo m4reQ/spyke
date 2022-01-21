@@ -187,7 +187,7 @@ class GLType(enum.IntEnum):
     UnsignedShort = GL.GL_UNSIGNED_SHORT
 
 
-class TextureFormat(enum.Enum):
+class TextureFormat(enum.IntEnum):
     Red = GL.GL_RED
     Rg = GL.GL_RG
     Rgb = GL.GL_RGB

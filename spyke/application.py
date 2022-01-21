@@ -1,3 +1,8 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.graphics.windowSpecs import WindowSpecs
+
 # from . import enginePreview
 from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
@@ -12,10 +17,6 @@ import os
 import gc
 from PIL import Image
 from abc import ABC, abstractmethod
-import typing
-
-if typing.TYPE_CHECKING:
-    from spyke.graphics.windowSpecs import WindowSpecs
 
 
 class Application(ABC):

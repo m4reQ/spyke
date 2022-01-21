@@ -1,16 +1,17 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.enums import ShaderType
+
 from spyke.graphics import gl
 from spyke import debug
 from typing import List, Union
-import typing
 from spyke.exceptions import GraphicsException, SpykeException
 
 from OpenGL import GL
 import numpy as np
 import glm
 from functools import lru_cache
-
-if typing.TYPE_CHECKING:
-    from spyke.enums import ShaderType
 
 
 class Shader(gl.GLObject):

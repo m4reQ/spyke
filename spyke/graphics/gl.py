@@ -1,11 +1,12 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.enums import TextureTarget
+
 from spyke import debug
 from spyke.exceptions import GraphicsException
 from OpenGL import GL
 from abc import ABC, abstractmethod
-import typing
-
-if typing.TYPE_CHECKING:
-    from spyke.enums import TextureTarget
 
 
 def create_program() -> GL.GLint:

@@ -1,7 +1,11 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from glfw import _GLFWwindow
+
 # TODO: Remove unused import statements
 from spyke import debug
 from spyke.ecs.components.camera import CameraComponent
-from spyke.ecs.components.transform import TransformComponent
 from spyke.enums import GLType
 from spyke import events
 from spyke.events.types import ToggleVsyncEvent
@@ -25,10 +29,6 @@ import glm
 import time
 import numpy as np
 import os
-import typing
-
-if typing.TYPE_CHECKING:
-    import glfw
 
 # TODO: Restore particle rendering
 # TODO: Fix textures not displaying properly
@@ -104,7 +104,7 @@ class Renderer:
         self.instance_count: int = 0
         self.textures: List[int] = [0] * MAX_TEXTURES_COUNT
 
-    def initialize(self, window_handle: glfw._GLFWwindow) -> None:
+    def initialize(self, window_handle: _GLFWwindow) -> None:
         if self.is_initialized:
             debug.log_warning('Renderer already initialized.')
             return
@@ -127,8 +127,9 @@ class Renderer:
 
         # set vendor-specific properties of the renderer
         # TODO: Add support for nv_commands_lists here
-        if self.info.extension_present('gl_arb_texture_compression'):
-            Texture.set_compression_flag()
+        # TODO: Restore texture compression
+        # if self.info.extension_present('gl_arb_texture_compression'):
+        #     Texture.set_compression_flag()
 
         if self.info.vendor == Vendor.Nvidia:
             GL.glHint(Hint.MultisampleFilterNvHint, GL.GL_NICEST)

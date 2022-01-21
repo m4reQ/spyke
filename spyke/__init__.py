@@ -1,8 +1,9 @@
-from spyke.application import Application
-from spyke.editor import Editor
-from spyke.graphics import WindowSpecs
-from . import resourceManager as ResourceManager
-from .constants import *
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.application import Application
+    from spyke.editor import Editor
+
 import sys
 
 from spyke.exceptions import SpykeException
