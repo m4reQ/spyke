@@ -45,10 +45,11 @@ class MouseButtonDownEvent(Event):
 
 
 class MouseButtonUpEvent(Event):
-    def __init__(self, button: int):
+    def __init__(self, button: int, mods: int):
         super().__init__()
 
-        self.button = button
+        self.button: int = button
+        self.mods: int = mods
 
 
 class MouseMoveEvent(Event):

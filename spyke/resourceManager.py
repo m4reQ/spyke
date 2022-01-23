@@ -1,4 +1,5 @@
 from spyke import debug
+from spyke.utils import convert
 from .ecs import Scene
 from .ecs.components import *
 from .ecs.processors import *
@@ -54,7 +55,7 @@ def get_image_data(im: Image.Image) -> np.ndarray:
         mem[offset:offset + len(d)] = d
         offset += len(d)
     if s < 0:
-        raise GraphicsException(f"Encoder error: {s}")
+        raise GraphicsException(f'Encoder error: {s}')
 
     return data
 
@@ -94,8 +95,8 @@ class TextureLoadingTask(ALoadingTask):
             raise SpykeException(f"Cannot find texture file '{e.filename}'.")
 
         self.texData = TextureData(img.size[0], img.size[1])
-        self.texData.format = _IMAGE_FORMAT_MAP[img.mode]
-        self.texData.data = get_image_data(img).data
+        self.texData.format = convert.image_mode_to_texture_format(img.mode)
+        self.texData.data = get_image_data(img)
         self.texData.filepath = self.filepath
 
         img.close()

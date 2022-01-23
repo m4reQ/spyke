@@ -6,11 +6,12 @@ if typing.TYPE_CHECKING:
 # from . import enginePreview
 from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
+from spyke.events import WindowChangeFocusEvent
+from spyke.exceptions import GraphicsException, SpykeException
+from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
 from spyke import debug
 from spyke import resourceManager
 from spyke import events
-from spyke.exceptions import GraphicsException, SpykeException
-from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
 
 import glfw
 import os
@@ -135,8 +136,7 @@ class Application(ABC):
         debug.log_info(f'Window resized to ({width}, {height})')
 
     def _window_focus_callback(self, _, value) -> None:
-        event = events.WindowFocusEvent() if value else events.WindowLostFocusEvent()
-        events.invoke(event)
+        events.invoke(WindowChangeFocusEvent(value))
 
     def _cursor_pos_callback(self, _, x, y) -> None:
         events.invoke(events.MouseMoveEvent(x, y))
