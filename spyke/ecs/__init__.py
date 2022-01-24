@@ -1,3 +1,2 @@
-from .esper import Processor
-from .esper import Scene
 from . import components
+from esper import Processor, World as Scene

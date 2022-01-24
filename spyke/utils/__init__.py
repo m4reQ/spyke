@@ -1,5 +1,4 @@
 from .math import *
-from .convert import gl_type_to_size
 
 from typing import Iterable, List, Generic, TypeVar
 import time
@@ -13,7 +12,6 @@ __all__ = [
     'create_rotation_y',
     'create_rotation_z',
     'create_transform_3d',
-    'gl_type_to_size',
     'Iterator',
     'Delayer',
     'Vector2',

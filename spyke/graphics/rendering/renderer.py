@@ -2,6 +2,7 @@ from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
     from glfw import _GLFWwindow
+    from spyke.ecs import Scene
 
 # TODO: Remove unused import statements
 from spyke import debug
@@ -9,6 +10,7 @@ from spyke.ecs.components.camera import CameraComponent
 from spyke.enums import GLType
 from spyke import events
 from spyke.events.types import ToggleVsyncEvent
+from spyke import resources
 from ..rectangle import Rectangle
 from ..texturing import Texture
 from ..vertexArray import VertexArray
@@ -19,7 +21,7 @@ from ..buffers import *
 from ...constants import _GL_FLOAT_SIZE
 from ...enums import ClearMask, Hint, InternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys
 from ...ecs import components
-from ... import resourceManager as ResourceManager
+#from ... import resourceManager as ResourceManager
 
 from OpenGL import GL
 from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
@@ -261,14 +263,14 @@ class Renderer:
 
     # TODO: Add type hint for `scene` parameter
     # TODO: Retrieve projection matrix from main scene camera
-    def render_scene(self, scene) -> None:
+    def render_scene(self, scene: Scene) -> None:
         self.info.reset_frame_stats()
 
         # TODO: Decide if we really want to measure draw time even without performing glFlush
         start = time.perf_counter()
 
         primary_camera = None
-        for _, camera in scene.GetComponent(CameraComponent):
+        for _, camera in scene.get_component(CameraComponent):
             if camera.is_primary:
                 primary_camera = camera
 
@@ -307,9 +309,9 @@ class Renderer:
 
         # _Flush()
 
-        for ent, (sprite, transform) in scene.GetComponents(components.SpriteComponent, components.TransformComponent):
-            self._render_quad(transform.matrix, sprite.color, ResourceManager.GetTexture(
-                sprite.texture), sprite.tiling_factor, entId=int(ent))
+        for ent, (sprite, transform) in scene.get_components(components.SpriteComponent, components.TransformComponent):
+            self._render_quad(transform.matrix, sprite.color,
+                              sprite.image.texture, sprite.tiling_factor, entId=int(ent))
 
         self._flush()
 
@@ -317,9 +319,8 @@ class Renderer:
 
         text_transform = glm.mat4(1.0)
 
-        for ent, (text, transform) in scene.GetComponents(components.TextComponent, components.TransformComponent):
-            font = ResourceManager.GetFont(text.font)
-            texture = ResourceManager.GetTexture(font.texture)
+        for ent, (text, transform) in scene.get_components(components.TextComponent, components.TransformComponent):
+            font = text.font
 
             advSum = 0.0
 
@@ -342,7 +343,7 @@ class Renderer:
                 text_transform[0, 0] = scWidth
                 text_transform[1, 1] = scHeight
 
-                self._render_quad(text_transform, text.color, texture,
+                self._render_quad(text_transform, text.color, font.texture,
                                   glm.vec2(1.0, 1.0), glyph.tex_rect, int(ent))
 
         self._flush()
