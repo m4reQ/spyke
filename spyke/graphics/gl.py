@@ -73,6 +73,7 @@ class GLObject(ABC):
 
         self.delete()
 
+        GLObject._objects.remove(self)
         self._deleted = True
         debug.log_info(f'{self} deleted succesfully.')
 

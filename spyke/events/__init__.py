@@ -99,6 +99,7 @@ def register_method(method: Callable[[EventType], ReturnType], event_type: Event
         f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
 
 
+# TODO: Make register funciton accept bound methods
 def register(event_type: EventType, *, priority: int, consume: bool = False) -> Callable[[EventType], ReturnType]:
     '''
     Registers new function as a handler for events of given type. Should be used as a decorator.
