@@ -7,22 +7,23 @@ if typing.TYPE_CHECKING:
 from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
 from spyke.events import WindowChangeFocusEvent
-from spyke.exceptions import GraphicsException, SpykeException
+from spyke.exceptions import GraphicsException
+from spyke.ecs import scene
 from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
 from spyke import debug
-from spyke import resourceManager
+from spyke import resources
 from spyke import events
 
 import glfw
-import os
 import gc
+import time
 from PIL import Image
 from abc import ABC, abstractmethod
 
 
 class Application(ABC):
-    @debug.timed
     def __init__(self, specification: WindowSpecs):
+        self._loading_start: float = time.perf_counter()
         self.specification: WindowSpecs = specification
         self._handle: glfw._GLFWwindow = None
         self._renderer: Renderer = None
@@ -61,22 +62,14 @@ class Application(ABC):
         events.register_method(lambda e: self.set_vsync(e.state),
                                events.ToggleVsyncEvent, priority=-1)
 
-        # TODO: Move this to resource manager
-        if specification.icon_filepath:
-            if not os.path.endswith('.ico'):
-                raise SpykeException(
-                    f'Invalid icon extension: {os.path.splitext(specification.icon_filepath)}.')
-
-            self._load_icon(specification.icon_filepath)
-        else:
-            self._load_icon(DEFAULT_ICON_FILEPATH)
+        icon_filepath = specification.icon_filepath or DEFAULT_ICON_FILEPATH
+        with Image.open(icon_filepath) as img:
+            glfw.set_window_icon(self._handle, 1, img)
 
         self._renderer = Renderer()
         self._renderer.initialize(self._handle)
 
         self.set_vsync(specification.vsync)
-
-        gc.collect()
 
     @abstractmethod
     def on_frame(self) -> None:
@@ -100,7 +93,11 @@ class Application(ABC):
     def _run(self) -> None:
         # TODO: Add loading time profiling
         self.on_load()
-        resourceManager.FinishLoading()
+        resources._shutdown_thread_executor()
+        gc.collect()
+
+        debug.log_info(
+            f'Application loaded in {time.perf_counter() - self._loading_start} seconds.')
 
         # enginePreview.CleanupPreview()
         # glfw.swap_buffers(self._handle)
@@ -113,11 +110,11 @@ class Application(ABC):
                 events.invoke(events.WindowCloseEvent())
                 isRunning = False
 
-            scene = resourceManager.GetCurrentScene()
-            scene.Process(dt=self.frametime)
+            _scene = scene.get_current()
+            _scene.process(dt=self.frametime)
 
             if self.renderer.info.window_active:
-                self.renderer.render_scene(scene)
+                self.renderer.render_scene(_scene)
                 self.on_frame()
                 glfw.swap_buffers(self._handle)
 
@@ -163,12 +160,6 @@ class Application(ABC):
             events.invoke(events.KeyDownEvent(key, mods, scancode, True))
         elif action == glfw.RELEASE:
             events.invoke(events.KeyUpEvent(key))
-
-    # TODO: Move this somewhere else. Maybe to resource manager
-    def _load_icon(self, filepath: str) -> None:
-        img = Image.open(filepath)
-        glfw.set_window_icon(self._handle, 1, img)
-        img.close()
 
     @debug.timed
     def _close(self) -> None:

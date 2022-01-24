@@ -1,28 +1,28 @@
-from .esper import Processor
+import esper
 from .components import *
 from spyke.utils import lerp_float, lerp_vector
 
 
-class TransformProcessor(Processor):
-    def Process(self, *args, **kwargs):
-        for _, transform in self.scene.GetComponent(TransformComponent):
+class TransformProcessor(esper.Processor):
+    def process(self, *args, **kwargs):
+        for _, transform in self.world.get_component(TransformComponent):
             if transform.should_recalculate:
                 transform.recalculate()
 
-        for _, (camera, transform) in self.scene.GetComponents(CameraComponent, TransformComponent):
+        for _, (camera, transform) in self.world.get_components(CameraComponent, TransformComponent):
             if camera.should_recalculate:
                 camera.recalculate(transform.matrix)
 
 
-class AudioProcessor(Processor):
-    def Process(self, *args, **kwargs):
-        for _, audio in self.scene.GetComponent(AudioComponent):
+class AudioProcessor(esper.Processor):
+    def process(self, *args, **kwargs):
+        for _, audio in self.world.get_component(AudioComponent):
             state = audio.Handle.GetState()
 
 
-class ParticleProcessor(Processor):
-    def Process(self, dt: float):
-        for _, particleComponent in self.scene.GetComponent(ParticleSystemComponent):
+class ParticleProcessor(esper.Processor):
+    def process(self, dt: float):
+        for _, particleComponent in self.world.get_component(ParticleSystemComponent):
             for particle in particleComponent.particlePool:
                 if not particle.isAlive:
                     continue

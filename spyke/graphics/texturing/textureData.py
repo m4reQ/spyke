@@ -12,8 +12,7 @@ class TextureData:
         'width',
         'height',
         'data',
-        'format',
-        'filepath'
+        'format'
     )
 
     def __init__(self, width: int, height: int):
@@ -21,4 +20,3 @@ class TextureData:
         self.height: int = height
         self.data: np.ndarray = None
         self.format: TextureFormat = TextureFormat.Rgba
-        self.filepath: str = ''

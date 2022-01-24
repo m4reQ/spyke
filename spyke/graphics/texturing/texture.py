@@ -15,7 +15,6 @@ class Texture(gl.GLObject):
 
         self.width: int = tex_data.width
         self.height: int = tex_data.height
-        self.filepath: str = tex_data.filepath
 
         self._id = gl.create_texture(TextureTarget.Texture2d)
 

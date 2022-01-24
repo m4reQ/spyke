@@ -1,68 +1,66 @@
 from spyke.ecs import components
+from spyke.ecs import scene
 from spyke import debug
 from spyke import events
 from spyke.application import Application
 from spyke.graphics import WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
-from spyke import resourceManager as ResourceManager
+from spyke import resources
 from spyke.utils import *
 import spyke
 
 
 class App(Application):
     def on_load(self):
-        ResourceManager.SetSceneCurrent(ResourceManager.CreateScene('Test'))
-        ResourceManager.CreateTexture('tests/test1.jpg', 'tex1')
-        ResourceManager.CreateTexture('tests/test2.png', 'tex2')
-        ResourceManager.CreateTexture('tests/test3.jpg', 'tex3')
-        ResourceManager.CreateFont(
-            'tests/ArialNative.fnt', 'tests/ArialNative.png', 'arial')
+        main_scene = scene.create()
 
-        ResourceManager.GetCurrentScene().CreateEntity(
+        tex1 = resources.load('tests/test1.jpg')
+        tex2 = resources.load('tests/test2.png')
+        tex3 = resources.load('tests/test3.jpg')
+        font_arial = resources.load('tests/ArialNative.fnt')
+
+        main_scene.create_entity(
             components.TagComponent('texture'),
             components.TransformComponent(
                 Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.SpriteComponent(
-                'tex1', Vector2(1.0), color(1.0, 1.0, 1.0, 0.3))
+                tex1, Vector2(1.0), color(1.0, 1.0, 1.0, 0.3))
         )
 
-        ResourceManager.GetCurrentScene().CreateEntity(
+        main_scene.create_entity(
             components.TagComponent('texture3'),
             components.TransformComponent(
                 Vector3(0.2, 0.7, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0)),
             components.SpriteComponent(
-                'tex3', Vector2(1.0), color(1.0, 0.0, 1.0, 0.3))
+                tex3, Vector2(1.0), color(1.0, 0.0, 1.0, 0.3))
         )
 
-        ResourceManager.GetCurrentScene().CreateEntity(
+        main_scene.create_entity(
             components.TagComponent('text'),
             components.TransformComponent(
                 Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'TEST', 80, 'arial', color(1.0, 0.0, 0.0, 1.0))
+                'TEST', 80, font_arial, color(1.0, 0.0, 0.0, 1.0))
         )
 
-        ResourceManager.GetCurrentScene().CreateEntity(
+        main_scene.create_entity(
             components.TagComponent('text2'),
             components.TransformComponent(
                 Vector3(0.4), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'TEST2', 42, 'arial', color(1.0, 1.0, 0.0, 1.0))
+                'TEST2', 42, font_arial, color(1.0, 1.0, 0.0, 1.0))
         )
 
-        ResourceManager.GetCurrentScene().CreateEntity(
+        main_scene.create_entity(
             components.TagComponent('texture2'),
             components.TransformComponent(
                 Vector3(0.5), Vector3(0.5, 0.5, 0.0), Vector3(0.0)),
             components.SpriteComponent(
-                'tex2', Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
+                tex2, Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
         )
-        # ResourceManager.GetCurrentScene().CreateEntity(
-        # 	components.TagComponent('font_texture'),
-        # 	components.TransformComponent(Vector3(0.3), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
-        # 	components.SpriteComponent('font_arial_texture', Vector2(1.0), color(1.0, 0.0, 0.0, 1.0))
-        # )
+
+        scene.set_current(main_scene)
         # LoadScene("tests/newScene.scn")
 
         # self.ent4 = EntityManager.CreateEntity("Particles")
@@ -98,8 +96,6 @@ class App(Application):
             return
 
         debug.log_info('Camera moved.')
-
-        debug.get_gl_error()
 
     def on_frame(self):
         pass

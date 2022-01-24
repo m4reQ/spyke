@@ -1,7 +1,5 @@
 import ctypes
-import psutil
 import time
-import os
 import numpy as np
 from OpenGL import GL
 
@@ -18,8 +16,6 @@ DEFAULT_IMGUI_TITLE_BG_COLOR = "#8c8c8c"
 MAX_LOADING_TASKS_COUNT = 6
 
 DEBUG_LOG_TO_FILE = True
-
-_MAIN_PROCESS = psutil.Process(os.getpid())
 
 _OPENGL_VER_MAJOR = 4
 _OPENGL_VER_MINOR = 5
