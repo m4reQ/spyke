@@ -5,6 +5,6 @@ numpy
 PyOpenGL
 PyOpenGL-accelerate
 colorama
-psutil
 glfw
 Pillow
+esper
