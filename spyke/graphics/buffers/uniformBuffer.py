@@ -1,7 +1,9 @@
-from spyke.enums import GLType
-from spyke import debug
-from .glBuffer import DynamicBuffer
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.enums import GLType
 
+from .glBuffer import DynamicBuffer
 from OpenGL import GL
 
 

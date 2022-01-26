@@ -1,5 +1,10 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.enums import GLType, InternalFormat
+
 from spyke.graphics import gl
-from spyke.enums import GLType, InternalFormat, TextureTarget
+from spyke.enums import TextureTarget
 from .glBuffer import DynamicBuffer
 
 from OpenGL import GL

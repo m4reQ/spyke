@@ -1,28 +1,30 @@
-from spyke.graphics import gl
-from .glBuffer import ABuffer
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.enums import GLType
 
+from spyke.graphics import gl
+from .buffer import Buffer
 from OpenGL import GL
 
-class PixelBuffer(ABuffer):
-    _BufferUsageFlags = GL.GL_DYNAMIC_STORAGE_BIT
 
-    def __init__(self, size: int):
-        super().__init__(size)
+class PixelBuffer(Buffer):
+    def __init__(self, size: int, data_type: GLType):
+        super().__init__(size, data_type)
 
-        GL.glNamedBufferStorage(self.id, self._size, None, PixelBuffer._BufferUsageFlags)
-    
-    def BindLoad(self) -> None:
+        self._id = gl.create_buffer()
+
+        GL.glNamedBufferStorage(self.id, self.size,
+                                None, GL.GL_DYNAMIC_STORAGE_BIT)
+
+    def bind_load(self) -> None:
         GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, self.id)
-    
-    def BindRead(self) -> None:
+
+    def bind_read(self) -> None:
         GL.glBindBuffer(GL.GL_PIXEL_PACK_BUFFER, self.id)
-    
-    def Unbind(self) -> None:
+
+    def unbind(self) -> None:
         GL.glBindBuffer(GL.GL_PIXEL_PACK_BUFFER, 0)
         GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, 0)
-    
-    def UploadData(self, size: int, data: memoryview) -> None:
-        GL.glNamedBufferSubData(self.id, 0, size, data.obj)
-    
-    def ReadData(self) -> None:
-        raise NotImplementedError
+
+    # TODO: Implement pixel buffer objects
