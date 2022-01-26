@@ -16,4 +16,4 @@ class TextureSpec:
         self.min_filter: MinFilter = MinFilter.LinearMipmapLinear
         self.mag_filter: MagFilter = MagFilter.Linear
         self.wrap_mode: WrapMode = WrapMode.Repeat
-        self.compress: bool = True
+        self.compress: bool = False

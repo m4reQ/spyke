@@ -9,7 +9,6 @@ import numpy as np
 
 
 class Texture(gl.GLObject):
-    @debug.timed
     def __init__(self, tex_data: TextureData, tex_spec: TextureSpec):
         super().__init__()
 
