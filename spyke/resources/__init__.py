@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import typing
 if typing.TYPE_CHECKING:
     from .resource import Resource
@@ -10,6 +9,7 @@ import threading
 import uuid
 from functools import lru_cache
 from os import path
+import weakref
 from spyke import debug
 from spyke.exceptions import SpykeException
 from .image import Image
@@ -18,8 +18,7 @@ from .font import Font
 # NOTE: All functions from this module are called from main thread.
 # Concurrent calls only occur through ThreadPoolExecutor.
 
-MAX_LOADING_THREADS = 1
-RESOURCE_TRY_FINALIZE_TIMEOUT = 0.01
+MAX_LOADING_THREADS = 4
 
 _resources: Dict[uuid.UUID, Union[Resource, Future[Resource]]] = {}
 _thread_executor: ThreadPoolExecutor = ThreadPoolExecutor(
@@ -75,7 +74,7 @@ def load(filepath: str) -> uuid.UUID:
 
 
 @lru_cache
-def get(_id: uuid.UUID) -> Resource:
+def get(_id: uuid.UUID) -> weakref.ProxyType[Resource]:
     '''
     Gets resource with given id and finalizes its loading if neccessary.
 
@@ -96,17 +95,21 @@ def get(_id: uuid.UUID) -> Resource:
         _res.finalize()
         _res.cleanup()
 
-        _resources[_res.id] = _res
+        _resources[_id] = _res
         get.cache_clear()
 
-        res = _res
-
-    return res
+    return weakref.proxy(_resources[_id])
 
 
 def unload(_id: uuid.UUID) -> None:
     if _id not in _resources:
         raise SpykeException(f'Resource with id: {_id} not found.')
+
+    res = _resources[_id]
+    if weakref.getweakrefcount(res) != 0:
+        debug.log_warning(
+            f'Resource ({res}) is already in use. To unload resource make sure that no components are using it anymore.')
+        return
 
     res = _resources.pop(_id)
     res.unload()
