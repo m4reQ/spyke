@@ -1,4 +1,4 @@
-from .glBuffer import Buffer, StaticBuffer, DynamicBuffer
+from .buffer import Buffer, StaticBuffer, DynamicBuffer
 from .uniformBuffer import UniformBuffer
 from .textureBuffer import TextureBuffer
 from .frameBuffer import Framebuffer, FramebufferSpec, AttachmentSpec

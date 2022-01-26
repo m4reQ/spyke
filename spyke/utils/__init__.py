@@ -1,4 +1,4 @@
-from typing import Iterable, List, Generic, TypeVar
+from typing import Iterable, List, TypeVar
 import time
 import gc
 
@@ -55,7 +55,7 @@ def create_quad_indices(quadsCount: int) -> List[int]:
 T = TypeVar('T')
 
 
-class Iterator(Generic[T]):
+class Iterator(Iterable[T]):
     __slots__ = (
         '__weakref__',
         '_iterable',

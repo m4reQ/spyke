@@ -5,7 +5,7 @@ if typing.TYPE_CHECKING:
 
 from spyke.graphics import gl
 from spyke.enums import TextureTarget
-from .glBuffer import DynamicBuffer
+from .buffer import DynamicBuffer
 
 from OpenGL import GL
 

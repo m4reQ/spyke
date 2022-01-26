@@ -1,7 +1,6 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Optional
     from uuid import UUID
 
 from PIL import Image as _Image
@@ -14,7 +13,7 @@ from spyke.graphics.texturing import TextureSpec, Texture
 
 
 class Image(Resource):
-    def __init__(self, _id: UUID, filepath: Optional[str] = None):
+    def __init__(self, _id: UUID, filepath: str = ''):
         super().__init__(_id, filepath)
 
         self.texture: Texture = None

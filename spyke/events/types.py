@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional, Tuple, Union
+from typing import Tuple
 
 
 class Event(ABC):

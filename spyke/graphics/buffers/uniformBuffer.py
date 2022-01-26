@@ -3,7 +3,7 @@ import typing
 if typing.TYPE_CHECKING:
     from spyke.enums import GLType
 
-from .glBuffer import DynamicBuffer
+from .buffer import DynamicBuffer
 from OpenGL import GL
 
 
