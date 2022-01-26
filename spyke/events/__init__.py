@@ -1,13 +1,16 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from typing import TypeVar, Callable
+    EventType = TypeVar('EventType', bound=types.Event)
+    ReturnType = TypeVar('ReturnType')
+
 from spyke import debug
 from spyke.exceptions import SpykeException
 from . import types
 from .types import *
-from typing import TypeVar, Callable
 import inspect
 import sys
-
-EventType = TypeVar('EventType', bound=types.Event)
-ReturnType = TypeVar('ReturnType')
 
 __all__ = [
     'Event',

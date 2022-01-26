@@ -1,31 +1,31 @@
 from __future__ import annotations
 import typing
+
+from spyke.graphics.texturing.textureProxy import TextureProxy
 if typing.TYPE_CHECKING:
     from glfw import _GLFWwindow
     from spyke.ecs import Scene
+    from typing import Optional, Generator, List, Union
+
+    PolygonModeGenerator = Generator[PolygonMode, None, None]
 
 # TODO: Remove unused import statements
 from spyke import debug
 from spyke.ecs.components.camera import CameraComponent
-from spyke.enums import GLType
+from spyke.enums import GLType, ClearMask, Hint, InternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys, SizedInternalFormat
 from spyke import events
-from spyke.events.types import ToggleVsyncEvent
-from spyke import resources
-from ..rectangle import Rectangle
+from spyke.graphics import Rectangle
 from ..texturing import Texture
 from ..vertexArray import VertexArray
-from ...utils import create_quad_indices, Iterator
+from ...utils import create_quad_indices
 from .rendererInfo import RendererInfo
 from ..shader import Shader
 from ..buffers import *
 from ...constants import _GL_FLOAT_SIZE
-from ...enums import ClearMask, Hint, InternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys
 from ...ecs import components
-#from ... import resourceManager as ResourceManager
 
 from OpenGL import GL
 from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
-from typing import List
 from PIL import Image
 import glm
 import time
@@ -90,8 +90,8 @@ class Renderer:
 
         self.info: RendererInfo = RendererInfo()
 
-        self.polygon_mode_iterator: Iterator[PolygonMode] = Iterator(
-            [PolygonMode.Fill, PolygonMode.Line, PolygonMode.Point], looping=True)
+        self.polygon_mode_generator: PolygonModeGenerator = self._polygon_mode_generator_impl()
+        self.polygon_mode: PolygonMode = next(self.polygon_mode_generator)
 
         self.ubo: UniformBuffer = None
         self.ibo: StaticBuffer = None
@@ -163,37 +163,34 @@ class Renderer:
         self.vao = VertexArray()
         self.textures[0] = Texture.CreateWhiteTexture().id
 
-        colorAttachmentSpec = FramebufferAttachmentSpec(GL.GL_RGBA)
+        color_attachment_spec = AttachmentSpec(SizedInternalFormat.Rgba8)
 
-        entIdAttachmentSpec = FramebufferAttachmentSpec(
-            GL.GL_RED_INTEGER,
-            min_filter=MinFilter.Nearest,
-            mag_filter=MagFilter.Nearest
-        )
+        entity_id_attachment_spec = AttachmentSpec(SizedInternalFormat.R8i)
+        entity_id_attachment_spec.min_filter = MinFilter.Nearest
+        entity_id_attachment_spec.mag_filter = MagFilter.Nearest
 
-        depthAttachmentSpec = FramebufferAttachmentSpec(
-            GL.GL_DEPTH24_STENCIL8,
-            min_filter=MinFilter.Nearest,
-            mag_filter=MagFilter.Nearest
-        )
+        depth_attachment_spec = AttachmentSpec(
+            SizedInternalFormat.Depth24Stencil8)
+        depth_attachment_spec.min_filter = MinFilter.Nearest
+        depth_attachment_spec.mag_filter = MagFilter.Nearest
 
-        attachment_specs = [
-            colorAttachmentSpec,
-            entIdAttachmentSpec,
-            depthAttachmentSpec
+        attachments_specs = [
+            color_attachment_spec,
+            entity_id_attachment_spec,
+            depth_attachment_spec
         ]
 
         # TODO: Handle usage of framebuffer with different size than the window
-        fbSpec = FramebufferSpec(
+        framebuffer_spec = FramebufferSpec(
             self.info.window_width,
-            self.info.window_height,
-            # TODO: Get samples count from some kind of settings file
-            samples=1 if self.info.extension_present(
-                'GL_INTEL_framebuffer_CMAA') else 2,
-            attachment_specs=attachment_specs
-        )
+            self.info.window_height)
+        framebuffer_spec.is_resizable = True
+        framebuffer_spec.attachments_specs = attachments_specs
+        # TODO: Get samples count from some kind of settings file
+        framebuffer_spec.samples = 1 if self.info.extension_present(
+            'GL_INTEL_framebuffer_CMAA') else 2
 
-        self.framebuffer = Framebuffer(fbSpec)
+        self.framebuffer = Framebuffer(framebuffer_spec)
         self.info.framebuffer_width = self.framebuffer.width
         self.info.framebuffer_height = self.framebuffer.height
 
@@ -204,8 +201,9 @@ class Renderer:
                                     SHADER_SOURCES_DIRECTORY + 'basic.frag')
         self.basic_shader.compile()
 
+        samplers = list(range(MAX_TEXTURES_COUNT))
         self.basic_shader.set_uniform_int(
-            'uTextures', list(range(MAX_TEXTURES_COUNT)))
+            'uTextures', samplers)
         self.basic_shader.set_uniform_int(
             'uTexCoordsBuffer', BUFFER_TEXTURE_SAMPLER)
         self.basic_shader.set_uniform_block_binding(
@@ -225,9 +223,9 @@ class Renderer:
         self.vao.add_layout(self.basic_shader.get_attrib_location(
             'aTilingFactor'), INSTANCE_DATA_BUFFER_BINDING, 2, GLType.Float, False, 1)
         self.vao.add_layout(self.basic_shader.get_attrib_location(
-            'aTexIdx'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
+            'aTexIdx'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float, False, 1)
         self.vao.add_layout(self.basic_shader.get_attrib_location(
-            'aEntId'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Int, False, 1)
+            'aEntId'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float, False, 1)
         self.vao.add_matrix_layout(self.basic_shader.get_attrib_location(
             'aTransform'), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float, False, 1)
 
@@ -261,8 +259,6 @@ class Renderer:
         img.save(filename, 'JPEG')
         debug.log_info(f'Screenshot was saved as "{filename}".')
 
-    # TODO: Add type hint for `scene` parameter
-    # TODO: Retrieve projection matrix from main scene camera
     def render_scene(self, scene: Scene) -> None:
         self.info.reset_frame_stats()
 
@@ -285,12 +281,17 @@ class Renderer:
 
         self.ubo.bind()
 
-        # _framebuffer.bind()
+        # per-vertex data (in vbo): position // only ONE model
+        # per-vertex data (in tbo): all of texture coordinates for every instance -> [], [], [] ...
+        # per-instance data (in vbo): color, TRANSFORM, tiling, texture index, ... // BIGGER
+
+        # offsetting tbo with indices
+
+        # self.framebuffer.bind()
 
         self.clear_screen()
 
-        GL.glPolygonMode(GL.GL_FRONT_AND_BACK,
-                         self.polygon_mode_iterator.current)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, self.polygon_mode)
         GL.glEnable(GL.GL_DEPTH_TEST)
 
         # drawables = [x for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
@@ -310,8 +311,8 @@ class Renderer:
         # _Flush()
 
         for ent, (sprite, transform) in scene.get_components(components.SpriteComponent, components.TransformComponent):
-            self._render_quad(transform.matrix, sprite.color,
-                              sprite.image.texture, sprite.tiling_factor, entId=int(ent))
+            self._render_quad(transform.matrix, sprite.color, sprite.tiling_factor,
+                              texture=sprite.image.texture, ent_id=int(ent))
 
         self._flush()
 
@@ -343,8 +344,8 @@ class Renderer:
                 text_transform[0, 0] = scWidth
                 text_transform[1, 1] = scHeight
 
-                self._render_quad(text_transform, text.color, font.texture,
-                                  glm.vec2(1.0, 1.0), glyph.tex_rect, int(ent))
+                self._render_quad(text_transform, text.color,
+                                  glm.vec2(1.0, 1.0), texture=font.texture, tex_rect=glyph.tex_rect, ent_id=int(ent))
 
         self._flush()
 
@@ -353,33 +354,18 @@ class Renderer:
         # 		if particle.isAlive:
         # 			Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
 
-        # Renderer.__ParticleRenderer.EndScene()
+        # TODO: Implement rendering of multisampled framebuffer
+        # if self.info.extension_present('GL_INTEL_framebuffer_CMAA'):
+        # self.framebuffer.unbind()
 
-        # _basicRenderer.RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
-        # _basicRenderer.EndScene()
-
-        # if contextInfo.capabilities.intel_framebuffer_cmaa_enabled and _framebuffer.specification.samples > 1:
-        # 	glApplyFramebufferAttachmentCMAAINTEL()
-
-        # _framebuffer.Unbind()
-
-        # ClearScreen()
-        # GL.glViewport(0, 0, screenStats.width, screenStats.height)
         # GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+        # GL.glViewport(0, 0, self.info.window_width, self.info.window_height)
 
-        # viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
-        # viewProjectionData[2, 2] = -1.0
-        # _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
+        # self.clear_screen()
 
-        # viewProjectionData = np.asarray(glm.mat4(1.0), dtype=_NP_FLOAT)
-        # _ubo.AddData(memoryview(viewProjectionData), viewProjectionData.size * _GL_FLOAT_SIZE)
-
-        # if contextInfo.capabilities.intel_framebuffer_cmaa_enabled:
-        # 	# _RenderQuad(glm.mat4(1.0), glm.vec4(1.0), DEFAULT_RENDER_COLOR_ATTACHMENT, glm.vec2(1.0))
-        # 	_RenderQuad(glm.mat4(1.0), glm.vec4(1.0), _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT), glm.vec2(1.0))
-        # 	_Flush()
-        # else:
-        # 	_RenderFramebuffer(_framebuffer.specification.samples, _framebuffer.GetColorAttachment(DEFAULT_RENDER_COLOR_ATTACHMENT))
+        # self._render_quad(glm.mat4(1.0), glm.vec4(1.0), glm.vec2(
+        #     1.0), self.framebuffer.get_color_attachment(0))
+        # self._flush()
 
         if self.info.vendor == Vendor.Nvidia:
             self.info.video_memory_used = self.info.memory_available - \
@@ -414,7 +400,7 @@ class Renderer:
         self.last_texture = 1
 
     # TODO: Create some kind of precompiled quad data object that stores below informations
-    def _render_quad(self, transform: glm.mat4, color: glm.vec4, texture: Texture, tilingFactor: glm.vec2, tex_rect: Rectangle = Rectangle.one(), entId: int = -1) -> None:
+    def _render_quad(self, transform: glm.mat4, color: glm.vec4, tilingFactor: glm.vec2, texture: Union[Optional[Texture], TextureProxy], tex_rect: Rectangle = Rectangle.one(), ent_id: int = -1) -> None:
         # TODO: Unhardcode this to match maximum capacity of the vertex buffer
         # with value given by `instance_count * current_model_vertices_per_instance`
         if self.instance_count > MAX_QUADS_COUNT:
@@ -454,7 +440,7 @@ class Renderer:
                 tilingFactor.x,
                 tilingFactor.y,
                 tex_idx,
-                entId
+                ent_id
             ], dtype=np.float32),
             np.asarray(transform, dtype=np.float32).T.flatten()
         ))
@@ -463,24 +449,25 @@ class Renderer:
 
         self.instance_count += 1
 
-    def _window_change_focus_callback(self, e: 'events.WindowChangeFocusEvent') -> None:
+    def _window_change_focus_callback(self, e: events.WindowChangeFocusEvent) -> None:
         self.info.window_active = e.value
 
-    def _window_move_callback(self, e: 'events.WindowMoveEvent') -> None:
+    def _window_move_callback(self, e: events.WindowMoveEvent) -> None:
         self.info.window_position_x = e.x
         self.info.window_position_y = e.y
 
-    def _key_down_callback(self, e: 'events.KeyDownEvent') -> None:
+    def _key_down_callback(self, e: events.KeyDownEvent) -> None:
         if e.repeat:
             return
 
         if e.key == Keys.KeyGrave:
-            mode = next(self.polygon_mode_iterator)
-            debug.log_info(f'Renderer drawing mode set to: {mode.name}')
+            self.polygon_mode = next(self.polygon_mode_iterator)
+            debug.log_info(
+                f'Renderer drawing mode set to: {self.polygon_mode.name}')
         elif e.key == Keys.KeyF1:
             self.capture_frame()
         elif e.key == Keys.KeyF2:
-            events.invoke(ToggleVsyncEvent(not self.info.vsync))
+            events.invoke(events.ToggleVsyncEvent(not self.info.vsync))
 
     def _resize_callback(self, e: events.ResizeEvent) -> None:
         GL.glScissor(0, 0, e.width, e.height)
@@ -489,8 +476,11 @@ class Renderer:
         self.info.window_width = e.width
         self.info.window_height = e.height
 
-        # TODO: Handle usage of different framebuffer size here
-        if e.width != 0 and e.height != 0:
-            self.framebuffer.Resize(e.width, e.height)
-            self.info.framebuffer_width = self.framebuffer.width
-            self.info.framebuffer_height = self.framebuffer.height
+        self.info.framebuffer_width = self.framebuffer.width
+        self.info.framebuffer_height = self.framebuffer.height
+
+    def _polygon_mode_generator_impl(self) -> PolygonModeGenerator:
+        while True:
+            yield PolygonMode.Fill
+            yield PolygonMode.Line
+            yield PolygonMode.Point
