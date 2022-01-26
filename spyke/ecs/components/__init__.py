@@ -5,6 +5,7 @@ from .sprite import SpriteComponent
 from .text import TextComponent
 from .transform import TransformComponent
 from .tag import TagComponent
+from .component import Component
 
 __all__ = (
     'AudioComponent',
@@ -13,5 +14,6 @@ __all__ = (
     'SpriteComponent',
     'TextComponent',
     'TransformComponent',
-    'TagComponent'
+    'TagComponent',
+    'Component'
 )

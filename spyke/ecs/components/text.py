@@ -1,7 +1,10 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
+    from typing import Optional
+    from weakref import ProxyType
     from spyke.resources import Font
+    FontProxy = ProxyType[Font]
 
 import glm
 import uuid
@@ -21,4 +24,4 @@ class TextComponent:
         self.text: str = text
         self.size: int = size
         self.color: glm.vec4 = color
-        self.font: Font = resources.get(font_id)
+        self.font: Optional[FontProxy] = resources.get(font_id)

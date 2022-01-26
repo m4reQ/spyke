@@ -1,7 +1,8 @@
 import glm
+from .component import Component
 
 
-class TransformComponent:
+class TransformComponent(Component):
     __slots__ = (
         '__weakref__',
         '_pos',
@@ -17,25 +18,25 @@ class TransformComponent:
         '_rot_quat'
     )
 
-    def __init__(self, pos: glm.vec3, size: glm.vec3, rotation: glm.vec3):
-        self._pos = pos
-        self._size = size
-        self._rot = glm.mod(rotation, 360.0)
+    def __init__(self, position: glm.vec3, size: glm.vec3, rotation: glm.vec3):
+        self._pos: glm.vec3 = position
+        self._size: glm.vec3 = size
+        self._rot: glm.vec3 = glm.mod(rotation, 360.0)
         self._rot_hint = rotation
 
-        self._pos_changed = True
-        self._size_changed = True
-        self._rot_changed = True
+        self._pos_changed: bool = True
+        self._size_changed: bool = True
+        self._rot_changed: bool = True
 
-        self.matrix = glm.mat4(1.0)
+        self.matrix: glm.mat4 = glm.mat4(1.0)
 
-        self._trans_mat = glm.mat4(1.0)
-        self._scale_mat = glm.mat4(1.0)
-        self._rot_quat = glm.quat(self._rot)
+        self._trans_mat: glm.mat4 = glm.mat4(1.0)
+        self._scale_mat: glm.mat4 = glm.mat4(1.0)
+        self._rot_quat: glm.quat = glm.quat(glm.radians(self._rot))
 
         self.recalculate()
 
-    def recalculate(self):
+    def recalculate(self) -> None:
         if self._pos_changed:
             self._trans_mat = glm.translate(glm.mat4(1.0), self._pos)
             self._pos_changed = False
@@ -52,29 +53,29 @@ class TransformComponent:
             glm.mat4_cast(self._rot_quat) * self._scale_mat
 
     @property
-    def should_recalculate(self):
+    def should_recalculate(self) -> bool:
         return any([self._pos_changed, self._size_changed, self._rot_changed])
 
     @property
-    def position(self):
+    def position(self) -> glm.vec3:
         return self._pos
 
     @position.setter
-    def position(self, val: glm.vec3):
+    def position(self, val: glm.vec3) -> None:
         self._pos = val
         self._pos_changed = True
 
     @property
-    def size(self):
+    def size(self) -> glm.vec3:
         return self._size
 
     @size.setter
-    def size(self, val: glm.vec3):
+    def size(self, val: glm.vec3) -> None:
         self._size = val
         self._size_changed = True
 
     @property
-    def rotation(self):
+    def rotation(self) -> glm.vec3:
         return self._rot
 
     @rotation.setter

@@ -1,11 +1,17 @@
-from spyke.graphics.rectangle import Rectangle
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from spyke.graphics.rectangle import Rectangle
+    from typing import Optional, Tuple
+    Size = Tuple[int, int]
+
+from .component import Component
 from spyke.enums import CameraType
 from spyke.exceptions import SpykeException
-from typing import Optional, Tuple
 import glm
 
 
-class CameraComponent:
+class CameraComponent(Component):
     __slots__ = (
         '__weakref__',
         'is_primary',
@@ -20,14 +26,14 @@ class CameraComponent:
     )
 
     @classmethod
-    def orthographic(cls, viewport: Rectangle, *, clipping: Optional[Tuple[int, int]] = None, is_primary: bool = False):
+    def orthographic(cls, viewport: Rectangle, *, clipping: Optional[Size] = None, is_primary: bool = False):
         return cls(CameraType.Orthographic, viewport, clipping=clipping, is_primary=is_primary)
 
     @classmethod
     def perspective(cls, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, is_primary: bool = False):
         return cls(CameraType.Perspective, viewport, fov=fov, aspect=aspect, is_primary=is_primary)
 
-    def __init__(self, _type: CameraType, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, clipping: Optional[Tuple[int, int]] = None, is_primary: bool = False):
+    def __init__(self, _type: CameraType, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, clipping: Optional[Size] = None, is_primary: bool = False):
         if not len(clipping) == 2:
             raise SpykeException(
                 'Tuple passed for "clipping" parameter must be the length of 2.')
@@ -35,7 +41,7 @@ class CameraComponent:
         self.is_primary: bool = is_primary
         self.type: CameraType = _type
         self.viewport: Rectangle = viewport
-        self.clipping: Tuple[int, int] = clipping if clipping else (-1.0, 10.0)
+        self.clipping: Size = clipping or (-1.0, 10.0)
         self.fov: float = fov
         self.aspect: float = aspect
 
