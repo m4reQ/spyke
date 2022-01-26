@@ -1,7 +1,9 @@
-from .math import *
-
 from typing import Iterable, List, Generic, TypeVar
 import time
+import gc
+
+from .math import *
+from spyke import debug
 
 __all__ = [
     'lerp_float',
@@ -12,6 +14,7 @@ __all__ = [
     'create_rotation_y',
     'create_rotation_z',
     'create_transform_3d',
+    'garbage_collect',
     'Iterator',
     'Delayer',
     'Vector2',
@@ -19,6 +22,14 @@ __all__ = [
     'Vector4',
     'Matrix4'
 ]
+
+
+def garbage_collect():
+    prev = gc.get_count()[0]
+    gc.collect()
+
+    debug.log_info(
+        f'Garbage collection freed {prev - gc.get_count()[0]} objects')
 
 
 def create_quad_indices(quadsCount: int) -> List[int]:

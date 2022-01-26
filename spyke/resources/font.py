@@ -1,14 +1,14 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Optional, Dict
+    from typing import Dict
     from uuid import UUID
 
 from PIL import Image
 import time
 from os import path
 from .resource import Resource
-from spyke.enums import MagFilter, MinFilter
+from spyke.enums import MagFilter, MinFilter, WrapMode
 from spyke.exceptions import SpykeException
 from spyke.graphics.texturing import TextureData, TextureSpec, Texture
 from spyke.graphics.rectangle import Rectangle
@@ -18,7 +18,7 @@ from spyke import debug
 
 
 class Font(Resource):
-    def __init__(self, _id: UUID, filepath: Optional[str] = None):
+    def __init__(self, _id: UUID, filepath: str = ''):
         super().__init__(_id, filepath)
 
         self.texture: Texture = None
@@ -38,9 +38,10 @@ class Font(Resource):
         return values
 
     def _parse_line(self, line: str) -> Glyph:
-        values = self._parse_line_as_dict(line.replace('char', ''))
+        _values = self._parse_line_as_dict(line.replace('char', ''))
 
-        for key, value in values.items():
+        values = {}
+        for key, value in _values.items():
             values[key] = int(value)
 
         tex_rect = Rectangle(values['x'], values['y'],
@@ -65,6 +66,7 @@ class Font(Resource):
         texture_spec.mipmaps = 1
         texture_spec.min_filter = MinFilter.Nearest
         texture_spec.mag_filter = MagFilter.Nearest
+        texture_spec.wrap_mode = WrapMode.ClampToEdge
 
         self._loading_data['texture_spec'] = texture_spec
         self._loading_data['texture_data'] = texture_data

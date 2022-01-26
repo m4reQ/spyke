@@ -2,6 +2,7 @@ from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
     from spyke.enums import TextureTarget
+    from typing import List
 
 from spyke import debug
 from spyke.exceptions import GraphicsException
@@ -42,7 +43,7 @@ def create_framebuffer() -> GL.GLint:
 
 
 class GLObject(ABC):
-    _objects = []
+    _objects: List[GLObject] = []
 
     @staticmethod
     def delete_all() -> None:

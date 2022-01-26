@@ -116,17 +116,24 @@ class MinFilter(enum.IntEnum):
     LinearMipmapLinear = GL.GL_LINEAR_MIPMAP_LINEAR
 
 
+class AttachmentPoint(enum.IntEnum):
+    ColorAttachment = GL.GL_COLOR_ATTACHMENT0
+    DepthAttachment = GL.GL_DEPTH_ATTACHMENT
+    StencilAttachment = GL.GL_STENCIL_ATTACHMENT
+    DepthStencilAttachment = GL.GL_DEPTH_STENCIL_ATTACHMENT
+
+
 class MagFilter(enum.IntEnum):
     Nearest = GL.GL_NEAREST
     Linear = GL.GL_LINEAR
 
 
 class WrapMode(enum.IntEnum):
-    ClampToEdge = GL.GL_CLAMP_TO_EDGE
-    ClampToBorder = GL.GL_CLAMP_TO_BORDER
-    MirroredRepeat = GL.GL_MIRRORED_REPEAT
     Repeat = GL.GL_REPEAT
+    MirroredRepeat = GL.GL_MIRRORED_REPEAT
+    ClampToEdge = GL.GL_CLAMP_TO_EDGE
     MirrorClampToEdge = GL.GL_MIRROR_CLAMP_TO_EDGE
+    ClampToBorder = GL.GL_CLAMP_TO_BORDER
 
 
 class PrimitiveMode:
@@ -196,6 +203,44 @@ class TextureFormat(enum.IntEnum):
     Bgra = GL.GL_BGRA
     DepthComponent = GL.GL_DEPTH_COMPONENT
     StencilIndex = GL.GL_STENCIL_INDEX
+
+
+class TextureCompareFunc(enum.IntEnum):
+    LessEqual = GL.GL_LEQUAL
+    GreaterEqual = GL.GL_GEQUAL
+    Less = GL.GL_LESS
+    Greater = GL.GL_GREATER
+    Equal = GL.GL_EQUAL
+    NotEqual = GL.GL_NOTEQUAL
+    Always = GL.GL_ALWAYS
+    Never = GL.GL_NEVER
+
+
+class TextureCompareMode(enum.IntEnum):
+    CompareRefToTexture = GL.GL_COMPARE_REF_TO_TEXTURE
+    None_ = GL.GL_NONE
+
+
+class TextureParameter(enum.IntEnum):
+    DepthStencilTextureMode = GL.GL_DEPTH_STENCIL_TEXTURE_MODE
+    TextureBaseLevel = GL.GL_TEXTURE_BASE_LEVEL
+    TextureBorderColor = GL.GL_TEXTURE_BORDER_COLOR
+    TextureCompareFunc = GL.GL_TEXTURE_COMPARE_FUNC
+    TextureCompareMode = GL.GL_TEXTURE_COMPARE_MODE
+    TextureLodBias = GL.GL_TEXTURE_LOD_BIAS
+    TextureMinFilter = GL.GL_TEXTURE_MIN_FILTER
+    TextureMagFilter = GL.GL_TEXTURE_MAG_FILTER
+    TextureMinLod = GL.GL_TEXTURE_MIN_LOD
+    TextureMaxLod = GL.GL_TEXTURE_MAX_LOD
+    TextureMaxLevel = GL.GL_TEXTURE_MAX_LEVEL
+    TextureSwizzleR = GL.GL_TEXTURE_SWIZZLE_R
+    TextureSwizzleG = GL.GL_TEXTURE_SWIZZLE_G
+    TextureSwizzleB = GL.GL_TEXTURE_SWIZZLE_B
+    TextureSwizzleA = GL.GL_TEXTURE_SWIZZLE_A
+    TextureSwizzleRgba = GL.GL_TEXTURE_SWIZZLE_RGBA
+    TextureWrapS = GL.GL_TEXTURE_WRAP_S
+    TextureWrapT = GL.GL_TEXTURE_WRAP_T
+    TextureWrapR = GL.GL_TEXTURE_WRAP_R
 
 
 class SizedInternalFormat(enum.IntEnum):

@@ -13,9 +13,9 @@ from spyke import debug
 
 class Resource(ABC):
     def __init__(self, _id: UUID, filepath: Optional[str] = None):
-        self.filepath: Optional[str] = filepath
+        self.filepath: str = filepath
         self.is_internal: bool = False
-        self.id: UUID = id
+        self.id: UUID = _id
         self._is_loaded: bool = False
         self._is_finalized: bool = False
         self._loading_data: Dict[str, Any] = {}

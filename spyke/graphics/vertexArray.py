@@ -1,7 +1,7 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from spyke.graphics.buffers import ABuffer
+    from spyke.graphics.buffers import Buffer
     from spyke.enums import GLType
 
 from spyke import debug
@@ -21,11 +21,11 @@ class VertexArray(gl.GLObject):
 
         debug.log_info(f'{self} created succesfully.')
 
-    def bind_vertex_buffer(self, binding_index: int, buffer: ABuffer, offset: int, stride: int) -> None:
+    def bind_vertex_buffer(self, binding_index: int, buffer: Buffer, offset: int, stride: int) -> None:
         GL.glVertexArrayVertexBuffer(
             self.id, binding_index, buffer.id, offset, stride)
 
-    def bind_element_buffer(self, buffer: ABuffer) -> None:
+    def bind_element_buffer(self, buffer: Buffer) -> None:
         GL.glVertexArrayElementBuffer(self.id, buffer.id)
 
     def add_layout(self, attrib_index: int, binding_index: int, count: int, _type: GLType, is_normalized: bool, divisor: int = 0) -> None:
