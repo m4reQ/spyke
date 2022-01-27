@@ -67,22 +67,6 @@ class NvidiaIntegerName:
     GpuMemInfoCurrentAvailable = 0x9049
 
 
-class StringName:
-    Vendor = GL.GL_VENDOR
-    Renderer = GL.GL_RENDERER
-    Version = GL.GL_VERSION
-    ShadingLanguageVersion = GL.GL_SHADING_LANGUAGE_VERSION
-    Extensions = GL.GL_EXTENSIONS
-
-
-class ShaderType:
-    VertexShader = GL.GL_VERTEX_SHADER
-    FragmentShader = GL.GL_FRAGMENT_SHADER
-    GeometryShader = GL.GL_GEOMETRY_SHADER
-    ComputeShader = GL.GL_COMPUTE_SHADER
-    TessEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
-
-
 class FramebufferStatus(enum.IntEnum):
     Complete = GL.GL_FRAMEBUFFER_COMPLETE
     Undefined = GL.GL_FRAMEBUFFER_UNDEFINED

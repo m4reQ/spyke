@@ -12,7 +12,7 @@ from spyke import debug
 
 
 class Resource(ABC):
-    def __init__(self, _id: UUID, filepath: Optional[str] = None):
+    def __init__(self, _id: UUID, filepath: str = None):
         self.filepath: str = filepath
         self.is_internal: bool = False
         self.id: UUID = _id
@@ -29,10 +29,6 @@ class Resource(ABC):
 
     @abstractmethod
     def _load(self, *args, **kwargs) -> None:
-        pass
-
-    @abstractmethod
-    def _unload(self) -> None:
         pass
 
     @abstractmethod

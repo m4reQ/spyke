@@ -3,7 +3,7 @@ import typing
 if typing.TYPE_CHECKING:
     from spyke.graphics.rectangle import Rectangle
     from typing import Optional, Tuple
-    Size = Tuple[int, int]
+    ClipSpace = Tuple[float, float]
 
 from .component import Component
 from spyke.enums import CameraType
@@ -33,15 +33,15 @@ class CameraComponent(Component):
     def perspective(cls, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, is_primary: bool = False):
         return cls(CameraType.Perspective, viewport, fov=fov, aspect=aspect, is_primary=is_primary)
 
-    def __init__(self, _type: CameraType, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, clipping: Optional[Size] = None, is_primary: bool = False):
-        if not len(clipping) == 2:
+    def __init__(self, _type: CameraType, viewport: Rectangle, *, fov: float = 1.0, aspect: float = 1.0, clipping: Optional[ClipSpace] = None, is_primary: bool = False):
+        if clipping and not len(clipping) == 2:
             raise SpykeException(
                 'Tuple passed for "clipping" parameter must be the length of 2.')
 
         self.is_primary: bool = is_primary
         self.type: CameraType = _type
         self.viewport: Rectangle = viewport
-        self.clipping: Size = clipping or (-1.0, 10.0)
+        self.clipping: ClipSpace = clipping or (-1.0, 10.0)
         self.fov: float = fov
         self.aspect: float = aspect
 

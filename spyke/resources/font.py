@@ -21,7 +21,7 @@ class Font(Resource):
     def __init__(self, _id: UUID, filepath: str = ''):
         super().__init__(_id, filepath)
 
-        self.texture: Texture = None
+        self.texture: Texture
         self.glyphs: Dict[str, Glyph] = {}
         self.base_size: int = 0
         self.name: str = ''
@@ -66,7 +66,7 @@ class Font(Resource):
         texture_spec.mipmaps = 1
         texture_spec.min_filter = MinFilter.Nearest
         texture_spec.mag_filter = MagFilter.Nearest
-        texture_spec.wrap_mode = WrapMode.ClampToEdge
+        texture_spec.wrap_mode = WrapMode.Repeat
 
         self._loading_data['texture_spec'] = texture_spec
         self._loading_data['texture_data'] = texture_data

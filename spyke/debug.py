@@ -9,6 +9,7 @@ from OpenGL import GL
 
 LOG_FILE = 'nova_log.log'
 
+
 class ConsoleFormatter(logging.Formatter):
     ColorMap = {
         logging.DEBUG: colorama.Fore.WHITE,
@@ -23,23 +24,25 @@ class ConsoleFormatter(logging.Formatter):
         super().__init__()
 
         self.fmt = '[%(levelname)s] %(message)s'
-    
+
     def format(self, record: logging.LogRecord) -> str:
         fmt = self.ColorMap[record.levelno] + self.fmt + self.StyleReset
         formatter = logging.Formatter(fmt)
 
         return formatter.format(record)
 
+
 class FileFormatter(logging.Formatter):
     def __init__(self):
         super().__init__()
 
         self.fmt = '[%(levelname)s][%(asctime)s] %(message)s'
-    
+
     def format(self, record: logging.LogRecord) -> str:
         formatter = logging.Formatter(self.fmt)
 
         return formatter.format(record)
+
 
 colorama.init()
 
@@ -59,17 +62,21 @@ _con_handler.setLevel(logging.INFO)
 _con_handler.setFormatter(ConsoleFormatter())
 _logger.addHandler(_con_handler)
 
+
 def log_info(msg: str) -> None:
     if __debug__:
         _logger.info(msg)
+
 
 def log_warning(msg: str) -> None:
     if __debug__:
         _logger.warning(msg)
 
-def log_error(msg: str, log_info: bool=True) -> None:
+
+def log_error(msg: str, log_info: bool = True) -> None:
     if __debug__:
         _logger.error(msg, log_info)
+
 
 def get_gl_error():
     if not __debug__:
@@ -79,12 +86,14 @@ def get_gl_error():
     if err != GL.GL_NO_ERROR:
         raise GraphicsException(err)
 
+
 def get_bound_texture(unit: int) -> int:
     if not __debug__:
-        return
+        return -1
 
     GL.glActiveTexture(GL.GL_TEXTURE0 + unit)
     return GL.glGetInteger(GL.GL_TEXTURE_BINDING_2D)
+
 
 def timed(func: Callable) -> Callable:
     def inner(*args, **kwargs):
@@ -94,10 +103,11 @@ def timed(func: Callable) -> Callable:
         start = time.perf_counter()
         res = func(*args, **kwargs)
 
-        log_info(f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
+        log_info(
+            f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
 
         return res
-    
+
     return inner
 
 
@@ -111,4 +121,5 @@ def check_context() -> None:
         return
 
     if glfw.get_current_context() is None:
-        raise GraphicsException('Required OpenGL context but no context was made current.')
+        raise GraphicsException(
+            'Required OpenGL context but no context was made current.')
