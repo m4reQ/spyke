@@ -2,7 +2,7 @@ from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
     from spyke.enums import GLType
-    from typing import Union
+    from typing import Union, Collection
 
 from spyke import debug
 from spyke.exceptions import GraphicsException

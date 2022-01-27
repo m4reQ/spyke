@@ -1,7 +1,7 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Dict
+    from typing import Dict, Tuple
     from uuid import UUID
 
 from PIL import Image
@@ -37,15 +37,15 @@ class Font(Resource):
 
         return values
 
-    def _parse_line(self, line: str) -> Glyph:
-        _values = self._parse_line_as_dict(line.replace('char', ''))
+    def _parse_line(self, line: str, texture_size: Tuple[int, int]) -> Glyph:
+        _values = self._parse_line_as_dict(line)
 
         values = {}
         for key, value in _values.items():
             values[key] = int(value)
 
-        tex_rect = Rectangle(values['x'], values['y'],
-                             values['width'], values['height'])
+        tex_rect = Rectangle(values['x'] / texture_size[0], values['y'] / texture_size[1],
+                             values['width'] / texture_size[0], values['height'] / texture_size[1])
 
         return Glyph(values['width'], values['height'], values['xoffset'], values['yoffset'], values['xadvance'], tex_rect, chr(values['id']))
 
@@ -56,6 +56,8 @@ class Font(Resource):
         with Image.open(image_filepath) as img:
             data = loaders.get_image_data(img)
             size = img.size
+            self._loading_data['texture_width'] = size[0]
+            self._loading_data['texture_height'] = size[1]
 
         texture_data = TextureData(*size)
         texture_data.format = convert.image_mode_to_texture_format(img.mode)
@@ -82,7 +84,7 @@ class Font(Resource):
                     continue
 
                 if line.startswith('char '):
-                    glyph = self._parse_line(line)
+                    glyph = self._parse_line(line.removeprefix('char '), size)
                     self.glyphs[glyph.char] = glyph
 
     def _finalize(self) -> None:

@@ -1,33 +1,39 @@
 #version 450 core
-const int VERTICES_PER_INSTANCE = 4;
 
+// per-vertex data:
 layout(location=0) in vec3 aPosition;
 
+// per-instance data:
 layout(location=1) in vec4 aColor;
-layout(location=2) in vec2 aTilingFactor;
-layout(location=3) in float aTexIdx;
-layout(location=4) in float aEntId;
+layout(location=2) in vec2 aTiling;
+layout(location=3) in float aTexIndex;
+layout(location=4) in float aEntityId;
 layout(location=5) in mat4 aTransform;
 
-out vec4 vColor;
-out vec2 vTexCoord;
-out float vTexIdx;
-out float vEntId;
+out FsIn
+{
+    vec4 color;
+    vec2 texCoords;
+    flat float texIndex;
+    flat float entityId;
+} vsOut;
 
 layout(std140) uniform uMatrices
 {
     mat4 viewProjection;
 };
 
-uniform samplerBuffer uTexCoordsBuffer;
+uniform int uVerticesPerInstance;
+uniform samplerBuffer uTextureCoordsBuffer; // per-vertex data, texture coordinates
 
 void main()
 {
-    vTexCoord = texelFetch(uTexCoordsBuffer, gl_InstanceID * VERTICES_PER_INSTANCE + gl_VertexID).rg * aTilingFactor;
+    vsOut.color = aColor;
+    vsOut.texIndex = aTexIndex;
+    vsOut.entityId = aEntityId;
 
-    vColor = aColor;
-    vTexIdx = aTexIdx;
-    vEntId = aEntId;
-    
+    int bufferOffset = (gl_InstanceID * uVerticesPerInstance) + gl_VertexID;
+    vsOut.texCoords = texelFetch(uTextureCoordsBuffer, bufferOffset).rg * aTiling;
+
     gl_Position = aTransform * viewProjection * vec4(aPosition, 1.0f);
 }

@@ -25,7 +25,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.SpriteComponent(
-                tex1, Vector2(1.0), color(1.0, 1.0, 1.0, 0.3))
+                tex1, Vector2(2.0), color(1.0, 1.0, 1.0, 0.3))
         )
 
         main_scene.create_entity(

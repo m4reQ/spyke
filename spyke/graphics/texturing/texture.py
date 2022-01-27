@@ -1,3 +1,4 @@
+from spyke.exceptions import GraphicsException
 from .textureSpec import TextureSpec
 from .textureData import TextureData
 from spyke.enums import MagFilter, MinFilter, TextureFormat, TextureTarget, SizedInternalFormat
@@ -33,6 +34,12 @@ class Texture(gl.GLObject):
         GL.glTextureSubImage2D(self.id, 0, 0, 0, tex_data.width,
                                tex_data.height, tex_data.format, GL.GL_UNSIGNED_BYTE, tex_data.data)
         GL.glGenerateTextureMipmap(self.id)
+
+        success = GL.GLint()
+        GL.glGetTextureParameteriv(
+            self.id, GL.GL_TEXTURE_IMMUTABLE_FORMAT, success)
+        if not success.value:
+            raise GraphicsException('Cannot create immutable texture.')
 
     def bind_to_unit(self, slot) -> None:
         GL.glBindTextureUnit(slot, self.id)

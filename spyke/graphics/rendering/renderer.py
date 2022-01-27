@@ -205,27 +205,35 @@ class Renderer:
         self.basic_shader.set_uniform_int(
             'uTextures', samplers)
         self.basic_shader.set_uniform_int(
-            'uTexCoordsBuffer', BUFFER_TEXTURE_SAMPLER)
+            'uTextureCoordsBuffer', BUFFER_TEXTURE_SAMPLER)
         self.basic_shader.set_uniform_block_binding(
             'uMatrices', MATRICES_UNIFORM_BLOCK_INDEX)
         self.basic_shader.validate()
 
-        self.vao.bind_vertex_buffer(
-            POS_DATA_BUFFER_BINDING, self.pos_data_buffer, 0, POS_DATA_VERTEX_SIZE)
-        self.vao.bind_vertex_buffer(
-            INSTANCE_DATA_BUFFER_BINDING, self.instance_data_buffer, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
+        # // per-instance data:
+        # layout(location=1) in vec4 aColor;
+        # layout(location=2) in vec2 aTiling;
+        # layout(location=3) in float aTexIndex;
+        # layout(location=4) in float aEntityId;
+        # layout(location=5) in mat4 aTransform;
+
         self.vao.bind_element_buffer(self.ibo)
 
+        self.vao.bind_vertex_buffer(
+            POS_DATA_BUFFER_BINDING, self.pos_data_buffer, 0, POS_DATA_VERTEX_SIZE)
         self.vao.add_layout(self.basic_shader.get_attrib_location(
             'aPosition'), POS_DATA_BUFFER_BINDING, 3, GLType.Float, False)
+
+        self.vao.bind_vertex_buffer(
+            INSTANCE_DATA_BUFFER_BINDING, self.instance_data_buffer, 0, BASIC_INSTANCE_DATA_VERTEX_SIZE)
         self.vao.add_layout(self.basic_shader.get_attrib_location(
             'aColor'), INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float, False, 1)
         self.vao.add_layout(self.basic_shader.get_attrib_location(
-            'aTilingFactor'), INSTANCE_DATA_BUFFER_BINDING, 2, GLType.Float, False, 1)
+            'aTiling'), INSTANCE_DATA_BUFFER_BINDING, 2, GLType.Float, False, 1)
         self.vao.add_layout(self.basic_shader.get_attrib_location(
-            'aTexIdx'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float, False, 1)
+            'aTexIndex'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float, False, 1)
         self.vao.add_layout(self.basic_shader.get_attrib_location(
-            'aEntId'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float, False, 1)
+            'aEntityId'), INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float, False, 1)
         self.vao.add_matrix_layout(self.basic_shader.get_attrib_location(
             'aTransform'), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float, False, 1)
 
@@ -388,6 +396,9 @@ class Renderer:
         self.vao.bind()
         self.basic_shader.use()
 
+        # TODO: Unhardcode this later
+        self.basic_shader.set_uniform_int('uVerticesPerInstance', 4)
+
         # TODO: Later unhardcode `INDICES_PER_QUAD` to match actual count of
         # vertices per rendered object instance
         GL.glDrawElementsInstanced(
@@ -422,17 +433,18 @@ class Renderer:
                 self.textures[self.last_texture] = texture.id
                 self.last_texture += 1
 
-        vertex_data = np.array([
+        vertex_data = [
             tex_rect.left, tex_rect.top,
             tex_rect.right, tex_rect.top,
             tex_rect.right, tex_rect.bottom,
             tex_rect.left, tex_rect.bottom,
-        ], dtype=np.float32)
+        ]
 
-        self.vertex_data_buffer.add_data(vertex_data)
+        self.vertex_data_buffer.add_data(
+            np.asarray(vertex_data, dtype=np.float32))
 
         instance_data = np.concatenate((
-            np.array([
+            [
                 color.x,
                 color.y,
                 color.z,
@@ -441,8 +453,8 @@ class Renderer:
                 tilingFactor.y,
                 tex_idx,
                 ent_id
-            ], dtype=np.float32),
-            np.asarray(transform, dtype=np.float32).T.flatten()
+            ],
+            np.asarray(glm.transpose(transform), dtype=np.float32).flatten()
         ))
 
         self.instance_data_buffer.add_data(instance_data)
