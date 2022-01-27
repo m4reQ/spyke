@@ -1,3 +1,8 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from typing import Any
+
 from spyke.enums import GLType, TextureFormat
 from spyke.exceptions import GraphicsException
 import ctypes
@@ -44,7 +49,7 @@ def gl_type_to_size(gl_type: GLType) -> int:
     return _GL_TYPE_TO_SIZE_MAP[gl_type]
 
 
-def gl_type_to_np_type(gl_type: GLType) -> np._DType:
+def gl_type_to_np_type(gl_type: GLType) -> Any:
     if __debug__:
         if gl_type not in _GL_TYPE_TO_NP_TYPE_MAP:
             raise GraphicsException(f'Invalid OpenGL type: {gl_type}.')

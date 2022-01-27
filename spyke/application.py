@@ -1,75 +1,35 @@
 from __future__ import annotations
 import typing
+
 if typing.TYPE_CHECKING:
-    from spyke.graphics.windowSpecs import WindowSpecs
+    from spyke.windowing.windowSpecs import WindowSpecs
 
 # from . import enginePreview
+from spyke.windowing.window import Window
 from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
-from spyke.events import WindowChangeFocusEvent
-from spyke.exceptions import GraphicsException
 from spyke.ecs import scene
-from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
-from spyke import debug
-from spyke import resources
-from spyke import events
+from spyke import debug, resources, events, utils
 
-import glfw
-import gc
 import time
-from PIL import Image
 from abc import ABC, abstractmethod
 
 
 class Application(ABC):
-    def __init__(self, specification: WindowSpecs):
+    def __init__(self, window_specification: WindowSpecs):
         self._loading_start: float = time.perf_counter()
-        self.specification: WindowSpecs = specification
-        self._handle: glfw._GLFWwindow = None
-        self._renderer: Renderer = None
 
-        if not glfw.init():
-            raise GraphicsException('Cannot initialize GLFW.')
-
-        glfw.set_error_callback(self._glfw_error_callback)
-
-        self._set_default_window_flags()
-
-        if specification.fullscreen:
-            self._create_window_fullscreen()
-        else:
-            self._create_window_normal()
-
-        glfw.make_context_current(self._handle)
+        self._window: Window = Window(window_specification)
+        self._renderer: Renderer = Renderer()
 
         # TODO: Implement this at some point
         # enginePreview.RenderPreview()
         # glfw.swap_buffers(self._handle)
 
-        input_mode = glfw.CURSOR_NORMAL if specification.cursor_visible else glfw.CURSOR_HIDDEN
-        glfw.set_input_mode(self._handle, glfw.CURSOR, input_mode)
-
-        glfw.set_framebuffer_size_callback(self._handle, self._resize_cb)
-        glfw.set_cursor_pos_callback(self._handle, self._cursor_pos_callback)
-        glfw.set_window_iconify_callback(self._handle, self._iconify_callback)
-        glfw.set_mouse_button_callback(self._handle, self._mouse_callback)
-        glfw.set_scroll_callback(self._handle, self._mouse_scroll_callback)
-        glfw.set_key_callback(self._handle, self._key_callback)
-        glfw.set_window_pos_callback(self._handle, self._window_pos_callback)
-        glfw.set_window_focus_callback(
-            self._handle, self._window_focus_callback)
-
-        events.register_method(lambda e: self.set_vsync(e.state),
+        events.register_method(lambda e: self.window.set_vsync(e.state),
                                events.ToggleVsyncEvent, priority=-1)
 
-        icon_filepath = specification.icon_filepath or DEFAULT_ICON_FILEPATH
-        with Image.open(icon_filepath) as img:
-            glfw.set_window_icon(self._handle, 1, img)
-
-        self._renderer = Renderer()
-        self._renderer.initialize(self._handle)
-
-        self.set_vsync(specification.vsync)
+        self.window.set_vsync(window_specification.vsync)
 
     @abstractmethod
     def on_frame(self) -> None:
@@ -83,18 +43,12 @@ class Application(ABC):
     def on_load(self) -> None:
         pass
 
-    def set_title(self, title: str) -> None:
-        glfw.set_window_title(self._handle, title)
-
-    def set_vsync(self, value: bool) -> None:
-        glfw.swap_interval(int(value))
-        debug.log_info(f'Vsync set to: {value}.')
-
     def _run(self) -> None:
         # TODO: Add loading time profiling
+        self.renderer.initialize(self.window.handle)
         self.on_load()
         resources._shutdown_thread_executor()
-        gc.collect()
+        utils.garbage_collect()
 
         debug.log_info(
             f'Application loaded in {time.perf_counter() - self._loading_start} seconds.')
@@ -102,13 +56,13 @@ class Application(ABC):
         # enginePreview.CleanupPreview()
         # glfw.swap_buffers(self._handle)
 
-        isRunning = True
-        while isRunning:
-            start = glfw.get_time()
+        is_running = True
+        while is_running:
+            start = self.window.get_time()
 
-            if glfw.window_should_close(self._handle):
+            if self.window.should_close:
                 events.invoke(events.WindowCloseEvent())
-                isRunning = False
+                is_running = False
 
             _scene = scene.get_current()
             _scene.process(dt=self.frametime)
@@ -116,86 +70,15 @@ class Application(ABC):
             if self.renderer.info.window_active:
                 self.renderer.render_scene(_scene)
                 self.on_frame()
-                glfw.swap_buffers(self._handle)
+                self.window.swap_buffers()
 
-            glfw.poll_events()
+            self.window.process_events()
 
-            self._renderer.info.frametime = glfw.get_time() - start
+            self.renderer.info.frametime = self.window.get_time() - start
 
         self.on_close()
-        self._close()
-
-    def _glfw_error_callback(self, code: int, message: str) -> None:
-        raise GraphicsException(f'GLFW error: {message} ({code}).')
-
-    def _resize_cb(self, _, width, height) -> None:
-        events.invoke(events.ResizeEvent(width, height))
-        debug.log_info(f'Window resized to ({width}, {height})')
-
-    def _window_focus_callback(self, _, value) -> None:
-        events.invoke(WindowChangeFocusEvent(value))
-
-    def _cursor_pos_callback(self, _, x, y) -> None:
-        events.invoke(events.MouseMoveEvent(x, y))
-
-    def _window_pos_callback(self, _, x, y) -> None:
-        events.invoke(events.WindowMoveEvent(x, y))
-
-    def _iconify_callback(self, _, value) -> None:
-        events.invoke(events.WindowChangeFocusEvent(value))
-
-    def _mouse_callback(self, _, button, action, mods) -> None:
-        if action == glfw.PRESS:
-            events.invoke(events.MouseButtonDownEvent(button, mods))
-        elif action == glfw.RELEASE:
-            events.invoke(events.MouseButtonUpEvent(button, mods))
-
-    def _mouse_scroll_callback(self, _, xOffset, yOffset) -> None:
-        events.invoke(events.MouseScrollEvent(xOffset, yOffset))
-
-    def _key_callback(self, _, key, scancode, action, mods) -> None:
-        if action == glfw.PRESS:
-            events.invoke(events.KeyDownEvent(key, mods, scancode, False))
-        elif action == glfw.REPEAT:
-            events.invoke(events.KeyDownEvent(key, mods, scancode, True))
-        elif action == glfw.RELEASE:
-            events.invoke(events.KeyUpEvent(key))
-
-    @debug.timed
-    def _close(self) -> None:
         GLObject.delete_all()
-
-        glfw.destroy_window(self._handle)
-        debug.log_info('Window destroyed.')
-
-        glfw.terminate()
-        debug.log_info('Glfw terminated.')
-
-    def _create_window_normal(self) -> None:
-        glfw.window_hint(glfw.RESIZABLE, self.specification.resizable)
-        glfw.window_hint(glfw.DECORATED, not self.specification.borderless)
-
-        self._handle = glfw.create_window(
-            self.specification.width, self.specification.height, self.specification.title, None, None)
-
-    def _create_window_fullscreen(self) -> None:
-        mon = glfw.get_primary_monitor()
-        mode = glfw.get_video_mode(mon)
-
-        glfw.window_hint(glfw.RED_BITS, mode.bits.red)
-        glfw.window_hint(glfw.GREEN_BITS, mode.bits.green)
-        glfw.window_hint(glfw.BLUE_BITS, mode.bits.blue)
-        glfw.window_hint(glfw.REFRESH_RATE, mode.refresh_rate)
-
-        self._handle = glfw.create_window(
-            self.specification.width, self.specification.height, self.specification.title, mon, None)
-
-    def _set_default_window_flags(self) -> None:
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, _OPENGL_VER_MAJOR)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, _OPENGL_VER_MINOR)
-        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
-        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.window_hint(glfw.SAMPLES, self.specification.samples)
+        self.window.close()
 
     @property
     def frametime(self) -> float:
@@ -204,3 +87,7 @@ class Application(ABC):
     @property
     def renderer(self) -> Renderer:
         return self._renderer
+
+    @property
+    def window(self) -> Window:
+        return self._window

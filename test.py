@@ -3,7 +3,7 @@ from spyke.ecs import scene
 from spyke import debug
 from spyke import events
 from spyke.application import Application
-from spyke.graphics import WindowSpecs
+from spyke.windowing import WindowSpecs
 from spyke.graphics import *
 from spyke.enums import *
 from spyke import resources
@@ -31,7 +31,7 @@ class App(Application):
         main_scene.create_entity(
             components.TagComponent('texture3'),
             components.TransformComponent(
-                Vector3(0.2, 0.7, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0)),
+                Vector3(0.2, 0.7, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0, 0.0, 45.0)),
             components.SpriteComponent(
                 tex3, Vector2(1.0), color(1.0, 0.0, 1.0, 0.3))
         )
@@ -39,7 +39,7 @@ class App(Application):
         main_scene.create_entity(
             components.TagComponent('text'),
             components.TransformComponent(
-                Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+                Vector3(-0.5, 0.5, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
                 'TEST', 80, font_arial, color(1.0, 0.0, 0.0, 1.0))
         )
@@ -58,6 +58,14 @@ class App(Application):
                 Vector3(0.5), Vector3(0.5, 0.5, 0.0), Vector3(0.0)),
             components.SpriteComponent(
                 tex2, Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
+        )
+
+        main_scene.create_entity(
+            components.TagComponent('single_char'),
+            components.TransformComponent(
+                Vector3(-0.5, -0.5, 0.0), Vector3(1.0), Vector3(0.0)),
+            components.TextComponent(
+                'H', 600, font_arial, color(1.0, 1.0, 1.0, 1.0))
         )
 
         scene.set_current(main_scene)

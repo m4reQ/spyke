@@ -2,8 +2,8 @@
 
 in vec4 vColor;
 in vec2 vTexCoord;
-in flat int vTexIdx;
-in flat int vEntId;
+in flat float vTexIdx;
+in flat float vEntId;
 
 layout(location = 0) out vec4 Color;
 layout(location = 1) out int EntityId;
@@ -14,7 +14,7 @@ void main()
 {
     vec4 texCol = vColor;
 
-    switch(vTexIdx)
+    switch(int(vTexIdx))
     {
         case 0: texCol *= texture(uTextures[0], vTexCoord); break;
         case 1: texCol *= texture(uTextures[1], vTexCoord); break;
@@ -34,5 +34,5 @@ void main()
     }
     
     Color = texCol;
-    EntityId = vEntId;
+    EntityId = int(vEntId);
 }

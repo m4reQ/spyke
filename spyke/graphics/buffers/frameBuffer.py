@@ -1,15 +1,13 @@
 from __future__ import annotations
 import typing
-
-from spyke.graphics.texturing.textureProxy import TextureProxy
 if typing.TYPE_CHECKING:
-    from typing import List
+    from typing import List, Optional
 
 from spyke.enums import AttachmentPoint, FramebufferStatus, MagFilter, MinFilter, SizedInternalFormat, TextureFormat, TextureParameter, TextureTarget, WrapMode
 from spyke.graphics import gl
+from spyke.graphics.texturing.textureProxy import TextureProxy
 from spyke.exceptions import GraphicsException
-from spyke import debug
-from spyke import events
+from spyke import debug, events
 
 from OpenGL import GL
 
@@ -75,7 +73,7 @@ class Framebuffer(gl.GLObject):
         self.specification: FramebufferSpec = specification
 
         self.color_attachment_specs: List[AttachmentSpec] = []
-        self.depth_attachment_spec: AttachmentSpec
+        self.depth_attachment_spec: Optional[AttachmentSpec] = None
 
         self._get_attachments_specs(specification)
 

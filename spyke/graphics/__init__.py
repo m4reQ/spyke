@@ -1,10 +1,8 @@
 import glm
-from .windowSpecs import WindowSpecs
 from .rectangle import Rectangle
 from .glyph import Glyph
 
 __all__ = [
-    'WindowSpecs',
     'Rectangle',
     'color'
 ]
