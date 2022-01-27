@@ -12,7 +12,7 @@ from spyke import debug
 
 
 class Resource(ABC):
-    def __init__(self, _id: UUID, filepath: str = None):
+    def __init__(self, _id: UUID, filepath: str = ''):
         self.filepath: str = filepath
         self.is_internal: bool = False
         self.id: UUID = _id

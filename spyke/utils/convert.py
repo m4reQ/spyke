@@ -16,6 +16,7 @@ _GL_TYPE_TO_SIZE_MAP = {
     GLType.Fixed: ctypes.sizeof(ctypes.c_int)
 }
 
+# TODO: Add typing for numpy dtypes
 _GL_TYPE_TO_NP_TYPE_MAP = {
     GLType.Byte: np.byte,
     GLType.UnsignedByte: np.ubyte,

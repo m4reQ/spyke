@@ -18,5 +18,5 @@ class TextureData:
     def __init__(self, width: int, height: int):
         self.width: int = width
         self.height: int = height
-        self.data: np.ndarray = None
+        self.data: np.ndarray
         self.format: TextureFormat = TextureFormat.Rgba

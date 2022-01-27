@@ -1,9 +1,10 @@
 from spyke.enums import ErrorCode
 from typing import Union
 
+
 class GraphicsException(Exception):
-    __module__ = None
-    
+    __module__ = ''
+
     def __init__(self, error: Union[str, ErrorCode, int]):
         error_str = ''
 
@@ -14,12 +15,14 @@ class GraphicsException(Exception):
         elif isinstance(error, str):
             error_str = error
         else:
-            raise TypeError(f'Invalid argument type for "error": {type(error)}.')
-        
+            raise TypeError(
+                f'Invalid argument type for "error": {type(error)}.')
+
         super().__init__(error_str)
 
+
 class SpykeException(Exception):
-    __module__ = None
+    __module__ = ''
 
     def __init__(self, message: str):
         super().__init__(message)

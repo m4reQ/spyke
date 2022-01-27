@@ -26,7 +26,7 @@ class CameraComponent(Component):
     )
 
     @classmethod
-    def orthographic(cls, viewport: Rectangle, *, clipping: Optional[Size] = None, is_primary: bool = False):
+    def orthographic(cls, viewport: Rectangle, *, clipping: Optional[ClipSpace] = None, is_primary: bool = False):
         return cls(CameraType.Orthographic, viewport, clipping=clipping, is_primary=is_primary)
 
     @classmethod
