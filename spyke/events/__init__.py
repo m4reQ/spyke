@@ -1,8 +1,8 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from typing import TypeVar, Callable
-    EventType = TypeVar('EventType', bound=types.Event)
+    from typing import TypeVar, Callable, Type, Dict, List
+    EventType = Type[Event]
     ReturnType = TypeVar('ReturnType')
 
 from spyke import debug
@@ -31,19 +31,19 @@ __all__ = [
     'register_method'
 ]
 
-_handlers = {}
+_handlers: Dict[EventType, List[Handler]] = {}
 
 # get all internal event types and create
 # stores for their handlers
 _types = inspect.getmembers(sys.modules[types.__name__], inspect.isclass)
 for _, _type in _types:
-    if _type != types.Event and issubclass(_type, types.Event):
+    if _type != Event and issubclass(_type, Event):
         _handlers[_type] = list()
 
 
 class Handler:
     '''
-    Represents a usable handler, which calls specific function
+    Represents a callable handler, which calls specific function
     to handle events of certain type.
     '''
 
@@ -63,6 +63,12 @@ class Handler:
             event.consumed = True
 
         return res
+
+    def __str__(self) -> str:
+        return f'Handler from function: {self.func.__qualname__}'
+
+    def __repr__(self) -> str:
+        return str(self)
 
 
 def register_method(method: Callable[[EventType], ReturnType], event_type: EventType, *, priority: int, consume: bool = False) -> None:
@@ -86,7 +92,7 @@ def register_method(method: Callable[[EventType], ReturnType], event_type: Event
 
     if handler in _handlers:
         debug.log_warning(
-            f'Handler {handler.__name__} already registered for event type: {event_type.__name__}.')
+            f'Handler {handler} already registered for event type: {event_type.__name__}.')
         return
 
     # raise error when we try to register funciton thats not part
@@ -132,7 +138,7 @@ def register(event_type: EventType, *, priority: int, consume: bool = False) -> 
 
         if handler in _handlers:
             debug.log_warning(
-                f'Handler {handler.__name__} already registered for event type: {event_type.__name__}.')
+                f'Handler {handler} already registered for event type: {event_type.__name__}.')
             return wrapper
 
         # raise error when we try to register funciton thats not part
@@ -152,7 +158,7 @@ def register(event_type: EventType, *, priority: int, consume: bool = False) -> 
     return inner
 
 
-def invoke(event: types.Event) -> None:
+def invoke(event: Event) -> None:
     '''
     Invokes all handlers registered for given event type
     with the event object.
@@ -173,7 +179,7 @@ def invoke(event: types.Event) -> None:
         handler(event)
 
 
-def register_user_event(event_type: types.Event) -> None:
+def register_user_event(event_type: EventType) -> None:
     '''
     Registers new user-defined event type. User-defined event types
     have to be subclasses of Event class.
@@ -181,7 +187,7 @@ def register_user_event(event_type: types.Event) -> None:
     :param event_type: Type of event that will be registered.
     '''
 
-    if not issubclass(event_type, types.Event):
+    if not issubclass(event_type, Event):
         raise RuntimeError(
             'User-defined events have to be subclasses of the Event class.')
 

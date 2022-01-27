@@ -3,15 +3,14 @@ import typing
 
 from spyke.exceptions import SpykeException
 if typing.TYPE_CHECKING:
-    from spyke.resources import Image
     from typing import Optional
-    from weakref import ProxyType
-    ImageProxy = ProxyType[Image]
+
 
 import glm
 import uuid
 from spyke import resources
 from .component import Component
+from spyke.resources import Image
 
 
 class SpriteComponent(Component):
@@ -23,7 +22,7 @@ class SpriteComponent(Component):
     )
 
     def __init__(self, image_id: Optional[uuid.UUID], tiling_factor: glm.vec2, color: glm.vec4):
-        self.image: Optional[ImageProxy]
+        self.image: Optional[Image]
         self.tiling_factor: glm.vec2 = tiling_factor
         self.color: glm.vec4 = color
 

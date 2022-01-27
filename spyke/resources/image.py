@@ -16,7 +16,7 @@ class Image(Resource):
     def __init__(self, _id: UUID, filepath: str = ''):
         super().__init__(_id, filepath)
 
-        self.texture: Texture = None
+        self.texture: Texture
 
     def _load(self, *args, **kwargs) -> None:
         with _Image.open(self.filepath) as img:
