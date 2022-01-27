@@ -4,6 +4,7 @@ if typing.TYPE_CHECKING:
     from typing import TypeVar, Callable, Type, Dict, List
     EventType = Type[Event]
     ReturnType = TypeVar('ReturnType')
+    _Event = TypeVar('_Event', bound=Event)
 
 from spyke import debug
 from spyke.exceptions import SpykeException
@@ -71,7 +72,7 @@ class Handler:
         return str(self)
 
 
-def register_method(method: Callable[[EventType], ReturnType], event_type: EventType, *, priority: int, consume: bool = False) -> None:
+def register_method(method: Callable[[_Event], ReturnType], event_type: Type[_Event], *, priority: int, consume: bool = False) -> None:
     '''
     Registers method bound to an object as a handler for events of given type.
 
@@ -109,7 +110,7 @@ def register_method(method: Callable[[EventType], ReturnType], event_type: Event
 
 
 # TODO: Make register funciton accept bound methods
-def register(event_type: EventType, *, priority: int, consume: bool = False) -> Callable[[EventType], ReturnType]:
+def register(event_type: Type[_Event], *, priority: int, consume: bool = False) -> Callable[[_Event], ReturnType]:
     '''
     Registers new function as a handler for events of given type. Should be used as a decorator.
     Warning: this function cannot register bound methods as event handlers. To do this use "register_method" function.

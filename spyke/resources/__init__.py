@@ -1,5 +1,6 @@
 from __future__ import annotations
 import typing
+
 if typing.TYPE_CHECKING:
     from .resource import Resource
     from typing import Dict, Type, Union
@@ -74,9 +75,9 @@ def load(filepath: str) -> uuid.UUID:
 
 
 @lru_cache
-def get(_id: uuid.UUID) -> weakref.ProxyType[Resource]:
+def get(_id: uuid.UUID) -> Resource:
     '''
-    Gets resource with given id and finalizes its loading if neccessary.
+    Gets proxy object to resource with given id and finalizes its loading if neccessary.
 
     :param _id: UUID of queried resource.
     '''
@@ -105,12 +106,17 @@ def unload(_id: uuid.UUID) -> None:
     if _id not in _resources:
         raise SpykeException(f'Resource with id: {_id} not found.')
 
-    res = _resources[_id]
+    res = _resources.pop(_id)
+    # TODO: Handle this specific case more accurately
+    if isinstance(res, Future):
+        debug.log_warning(
+            'Tried to unload resource that has not been yet loaded.')
+        return
+
     if weakref.getweakrefcount(res) != 0:
         debug.log_warning(
             f'Resource ({res}) is already in use. To unload resource make sure that no components are using it anymore.')
         return
 
-    res = _resources.pop(_id)
     res.unload()
     get.cache_clear()

@@ -23,12 +23,12 @@ class CameraType(enum.Enum):
     Perspective = enum.auto()
 
 
-class Vendor:
-    Nvidia = "NVIDIA"
-    Intel = "INTEL"
-    Amd = "AMD"
-    WindowsSoftware = "WINDOWS"
-    Unknown = "UNKNOWN"
+class Vendor(enum.Enum):
+    Nvidia = enum.auto()
+    Intel = enum.auto()
+    Amd = enum.auto()
+    WindowsSoftware = enum.auto()
+    Unknown = enum.auto()
 # endregion
 
 # region OpenGL

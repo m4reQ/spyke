@@ -368,7 +368,7 @@ class Renderer:
         # self._flush()
 
         if self.info.vendor == Vendor.Nvidia:
-            self.info.video_memory_used = self.info.memory_available - \
+            self.info.video_memory_used = self.info.video_memory_available - \
                 GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
 
         self.info.drawtime = time.perf_counter() - start
@@ -461,7 +461,7 @@ class Renderer:
             return
 
         if e.key == Keys.KeyGrave:
-            self.polygon_mode = next(self.polygon_mode_iterator)
+            self.polygon_mode = next(self.polygon_mode_generator)
             debug.log_info(
                 f'Renderer drawing mode set to: {self.polygon_mode.name}')
         elif e.key == Keys.KeyF1:

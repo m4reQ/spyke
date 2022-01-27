@@ -75,7 +75,7 @@ class Framebuffer(gl.GLObject):
         self.specification: FramebufferSpec = specification
 
         self.color_attachment_specs: List[AttachmentSpec] = []
-        self.depth_attachment_spec: AttachmentSpec = None
+        self.depth_attachment_spec: AttachmentSpec
 
         self._get_attachments_specs(specification)
 
