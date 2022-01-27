@@ -1,4 +1,4 @@
-from typing import Iterable, List, TypeVar, Generator
+from typing import Sequence, List, TypeVar, Generator
 import time
 import gc
 
@@ -64,7 +64,7 @@ class Iterator(Generator[T, None, None]):
         'looping'
     )
 
-    def __init__(self, iterable: Iterable[T], *, looping: bool = False):
+    def __init__(self, iterable: Sequence[T], *, looping: bool = False):
         self._iterable = iterable
         self._last_pos = 0
         self._current = self._iterable[0]

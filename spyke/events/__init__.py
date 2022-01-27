@@ -48,12 +48,12 @@ class Handler:
     to handle events of certain type.
     '''
 
-    def __init__(self, function: Callable[[EventType], ReturnType], priority: int, consume: bool):
+    def __init__(self, function: Callable[[_Event], ReturnType], priority: int, consume: bool):
         self.func = function
         self.priority = priority
         self.consume = consume
 
-    def __call__(self, event: EventType) -> ReturnType:
+    def __call__(self, event: _Event) -> ReturnType:
         try:
             res = self.func(event)
         except Exception as e:
@@ -110,7 +110,7 @@ def register_method(method: Callable[[_Event], ReturnType], event_type: Type[_Ev
 
 
 # TODO: Make register funciton accept bound methods
-def register(event_type: Type[_Event], *, priority: int, consume: bool = False) -> Callable[[_Event], ReturnType]:
+def register(event_type: Type[_Event], *, priority: int, consume: bool = False):
     '''
     Registers new function as a handler for events of given type. Should be used as a decorator.
     Warning: this function cannot register bound methods as event handlers. To do this use "register_method" function.
@@ -126,7 +126,7 @@ def register(event_type: Type[_Event], *, priority: int, consume: bool = False) 
     stop further calls to other handlers.
     '''
 
-    def inner(handler_fn: Callable[[EventType], ReturnType]):
+    def inner(handler_fn: Callable[[_Event], ReturnType]):
         # check if we are dealing with bound method
         if '.' in handler_fn.__qualname__:
             raise SpykeException(
@@ -134,8 +134,8 @@ def register(event_type: Type[_Event], *, priority: int, consume: bool = False) 
 
         handler = Handler(handler_fn, priority, consume)
 
-        def wrapper(event: EventType):
-            return handler(event)
+        def wrapper(event: _Event) -> None:
+            handler(event)
 
         if handler in _handlers:
             debug.log_warning(
