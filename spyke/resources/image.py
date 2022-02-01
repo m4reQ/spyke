@@ -23,12 +23,14 @@ class Image(Resource):
             data = loaders.get_image_data(img)
             size = img.size
 
-        texture_data = TextureData(*size)
-        texture_data.format = convert.image_mode_to_texture_format(img.mode)
+        texture_data = TextureData()
         texture_data.data = data
+        texture_data.width = size[0]
+        texture_data.height = size[1]
 
         # TODO: Add customization of texture specification (in future in form of popup window in editor)
         texture_spec = TextureSpec()
+        texture_spec.format = convert.image_mode_to_texture_format(img.mode)
 
         self._loading_data['texture_spec'] = texture_spec
         self._loading_data['texture_data'] = texture_data

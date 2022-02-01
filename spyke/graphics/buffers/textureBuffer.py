@@ -1,7 +1,7 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from spyke.enums import GLType, InternalFormat
+    from spyke.enums import GLType, TextureBufferSizedInternalFormat
 
 from spyke.graphics import gl
 from spyke.enums import TextureTarget
@@ -11,11 +11,11 @@ from OpenGL import GL
 
 
 class TextureBuffer(DynamicBuffer):
-    def __init__(self, size: int, data_type: GLType, format: InternalFormat):
+    def __init__(self, size: int, data_type: GLType, internal_format: TextureBufferSizedInternalFormat):
         super().__init__(size, data_type)
 
         self._tex_id = gl.create_texture(TextureTarget.TextureBuffer)
-        GL.glTextureBuffer(self.texture_id, format, self.id)
+        GL.glTextureBuffer(self.texture_id, internal_format, self.id)
 
     def delete(self) -> None:
         super().delete()

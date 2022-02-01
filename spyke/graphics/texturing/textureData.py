@@ -1,9 +1,5 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    import numpy as np
-
-from spyke.enums import TextureFormat
+import numpy as np
 
 
 class TextureData:
@@ -11,12 +7,10 @@ class TextureData:
         '__weakref__',
         'width',
         'height',
-        'data',
-        'format'
+        'data'
     )
 
-    def __init__(self, width: int, height: int):
-        self.width: int = width
-        self.height: int = height
-        self.data: np.ndarray
-        self.format: TextureFormat = TextureFormat.Rgba
+    def __init__(self):
+        self.width: int = 0
+        self.height: int = 0
+        self.data: np.ndarray = np.empty((0, 0), dtype=np.float32)

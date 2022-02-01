@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
 # TODO: Remove unused import statements
 from spyke import debug
 from spyke.ecs.components.camera import CameraComponent
-from spyke.enums import GLType, ClearMask, Hint, InternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys, SizedInternalFormat
+from spyke.enums import GLType, ClearMask, Hint, TextureBufferSizedInternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys, SizedInternalFormat
 from spyke import events
 from spyke.graphics import Rectangle
 from ..texturing import Texture
@@ -155,13 +155,13 @@ class Renderer:
         self.instance_data_buffer = DynamicBuffer(
             BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, GLType.Float)
         self.vertex_data_buffer = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE *
-                                                MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, InternalFormat.Rg32f)
+                                                MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, TextureBufferSizedInternalFormat.Rg32f)
         self.ibo = StaticBuffer(create_quad_indices(
             MAX_QUADS_COUNT), GLType.UnsignedInt)
         self.basic_shader = Shader()
         self.ubo = UniformBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
         self.vao = VertexArray()
-        self.textures[0] = Texture.CreateWhiteTexture().id
+        self.textures[0] = Texture.create_white_texture().id
 
         color_attachment_spec = AttachmentSpec(SizedInternalFormat.Rgba8)
 

@@ -10,7 +10,7 @@ import numpy as np
 from os import path
 import freetype
 from .resource import Resource
-from spyke.enums import MagFilter, MinFilter, WrapMode, TextureFormat
+from spyke.enums import SizedInternalFormat, MagFilter, MinFilter, SwizzleMask, SwizzleTarget, WrapMode, TextureFormat
 from spyke.exceptions import SpykeException
 from spyke.graphics.texturing import TextureData, TextureSpec, Texture
 from spyke.graphics.rectangle import Rectangle
@@ -96,16 +96,21 @@ class Font(Resource):
 
             last_x += width
 
-        texture_data = TextureData(atlas_width, atlas_height)
-        texture_data.format = TextureFormat.Alpha
+        texture_data = TextureData()
+        texture_data.width = atlas_width
+        texture_data.height = atlas_height
         texture_data.data = atlas
 
         texture_spec = TextureSpec()
-        texture_spec.compress = False
+        texture_spec.format = TextureFormat.Red
+        texture_spec.internal_format = SizedInternalFormat.R8
         texture_spec.mipmaps = 1
         texture_spec.min_filter = MinFilter.Nearest
         texture_spec.mag_filter = MagFilter.Nearest
         texture_spec.wrap_mode = WrapMode.ClampToEdge
+        texture_spec.texture_swizzle = SwizzleTarget.TextureSwizzleRgba
+        texture_spec.swizzle_mask = [
+            SwizzleMask.One, SwizzleMask.One, SwizzleMask.One, SwizzleMask.Red]
 
         self._loading_data['texture_spec'] = texture_spec
         self._loading_data['texture_data'] = texture_data
