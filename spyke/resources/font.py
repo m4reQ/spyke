@@ -1,20 +1,23 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Dict, Tuple
+    from typing import Dict, Tuple, List
     from uuid import UUID
 
 from PIL import Image
 import time
+import numpy as np
 from os import path
+import freetype
 from .resource import Resource
-from spyke.enums import MagFilter, MinFilter, WrapMode
+from spyke.enums import MagFilter, MinFilter, WrapMode, TextureFormat
 from spyke.exceptions import SpykeException
 from spyke.graphics.texturing import TextureData, TextureSpec, Texture
 from spyke.graphics.rectangle import Rectangle
 from spyke.utils import loaders, convert
 from spyke.graphics import Glyph
-from spyke import debug
+from spyke import debug, utils
+import glm
 
 
 class Font(Resource):
@@ -26,66 +29,86 @@ class Font(Resource):
         self.base_size: int = 0
         self.name: str = ''
 
-    def _parse_line_as_dict(self, line) -> Dict[str, str]:
-        data = line.replace('\n', '').split(' ')
-        data = [x for x in data if x]
+    def _get_characters(self, face: freetype.Face) -> List[str]:
+        return [chr(idx) for _, idx, in face.get_chars() if chr(idx).isprintable()] + ['\n', ]
 
-        values = {}
-        for x in data:
-            key, value = x.split('=')
-            values[key] = value
+    def _load(self, *, size: int = 64, **_) -> None:
+        self.base_size = size
 
-        return values
+        face = freetype.Face(self.filepath)
+        face.set_pixel_sizes(0, self.base_size)
 
-    def _parse_line(self, line: str, texture_size: Tuple[int, int]) -> Glyph:
-        _values = self._parse_line_as_dict(line)
+        chars = self._get_characters(face)
 
-        values = {}
-        for key, value in _values.items():
-            values[key] = int(value)
+        max_columns, max_rows = utils.get_closest_factors(len(chars))
 
-        tex_rect = Rectangle(values['x'] / texture_size[0], values['y'] / texture_size[1],
-                             values['width'] / texture_size[0], values['height'] / texture_size[1])
+        atlas_width = 0
+        atlas_height = max_columns * self.base_size
+        current_width = 0
+        current_char_idx = 0
+        for char in chars:
+            if current_char_idx >= max_rows:
+                atlas_width = max(atlas_width, current_width)
+                current_width = 0
+                current_char_idx = 0
 
-        return Glyph(values['width'], values['height'], values['xoffset'], values['yoffset'], values['xadvance'], tex_rect, chr(values['id']))
+            face.load_char(char, freetype.FT_LOAD_RENDER |
+                           freetype.FT_LOAD_FORCE_AUTOHINT)
 
-    def _load(self, *args, **kwargs) -> None:
-        image_filepath, _ = path.splitext(self.filepath)
-        image_filepath += '.png'
+            glyph = face.glyph
+            bitmap = glyph.bitmap
 
-        with Image.open(image_filepath) as img:
-            data = loaders.get_image_data(img)
-            size = img.size
-            self._loading_data['texture_width'] = size[0]
-            self._loading_data['texture_height'] = size[1]
+            current_width += bitmap.width
+            current_char_idx += 1
 
-        texture_data = TextureData(*size)
-        texture_data.format = convert.image_mode_to_texture_format(img.mode)
-        texture_data.data = data
+        atlas = np.zeros((atlas_height, atlas_width), dtype=np.ubyte)
+
+        last_x = 0
+        last_y = atlas_height - self.base_size
+        for char in chars:
+            face.load_char(char, freetype.FT_LOAD_RENDER |
+                           freetype.FT_LOAD_FORCE_AUTOHINT)
+
+            glyph = face.glyph
+            bitmap = glyph.bitmap
+
+            width = bitmap.width
+            height = bitmap.rows
+
+            data = np.asarray(bitmap.buffer, dtype=np.ubyte).reshape(
+                (height, width))
+
+            if last_x + width > atlas_width:
+                last_y -= self.base_size
+                last_x = 0
+
+            atlas[last_y:last_y + height, last_x:last_x + width] = data
+
+            tex_x = (last_x / atlas_width) + (0.5 / atlas_width)
+            tex_y = 0.5 / atlas_height
+            tex_width = (width / atlas_width) - (0.5 / atlas_width)
+            tex_height = (height / atlas_height) - (0.5 / atlas_height)
+
+            tex_rect = Rectangle(tex_x, tex_y, tex_width, tex_height)
+            glyph_obj = Glyph(glm.ivec2(width, height), glm.ivec2(
+                glyph.bitmap_left, glyph.bitmap_top), glyph.advance.x >> 6, tex_rect)
+            self.glyphs[char] = glyph_obj
+
+            last_x += width
+
+        texture_data = TextureData(atlas_width, atlas_height)
+        texture_data.format = TextureFormat.Alpha
+        texture_data.data = atlas
 
         texture_spec = TextureSpec()
         texture_spec.compress = False
         texture_spec.mipmaps = 1
         texture_spec.min_filter = MinFilter.Nearest
         texture_spec.mag_filter = MagFilter.Nearest
-        texture_spec.wrap_mode = WrapMode.Repeat
+        texture_spec.wrap_mode = WrapMode.ClampToEdge
 
         self._loading_data['texture_spec'] = texture_spec
         self._loading_data['texture_data'] = texture_data
-
-        with open(self.filepath, 'r') as f:
-            line: str
-            for line in f.readlines():
-                if line.startswith('info'):
-                    values = self._parse_line_as_dict(
-                        line.removeprefix('info '))
-                    self.base_size = int(values['size'])
-                    self.name = values['face'].replace('"', '')
-                    continue
-
-                if line.startswith('char '):
-                    glyph = self._parse_line(line.removeprefix('char '), size)
-                    self.glyphs[glyph.char] = glyph
 
     def _finalize(self) -> None:
         self.texture = Texture(

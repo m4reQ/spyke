@@ -15,6 +15,7 @@ __all__ = [
     'create_rotation_z',
     'create_transform_3d',
     'garbage_collect',
+    'get_closest_factors',
     'Iterator',
     'Delayer',
     'Vector2',

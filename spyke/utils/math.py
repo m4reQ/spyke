@@ -1,4 +1,5 @@
 import glm
+import math
 from typing import Tuple, Union
 from spyke.exceptions import SpykeException
 from glm import vec2 as Vector2, vec3 as Vector3, vec4 as Vector4, mat4 as Matrix4
@@ -51,3 +52,11 @@ def lerp_vector(factor: float, x, y):
     ctor = getattr(glm, f'vec{len(x)}')
 
     return ctor(values)
+
+
+def get_closest_factors(num: int) -> Tuple[int, int]:
+    test_num = int(math.sqrt(num))
+    while num % test_num != 0:
+        test_num -= 1
+
+    return (test_num, num // test_num)

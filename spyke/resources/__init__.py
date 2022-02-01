@@ -33,7 +33,7 @@ def _detect_resource_type(filepath: str) -> Type[Resource]:
     # TODO: Add support for .dds files
     if ext in ['png', 'jpg', 'jpeg', 'bmp']:
         return Image
-    if ext == 'fnt':
+    if ext == 'ttf':
         return Font
     else:
         raise SpykeException(f'Unknown resource file extension: {ext}.')
@@ -43,16 +43,16 @@ def _shutdown_thread_executor() -> None:
     _thread_executor.shutdown()
 
 
-def _load(id: uuid.UUID, filepath: str) -> Resource:
+def _load(id: uuid.UUID, filepath: str, **resource_settings) -> Resource:
     _type: Type[Resource] = _detect_resource_type(filepath)
 
     res = _type(id, filepath)
-    res.load()
+    res.load(**resource_settings)
 
     return res
 
 
-def load(filepath: str) -> uuid.UUID:
+def load(filepath: str, **resource_settings) -> uuid.UUID:
     '''
     Submits loading task for resource from given file and returns its UUID.
     It automatically detects the resource type based on file extension.
@@ -66,7 +66,8 @@ def load(filepath: str) -> uuid.UUID:
     # TODO: Consider having guard that disallows loading the same file as multiple resources
 
     _id = uuid.uuid4()
-    res_future = _thread_executor.submit(_load, _id, filepath)
+    res_future = _thread_executor.submit(
+        _load, _id, filepath, **resource_settings)
     _resources[_id] = res_future
 
     get.cache_clear()

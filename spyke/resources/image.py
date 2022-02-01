@@ -18,7 +18,7 @@ class Image(Resource):
 
         self.texture: Texture
 
-    def _load(self, *args, **kwargs) -> None:
+    def _load(self, **_) -> None:
         with _Image.open(self.filepath) as img:
             data = loaders.get_image_data(img)
             size = img.size

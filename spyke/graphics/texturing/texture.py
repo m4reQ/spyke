@@ -31,6 +31,7 @@ class Texture(gl.GLObject):
         GL.glTextureParameteri(
             self.id, GL.GL_TEXTURE_MAG_FILTER, tex_spec.mag_filter)
 
+        # TODO: Determine pixel format
         GL.glTextureSubImage2D(self.id, 0, 0, 0, tex_data.width,
                                tex_data.height, tex_data.format, GL.GL_UNSIGNED_BYTE, tex_data.data)
         GL.glGenerateTextureMipmap(self.id)
