@@ -4,17 +4,14 @@ if typing.TYPE_CHECKING:
     from typing import Dict, Tuple, List
     from uuid import UUID
 
-from PIL import Image
 import time
 import numpy as np
-from os import path
 import freetype
 from .resource import Resource
 from spyke.enums import SizedInternalFormat, MagFilter, MinFilter, SwizzleMask, SwizzleTarget, WrapMode, TextureFormat
 from spyke.exceptions import SpykeException
 from spyke.graphics.texturing import TextureData, TextureSpec, Texture
 from spyke.graphics.rectangle import Rectangle
-from spyke.utils import loaders, convert
 from spyke.graphics import Glyph
 from spyke import debug, utils
 import glm
@@ -84,10 +81,13 @@ class Font(Resource):
 
             atlas[last_y:last_y + height, last_x:last_x + width] = data
 
-            tex_x = (last_x / atlas_width) + (0.5 / atlas_width)
-            tex_y = 0.5 / atlas_height
-            tex_width = (width / atlas_width) - (0.5 / atlas_width)
-            tex_height = (height / atlas_height) - (0.5 / atlas_height)
+            offset_x = (0.5 / atlas_width)
+            offset_y = (0.5 / atlas_height)
+
+            tex_x = (last_x / atlas_width) + offset_x
+            tex_y = (last_y / atlas_height) + offset_y
+            tex_width = (width / atlas_width) - offset_x
+            tex_height = (height / atlas_height) - offset_y
 
             tex_rect = Rectangle(tex_x, tex_y, tex_width, tex_height)
             glyph_obj = Glyph(glm.ivec2(width, height), glm.ivec2(
@@ -120,7 +120,7 @@ class Font(Resource):
             self._loading_data['texture_data'], self._loading_data['texture_spec'])
 
         debug.log_info(
-            f'Image from file "{self.filepath}" loaded in {time.perf_counter() - self._loading_start} seconds.')
+            f'Font from file "{self.filepath}" loaded in {time.perf_counter() - self._loading_start} seconds.')
 
     def _unload(self) -> None:
         self.texture.delete()

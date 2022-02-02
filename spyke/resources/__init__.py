@@ -83,6 +83,8 @@ def get(_id: uuid.UUID) -> Resource:
     :param _id: UUID of queried resource.
     '''
 
+    # TODO: Handle resource not found in more safer way instead of throwing an exception
+
     if __debug__:
         if threading.current_thread() is not threading.main_thread():
             raise SpykeException(

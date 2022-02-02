@@ -327,30 +327,34 @@ class Renderer:
         GL.glDisable(GL.GL_DEPTH_TEST)
 
         text_transform = glm.mat4(1.0)
+        fb_width = self.info.framebuffer_width
+        fb_height = self.info.framebuffer_height
 
         for ent, (text, transform) in scene.get_components(components.TextComponent, components.TransformComponent):
             font = text.font
+            scale = text.size / font.base_size
 
-            advSum = 0.0
+            x = transform.position.x
+            y = transform.position.y
 
             for char in text.text:
                 glyph = font.get_glyph(char)
 
-                adv = advSum / self.info.framebuffer_width * \
-                    (text.size / font.base_size)
+                # TODO: Normalize all values here
+                pos_x = (x + glyph.bearing.x) / fb_height * scale
+                pos_y = (y - (glyph.size.y - glyph.bearing.y)) / \
+                    fb_height * scale
 
-                scWidth = glyph.width / self.info.framebuffer_width * \
-                    (text.size / font.base_size)
-                scHeight = glyph.height / self.info.framebuffer_height * \
-                    (text.size / font.base_size)
+                width = glyph.size.x / fb_width * scale
+                height = glyph.size.y / fb_height * scale
 
-                advSum += glyph.advance
+                x += glyph.advance / fb_width * scale
 
-                text_transform[3, 0] = transform.position.x + adv
-                text_transform[3, 1] = transform.position.y
+                text_transform[3, 0] = pos_x
+                text_transform[3, 1] = pos_y
                 text_transform[3, 2] = transform.position.z
-                text_transform[0, 0] = scWidth
-                text_transform[1, 1] = scHeight
+                text_transform[0, 0] = width
+                text_transform[1, 1] = height
 
                 self._render_quad(text_transform, text.color,
                                   glm.vec2(1.0, 1.0), texture=font.texture, tex_rect=glyph.tex_rect, ent_id=int(ent))
