@@ -341,9 +341,9 @@ class Renderer:
                 glyph = font.get_glyph(char)
 
                 # TODO: Normalize all values here
-                pos_x = (x + glyph.bearing.x) / fb_height * scale
-                pos_y = (y - (glyph.size.y - glyph.bearing.y)) / \
-                    fb_height * scale
+                pos_x = x + ((glyph.bearing.x / fb_height) * scale)
+                pos_y = y - \
+                    (((glyph.size.y - glyph.bearing.y) / fb_height) * scale)
 
                 width = glyph.size.x / fb_width * scale
                 height = glyph.size.y / fb_height * scale

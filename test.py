@@ -42,7 +42,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(-0.5, 0.5, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'TEST', 80, font_futuram, color(1.0, 0.0, 0.0, 1.0))
+                'jebac papieza', 80, font_futuram, color(1.0, 0.0, 0.0, 1.0))
         )
 
         main_scene.create_entity(

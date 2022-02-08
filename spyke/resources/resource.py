@@ -55,11 +55,14 @@ class Resource(ABC):
 
         self._loading_start = time.perf_counter()
 
-        try:
+        if __debug__:
             self._load(*args, **kwargs)
-        except Exception as e:
-            raise SpykeException(
-                f'An exception occured while loading resource ({self}): {e}.') from None
+        else:
+            try:
+                self._load(*args, **kwargs)
+            except Exception as e:
+                raise SpykeException(
+                    f'An exception occured while loading resource ({self}): {e}.') from e
 
         self._is_loaded = True
 
@@ -72,11 +75,14 @@ class Resource(ABC):
             debug.log_warning(
                 f'Tried to finalize loading of resource ({self}) that already has been finalized.')
 
-        try:
+        if __debug__:
             self._finalize()
-        except Exception as e:
-            raise SpykeException(
-                f'An exception occured while finalizing resource ({self}) loading: {e}.') from None
+        else:
+            try:
+                self._finalize()
+            except Exception as e:
+                raise SpykeException(
+                    f'An exception occured while finalizing resource ({self}) loading: {e}.') from e
 
         self._is_finalized = True
 

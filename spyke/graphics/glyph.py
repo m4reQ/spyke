@@ -4,7 +4,10 @@ if typing.TYPE_CHECKING:
     from spyke.graphics.rectangle import Rectangle
     import glm
 
+from dataclasses import dataclass
 
+
+@dataclass
 class Glyph:
     __slots__ = (
         'tex_rect',
@@ -13,8 +16,7 @@ class Glyph:
         'advance'
     )
 
-    def __init__(self, size: glm.ivec, bearing: glm.ivec2, advance: int, tex_rect: Rectangle):
-        self.tex_rect: Rectangle = tex_rect
-        self.size: glm.ivec2 = size
-        self.bearing: glm.ivec2 = bearing
-        self.advance: int = advance
+    size: glm.ivec2
+    bearing: glm.ivec2
+    advance: int
+    tex_rect: Rectangle

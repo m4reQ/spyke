@@ -18,6 +18,7 @@ class TextureSpec:
         'format',
         'texture_swizzle',
         'internal_format',
+        'pixel_alignment',
         '_swizzle_mask'
     )
 
@@ -29,6 +30,7 @@ class TextureSpec:
         self.format: TextureFormat = TextureFormat.Rgba
         self.internal_format: Optional[SizedInternalFormat] = None
         self.texture_swizzle: Optional[SwizzleTarget] = None
+        self.pixel_alignment: int = 4
         self._swizzle_mask: Optional[np.ndarray] = None
 
     @property

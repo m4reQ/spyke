@@ -42,6 +42,10 @@ class Texture(gl.GLObject):
             GL.glTextureParameteriv(
                 self.id, tex_spec.texture_swizzle, tex_spec.swizzle_mask)
 
+        assert tex_spec.pixel_alignment in [
+            1, 2, 4, 8], f'Invalid pixel alignment: {tex_spec.pixel_alignment}'
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, tex_spec.pixel_alignment)
+
         # TODO: Determine pixel format from tex_data.data.dtype
         GL.glTextureSubImage2D(self.id, 0, 0, 0, tex_data.width,
                                tex_data.height, tex_spec.format, GL.GL_UNSIGNED_BYTE, tex_data.data)

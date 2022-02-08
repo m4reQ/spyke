@@ -1,5 +1,6 @@
 from __future__ import annotations
 import typing
+
 if typing.TYPE_CHECKING:
     from spyke.enums import TextureTarget
     from typing import List
