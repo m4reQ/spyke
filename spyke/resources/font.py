@@ -148,6 +148,9 @@ class Font(Resource):
 
         atlas = np.zeros((atlas_height * 2, atlas_width * 2), dtype=np.uint8)
 
+        offset_x = (0.5 / atlas_width)
+        offset_y = (0.5 / atlas_height)
+
         cur_x = 0
         cur_y = 0
         for char_data in to_combine.values():
@@ -162,9 +165,6 @@ class Font(Resource):
 
             atlas[cur_y:cur_y + height * 2,
                   cur_x:cur_x + width * 2] = char_data.data
-
-            offset_x = (0.5 / atlas_width)
-            offset_y = (0.5 / atlas_height)
 
             tex_x = ((cur_x / 2) / atlas_width) + offset_x
             tex_y = ((cur_y / 2) / atlas_height) + offset_y
@@ -193,10 +193,10 @@ class Font(Resource):
         texture_spec.wrap_mode = WrapMode.ClampToEdge
         texture_spec.pixel_alignment = 2
         texture_spec.texture_swizzle = SwizzleTarget.TextureSwizzleRgba
-        texture_spec.swizzle_mask = [
-            SwizzleMask.Red, SwizzleMask.Red, SwizzleMask.Red, SwizzleMask.Green]
         # texture_spec.swizzle_mask = [
-        #     SwizzleMask.Green, SwizzleMask.Green, SwizzleMask.Green, SwizzleMask.Red]
+        #     SwizzleMask.Red, SwizzleMask.Red, SwizzleMask.Red, SwizzleMask.Green]
+        texture_spec.swizzle_mask = [
+            SwizzleMask.Green, SwizzleMask.Green, SwizzleMask.Green, SwizzleMask.Red]
 
         self._loading_data['texture_spec'] = texture_spec
         self._loading_data['texture_data'] = texture_data

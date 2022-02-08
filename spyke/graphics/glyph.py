@@ -10,6 +10,7 @@ from dataclasses import dataclass
 @dataclass
 class Glyph:
     __slots__ = (
+        '__weakref__',
         'tex_rect',
         'size',
         'bearing',
