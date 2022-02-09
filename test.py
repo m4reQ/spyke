@@ -18,7 +18,6 @@ class App(Application):
         tex1 = resources.load('tests/test1.jpg')
         tex2 = resources.load('tests/test2.png')
         tex3 = resources.load('tests/test3.jpg')
-        #font_arial = resources.load_font('tests/ArialNative.fnt')
         font_futuram = resources.load('tests/futuram.ttf', size=96)
 
         main_scene.create_entity(
@@ -42,7 +41,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(-0.5, 0.5, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'jebac papieza', 200, font_futuram, color(1.0, 0.0, 0.0, 1.0))
+                'jebać papieża 2137', 100, font_futuram, color(1.0, 0.0, 0.0, 1.0))
         )
 
         main_scene.create_entity(

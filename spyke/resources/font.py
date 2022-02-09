@@ -15,6 +15,7 @@ import time
 import numpy as np
 import freetype as ft
 import glm
+import math
 from dataclasses import dataclass
 
 
@@ -45,55 +46,46 @@ class Font(Resource):
         face.load_char(char, ft.FT_LOAD_TARGET_NORMAL |
                        ft.FT_LOAD_NO_BITMAP | ft.FT_LOAD_FORCE_AUTOHINT)
 
-        # create stroke bitmap
         stroke_glyph = face.glyph.get_glyph()
         stroke_glyph.stroke(stroker, True)
         stroke_glyph_r = stroke_glyph.to_bitmap(
             ft.FT_RENDER_MODE_NORMAL, 0, True)
         stroke_bitmap = stroke_glyph_r.bitmap
 
-        # return stroker to its begin state
         stroker.rewind()
 
-        # create buffer for combined bitmaps and copy stroke bitmap
-        c_x = stroke_bitmap.width
-        c_y = stroke_bitmap.rows
-        o_x = stroke_glyph_r.left
-        o_y = stroke_glyph_r.top
+        origin_x = stroke_glyph_r.left
+        origin_y = stroke_glyph_r.top
 
-        buffer = np.zeros((c_x * c_y * 2,), dtype=np.uint8)
+        width_stroke = stroke_bitmap.width
+        height_stroke = stroke_bitmap.rows
 
-        # NOTE: This operation is very slow though we should
-        # consider using some numpy functions for it
-        stroke_buffer = stroke_bitmap.buffer
-        for i in range(c_x * c_y):
-            # copy every pixel to the second channel
-            buffer[i * 2 + 1] = stroke_buffer[i]
+        data = np.array(stroke_bitmap.buffer, dtype=np.uint8, copy=True).reshape(
+            height_stroke, width_stroke)
 
-        # load filled glyph
         fill_glyph = face.glyph.get_glyph()
         fill_glyph_r = fill_glyph.to_bitmap(ft.FT_RENDER_MODE_NORMAL, 0, True)
         fill_bitmap = fill_glyph_r.bitmap
 
-        c_x_fill = fill_bitmap.width
-        c_y_fill = fill_bitmap.rows
-        x_offset = (c_x - c_x_fill) // 2
-        y_offset = (c_y - c_y_fill) // 2
+        width_fill = fill_bitmap.width
+        height_fill = fill_bitmap.rows
 
-        # NOTE: This is EVEN SLOWER than the pervious copy!
-        # It should be changed as soon as possible.
-        fill_buffer = fill_bitmap.buffer
-        for y in range(c_y_fill):
-            for x in range(c_x_fill):
-                i_src = y * c_x_fill + x
-                i_target = (y + y_offset) * c_x + x + x_offset
+        start_x = ((width_stroke - width_fill) / 2)
+        start_y = ((height_stroke - height_fill) / 2)
 
-                buffer[i_target * 2] = fill_buffer[i_src]
+        start_x = math.floor(start_x)
+        start_y = math.floor(start_y)
 
-        buffer.resize(c_y * 2, c_x * 2, refcheck=False)
+        data_fill = np.array(fill_bitmap.buffer, dtype=np.uint8, copy=True).reshape(
+            height_fill, width_fill)
+
+        for y in range(height_fill):
+            for x in range(width_fill):
+                data[y + start_y, x + start_x] = max(
+                    data[y + start_y, x + start_x], data_fill[y, x])
 
         prototype = _CharPrototype(
-            char, buffer, c_x, c_y, o_x, o_y, face.glyph.advance.x >> 6)
+            char, data, width_stroke, height_stroke, origin_x, origin_y, face.glyph.advance.x >> 6)
 
         return prototype
 
@@ -146,30 +138,29 @@ class Font(Resource):
         atlas_width, atlas_height, rows_heights = self._determine_atlas_size(
             to_combine.values(), cols)
 
-        atlas = np.zeros((atlas_height * 2, atlas_width * 2), dtype=np.uint8)
+        atlas_width += cols
+        atlas_height += len(rows_heights)
 
-        offset_x = (0.5 / atlas_width)
-        offset_y = (0.5 / atlas_height)
+        atlas = np.zeros(
+            (atlas_height, atlas_width), dtype=np.uint8)
 
         cur_x = 0
         cur_y = 0
         for char_data in to_combine.values():
-            if cur_x + char_data.width * 2 > atlas_width * 2:
-                cur_x = 0
-                # we use 2 bytes per pixel so offsets have to be
-                # multiplied by two as well
-                cur_y += rows_heights.pop(0) * 2
-
             width = char_data.width
             height = char_data.height
 
-            atlas[cur_y:cur_y + height * 2,
-                  cur_x:cur_x + width * 2] = char_data.data
+            if cur_x + width > atlas_width:
+                cur_x = 0
+                cur_y += rows_heights.pop(0) + 1
 
-            tex_x = ((cur_x / 2) / atlas_width) + offset_x
-            tex_y = ((cur_y / 2) / atlas_height) + offset_y
-            tex_width = (width / atlas_width) - offset_x
-            tex_height = (height / atlas_height) - offset_y
+            atlas[cur_y:cur_y + height,
+                  cur_x:cur_x + width] = char_data.data
+
+            tex_x = cur_x / atlas_width
+            tex_y = cur_y / atlas_height
+            tex_width = width / atlas_width
+            tex_height = height / atlas_height
 
             tex_rect = Rectangle(tex_x, tex_y, tex_width, tex_height)
             glyph_obj = Glyph(glm.ivec2(width, height), glm.ivec2(
@@ -177,7 +168,7 @@ class Font(Resource):
 
             self.glyphs[char_data.char] = glyph_obj
 
-            cur_x += width * 2
+            cur_x += width + 1
 
         texture_data = TextureData()
         texture_data.width = atlas_width
@@ -185,18 +176,16 @@ class Font(Resource):
         texture_data.data = atlas
 
         texture_spec = TextureSpec()
-        texture_spec.format = TextureFormat.Rg
-        texture_spec.internal_format = SizedInternalFormat.Rg8
+        texture_spec.format = TextureFormat.Red
+        texture_spec.internal_format = SizedInternalFormat.R8
         texture_spec.mipmaps = 1
         texture_spec.min_filter = MinFilter.Linear
         texture_spec.mag_filter = MagFilter.Linear
         texture_spec.wrap_mode = WrapMode.ClampToEdge
-        texture_spec.pixel_alignment = 2
+        texture_spec.pixel_alignment = 1
         texture_spec.texture_swizzle = SwizzleTarget.TextureSwizzleRgba
-        # texture_spec.swizzle_mask = [
-        #     SwizzleMask.Red, SwizzleMask.Red, SwizzleMask.Red, SwizzleMask.Green]
         texture_spec.swizzle_mask = [
-            SwizzleMask.Green, SwizzleMask.Green, SwizzleMask.Green, SwizzleMask.Red]
+            SwizzleMask.One, SwizzleMask.One, SwizzleMask.One, SwizzleMask.Red]
 
         self._loading_data['texture_spec'] = texture_spec
         self._loading_data['texture_data'] = texture_data
@@ -213,6 +202,6 @@ class Font(Resource):
 
     def get_glyph(self, char: str) -> Glyph:
         if char not in self.glyphs:
-            raise SpykeException(f'Cannot find glyph: "{char}"')
+            return self.glyphs['\n']
 
         return self.glyphs[char]
