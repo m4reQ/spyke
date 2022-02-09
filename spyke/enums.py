@@ -189,6 +189,23 @@ class TextureFormat(enum.IntEnum):
     StencilIndex = GL.GL_STENCIL_INDEX
 
 
+class SwizzleMask(enum.IntEnum):
+    Red = GL.GL_RED
+    Green = GL.GL_GREEN
+    Blue = GL.GL_BLUE
+    Alpha = GL.GL_ALPHA
+    Zero = GL.GL_ZERO
+    One = GL.GL_ONE
+
+
+class SwizzleTarget(enum.IntEnum):
+    TextureSwizzleR = GL.GL_TEXTURE_SWIZZLE_R
+    TextureSwizzleG = GL.GL_TEXTURE_SWIZZLE_G
+    TextureSwizzleB = GL.GL_TEXTURE_SWIZZLE_B
+    TextureSwizzleA = GL.GL_TEXTURE_SWIZZLE_A
+    TextureSwizzleRgba = GL.GL_TEXTURE_SWIZZLE_RGBA
+
+
 class TextureCompareFunc(enum.IntEnum):
     LessEqual = GL.GL_LEQUAL
     GreaterEqual = GL.GL_GEQUAL
@@ -297,38 +314,7 @@ class SizedInternalFormat(enum.IntEnum):
     Depth32fStencil8 = GL.GL_DEPTH32F_STENCIL8
 
 
-class ShaderType(enum.IntEnum):
-    ComputeShader = GL.GL_COMPUTE_SHADER
-    VertexShader = GL.GL_VERTEX_SHADER
-    TessControlShader = GL.GL_TESS_CONTROL_SHADER
-    TexxEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
-    GeometryShader = GL.GL_GEOMETRY_SHADER
-    FragmentShader = GL.GL_FRAGMENT_SHADER
-
-
-class TextureTarget(enum.IntEnum):
-    Texture1d = GL.GL_TEXTURE_1D
-    Texture2d = GL.GL_TEXTURE_2D
-    Texture3d = GL.GL_TEXTURE_3D
-    Texture1dArray = GL.GL_TEXTURE_1D_ARRAY
-    Texture2dArray = GL.GL_TEXTURE_2D_ARRAY
-    TextureRectangle = GL.GL_TEXTURE_RECTANGLE
-    TextureCubeMap = GL.GL_TEXTURE_CUBE_MAP
-    TextureCubeMapArray = GL.GL_TEXTURE_CUBE_MAP_ARRAY
-    TextureBuffer = GL.GL_TEXTURE_BUFFER
-    Texture2dMultisample = GL.GL_TEXTURE_2D_MULTISAMPLE
-    Texture2dMultisampleArray = GL.GL_TEXTURE_2D_MULTISAMPLE_ARRAY
-
-# TODO: Check if those values are correct
-
-
-class InternalFormat(enum.IntEnum):
-    DepthComponent = GL.GL_DEPTH_COMPONENT
-    DepthStencil = GL.GL_DEPTH_STENCIL
-    Red = GL.GL_RED
-    Rg = GL.GL_RG
-    Rgb = GL.GL_RGB
-    Rgba = GL.GL_RGBA
+class TextureBufferSizedInternalFormat(enum.IntEnum):
     R8 = GL.GL_R8
     R16 = GL.GL_R16
     R16f = GL.GL_R16F
@@ -362,6 +348,32 @@ class InternalFormat(enum.IntEnum):
     Rgba8ui = GL.GL_RGBA8UI
     Rgba16ui = GL.GL_RGBA16UI
     Rgba32ui = GL.GL_RGBA32UI
+
+
+class ShaderType(enum.IntEnum):
+    ComputeShader = GL.GL_COMPUTE_SHADER
+    VertexShader = GL.GL_VERTEX_SHADER
+    TessControlShader = GL.GL_TESS_CONTROL_SHADER
+    TexxEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
+    GeometryShader = GL.GL_GEOMETRY_SHADER
+    FragmentShader = GL.GL_FRAGMENT_SHADER
+
+
+class TextureTarget(enum.IntEnum):
+    Texture1d = GL.GL_TEXTURE_1D
+    Texture2d = GL.GL_TEXTURE_2D
+    Texture3d = GL.GL_TEXTURE_3D
+    Texture1dArray = GL.GL_TEXTURE_1D_ARRAY
+    Texture2dArray = GL.GL_TEXTURE_2D_ARRAY
+    TextureRectangle = GL.GL_TEXTURE_RECTANGLE
+    TextureCubeMap = GL.GL_TEXTURE_CUBE_MAP
+    TextureCubeMapArray = GL.GL_TEXTURE_CUBE_MAP_ARRAY
+    TextureBuffer = GL.GL_TEXTURE_BUFFER
+    Texture2dMultisample = GL.GL_TEXTURE_2D_MULTISAMPLE
+    Texture2dMultisampleArray = GL.GL_TEXTURE_2D_MULTISAMPLE_ARRAY
+
+
+class CompressedSizedInternalFormat(enum.IntEnum):
     CompressedRed = GL.GL_COMPRESSED_RED
     CompressedRg = GL.GL_COMPRESSED_RG
     CompressedRgb = GL.GL_COMPRESSED_RGB

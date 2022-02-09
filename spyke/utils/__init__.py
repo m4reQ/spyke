@@ -1,6 +1,7 @@
 from typing import Sequence, List, TypeVar, Generator
 import time
 import gc
+import sys
 
 from .math import *
 from spyke import debug
@@ -15,6 +16,7 @@ __all__ = [
     'create_rotation_z',
     'create_transform_3d',
     'garbage_collect',
+    'get_closest_factors',
     'Iterator',
     'Delayer',
     'Vector2',

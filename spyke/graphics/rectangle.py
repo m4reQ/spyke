@@ -1,46 +1,47 @@
+from __future__ import annotations
+import glm
+from dataclasses import dataclass
+
+
+@dataclass
 class Rectangle:
-    @classmethod
-    def one(cls):
-        return cls(0.0, 0.0, 1.0, 1.0)
+    __slots__ = (
+        '__weakref__',
+        'x',
+        'y',
+        'width',
+        'height'
+    )
 
-    def __init__(self, x: float, y: float, width: float, height: float):
-        self.x: float = x
-        self.y: float = y
-        self.width: float = width
-        self.height: float = height
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __eq__(self, other):
-        return all(self.x == other.x, self.y == other.y, self.width == other.width, self.height == other.height)
-
-    def __iter__(self):
-        yield self.x
-        yield self.y
-        yield self.width
-        yield self.height
-
-    def to_screen_coordinates(self, screen_width: int, screen_height: int):
-        x_mapped = int(self.x * screen_width)
-        y_mapped = int(self.y * screen_height)
-        width_mapped = int(self.width * screen_height)
-        height_mapped = int(self.height * screen_height)
-
-        return Rectangle(x_mapped, y_mapped, width_mapped, height_mapped)
+    x: float
+    y: float
+    width: float
+    height: float
 
     @property
-    def left(self):
+    def left(self) -> float:
         return self.x
 
     @property
-    def right(self):
+    def right(self) -> float:
         return self.x + self.width
 
     @property
-    def bottom(self):
+    def bottom(self) -> float:
         return self.y + self.height
 
     @property
-    def top(self):
+    def top(self) -> float:
         return self.y
+
+    @property
+    def size(self) -> glm.vec2:
+        return glm.vec2(self.width, self.height)
+
+    @property
+    def origin(self) -> glm.vec2:
+        return glm.vec2(self.x, self.y)
+
+    @classmethod
+    def one(cls) -> Rectangle:
+        return Rectangle(0.0, 0.0, 1.0, 1.0)

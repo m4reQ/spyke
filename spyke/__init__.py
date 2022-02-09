@@ -16,6 +16,7 @@ OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
 OpenGL.UNSIGNED_BYTE_IMAGES_AS_STRING = True
 OpenGL.ERROR_CHECKING = __debug__
+OpenGL.ERROR_ON_COPY = False
 
 
 def run(app: Application, run_editor: bool = False) -> None:

@@ -18,7 +18,7 @@ class App(Application):
         tex1 = resources.load('tests/test1.jpg')
         tex2 = resources.load('tests/test2.png')
         tex3 = resources.load('tests/test3.jpg')
-        font_arial = resources.load('tests/ArialNative.fnt')
+        font_futuram = resources.load('tests/futuram.ttf', size=96)
 
         main_scene.create_entity(
             components.TagComponent('texture'),
@@ -41,7 +41,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(-0.5, 0.5, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'TEST', 80, font_arial, color(1.0, 0.0, 0.0, 1.0))
+                'jebać papieża 2137', 100, font_futuram, color(1.0, 0.0, 0.0, 1.0))
         )
 
         main_scene.create_entity(
@@ -49,7 +49,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(0.4), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
             components.TextComponent(
-                'TEST2', 42, font_arial, color(1.0, 1.0, 0.0, 1.0))
+                'TEST', 42, font_futuram, color(1.0, 1.0, 0.0, 1.0))
         )
 
         main_scene.create_entity(
@@ -65,7 +65,7 @@ class App(Application):
             components.TransformComponent(
                 Vector3(-0.5, -0.5, 0.0), Vector3(1.0), Vector3(0.0)),
             components.TextComponent(
-                'H', 600, font_arial, color(1.0, 1.0, 1.0, 1.0))
+                'H', 600, font_futuram, color(1.0, 1.0, 1.0, 1.0))
         )
 
         scene.set_current(main_scene)

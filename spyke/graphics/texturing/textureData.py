@@ -1,22 +1,11 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    import numpy as np
 
-from spyke.enums import TextureFormat
+import numpy as np
+from dataclasses import dataclass
 
 
+@dataclass
 class TextureData:
-    __slots__ = (
-        '__weakref__',
-        'width',
-        'height',
-        'data',
-        'format'
-    )
-
-    def __init__(self, width: int, height: int):
-        self.width: int = width
-        self.height: int = height
-        self.data: np.ndarray
-        self.format: TextureFormat = TextureFormat.Rgba
+    width: int = 0
+    height: int = 0
+    data: np.ndarray = np.empty((0, 0), dtype=np.float32)
