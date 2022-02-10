@@ -31,7 +31,8 @@ def _detect_resource_type(filepath: str) -> Type[Resource]:
     ext = ext.lower().replace('.', '')
 
     # TODO: Add support for .dds files
-    if ext in ['png', 'jpg', 'jpeg', 'bmp']:
+    # TODO: Move this to somewhere in loaders
+    if ext in ['png', 'jpg', 'jpeg', 'bmp', 'dds']:
         return Image
     if ext == 'ttf':
         return Font

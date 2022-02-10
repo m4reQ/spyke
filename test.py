@@ -18,6 +18,7 @@ class App(Application):
         tex1 = resources.load('tests/test1.jpg')
         tex2 = resources.load('tests/test2.png')
         tex3 = resources.load('tests/test3.jpg')
+        tex4 = resources.load('tests/test3_dxt5.dds')
         font_futuram = resources.load('tests/futuram.ttf', size=96)
 
         main_scene.create_entity(
@@ -66,6 +67,15 @@ class App(Application):
                 Vector3(-0.5, -0.5, 0.0), Vector3(1.0), Vector3(0.0)),
             components.TextComponent(
                 'H', 600, font_futuram, color(1.0, 1.0, 1.0, 1.0))
+        )
+
+        main_scene.create_entity(
+            components.TagComponent('dds_texture'),
+            components.TransformComponent(
+                Vector3(-1.0, -1.0, 0.0), Vector3(1.0), Vector3(15.0),
+            ),
+            components.SpriteComponent(
+                tex4, Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
         )
 
         scene.set_current(main_scene)

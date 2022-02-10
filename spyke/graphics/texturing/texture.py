@@ -1,9 +1,9 @@
 from __future__ import annotations
 from spyke.exceptions import GraphicsException
 from .textureSpec import TextureSpec
-from spyke.enums import MagFilter, MinFilter, PixelType, TextureFormat, TextureTarget, SizedInternalFormat
+from spyke.enums import _CompressedInternalFormat, MagFilter, MinFilter, PixelType, TextureFormat, TextureParameter, TextureTarget, SizedInternalFormat
 from spyke.graphics import gl
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 from OpenGL import GL
 import numpy as np
@@ -16,38 +16,41 @@ class Texture(gl.GLObject):
             1, 2, 4, 8], f'Invalid pixel alignment: {alignment}'
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, alignment)
 
-    def __init__(self, tex_spec: TextureSpec):
+    def __init__(self, specification: TextureSpec):
         super().__init__()
 
-        self.width: int = tex_spec.width
-        self.height: int = tex_spec.height
-        self.mipmaps: int = tex_spec.mipmaps
+        self.width: int = specification.width
+        self.height: int = specification.height
+        self.mipmaps: int = specification.mipmaps
+        self.is_compressed: bool = isinstance(
+            specification.internal_format, _CompressedInternalFormat)
 
         # TODO: Check if texture width and height are less than GL_MAX_TEXTURE_SIZE
 
         self._id = gl.create_texture(TextureTarget.Texture2d)
 
-        GL.glTextureStorage2D(self.id, tex_spec.mipmaps,
-                              tex_spec.internal_format, self.width, self.height)
+        GL.glTextureStorage2D(self.id, specification.mipmaps,
+                              specification.internal_format, self.width, self.height)
 
-        GL.glTextureParameteri(
-            self.id, GL.GL_TEXTURE_WRAP_S, tex_spec.wrap_mode)
-        GL.glTextureParameteri(
-            self.id, GL.GL_TEXTURE_WRAP_T, tex_spec.wrap_mode)
-        GL.glTextureParameteri(
-            self.id, GL.GL_TEXTURE_WRAP_R, tex_spec.wrap_mode)
-        GL.glTextureParameteri(
-            self.id, GL.GL_TEXTURE_MIN_FILTER, tex_spec.min_filter)
-        GL.glTextureParameteri(
-            self.id, GL.GL_TEXTURE_MAG_FILTER, tex_spec.mag_filter)
+        self.set_parameter(TextureParameter.WrapS, specification.wrap_mode)
+        self.set_parameter(TextureParameter.WrapR, specification.wrap_mode)
+        self.set_parameter(TextureParameter.WrapT, specification.wrap_mode)
+        self.set_parameter(TextureParameter.MinFilter,
+                           specification.min_filter)
+        self.set_parameter(TextureParameter.MagFilter,
+                           specification.mag_filter)
+        self.set_parameter(TextureParameter.BaseLevel, 0)
+        self.set_parameter(TextureParameter.MaxLevel, self.mipmaps - 1)
 
-        if tex_spec.texture_swizzle:
-            assert tex_spec.swizzle_mask is not None, 'Texture swizzle target was set but swizzle mask was not specified'
+        if specification.texture_swizzle:
+            assert specification.swizzle_mask is not None, 'Texture swizzle target was set but swizzle mask was not specified'
 
             GL.glTextureParameteriv(
-                self.id, tex_spec.texture_swizzle, tex_spec.swizzle_mask)
+                self.id, specification.texture_swizzle, specification.swizzle_mask)
 
     def upload(self, size: Union[Tuple[int, int], None], level: int, format: TextureFormat, pixel_type: PixelType, data: np.ndarray) -> None:
+        assert not self.is_compressed, 'Cannot use Texture.upload on compressed texture. Use Texture.upload_compressed instead.'
+
         # TODO: Add check for weird texture conversion from formats that differ much
         # i.e. GL.GL_RG8 <= GL.GL_RGBA
         if size is None:
@@ -55,6 +58,18 @@ class Texture(gl.GLObject):
 
         GL.glTextureSubImage2D(self.id, level, 0, 0,
                                size[0], size[1], format, pixel_type, data)
+
+    def upload_compressed(self, size: Union[Tuple[int, int], None], level: int, format: TextureFormat, image_size: int, data: np.ndarray) -> None:
+        assert self.is_compressed, 'Cannot use Texture.upload_compressed on non-compressed texture. Use Texture.upload instead.'
+
+        if size is None:
+            size = (self.width, self.height)
+
+        GL.glCompressedTextureSubImage2D(
+            self.id, level, 0, 0, size[0], size[1], format, image_size, data)
+
+    def set_parameter(self, parameter: TextureParameter, value: Any) -> None:
+        GL.glTextureParameteri(self.id, parameter, value)
 
     def generate_mipmap(self) -> None:
         GL.glGenerateTextureMipmap(self.id)

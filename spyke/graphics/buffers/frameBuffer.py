@@ -167,15 +167,15 @@ class Framebuffer(gl.GLObject):
                 _id, 1, attachment_spec.texture_format, self.width, self.height)
 
         GL.glTextureParameteri(
-            _id, TextureParameter.TextureMinFilter, attachment_spec.min_filter)
+            _id, TextureParameter.MinFilter, attachment_spec.min_filter)
         GL.glTextureParameteri(
-            _id, TextureParameter.TextureMagFilter, attachment_spec.mag_filter)
+            _id, TextureParameter.MagFilter, attachment_spec.mag_filter)
         GL.glTextureParameteri(
-            _id, TextureParameter.TextureWrapS, attachment_spec.wrap_mode)
+            _id, TextureParameter.WrapS, attachment_spec.wrap_mode)
         GL.glTextureParameteri(
-            _id, TextureParameter.TextureWrapT, attachment_spec.wrap_mode)
+            _id, TextureParameter.WrapT, attachment_spec.wrap_mode)
         GL.glTextureParameteri(
-            _id, TextureParameter.TextureWrapR, attachment_spec.wrap_mode)
+            _id, TextureParameter.WrapR, attachment_spec.wrap_mode)
 
         return _id
 
