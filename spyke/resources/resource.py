@@ -2,7 +2,7 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, Dict, Any
+    from typing import Any
     from uuid import UUID
 
 from spyke.exceptions import SpykeException
@@ -18,7 +18,7 @@ class Resource(ABC):
         self.id: UUID = _id
         self._is_loaded: bool = False
         self._is_finalized: bool = False
-        self._loading_data: Dict[str, Any] = {}
+        self._loading_data: Any = None
         self._loading_start: float = 0.0
 
     def __str__(self):
@@ -84,19 +84,10 @@ class Resource(ABC):
                 raise SpykeException(
                     f'An exception occured while finalizing resource ({self}) loading: {e}.') from e
 
+        del self._loading_data
+        debug.log_info(
+            f'{self} loaded in {time.perf_counter() - self._loading_start} seconds.')
         self._is_finalized = True
-
-    def cleanup(self) -> None:
-        '''
-        Removes unnecessary loading data after resource loading is finalized.
-        '''
-
-        if not self.is_ready:
-            debug.log_warning(
-                f'Tried to clean up resource ({self}) that is not loaded yet.')
-            return
-
-        self._loading_data.clear()
 
     @property
     def is_ready(self) -> bool:

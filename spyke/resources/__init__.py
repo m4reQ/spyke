@@ -98,7 +98,6 @@ def get(_id: uuid.UUID) -> Resource:
     if isinstance(res, Future):
         _res = res.result()
         _res.finalize()
-        _res.cleanup()
 
         _resources[_id] = _res
         get.cache_clear()

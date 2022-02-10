@@ -1,6 +1,7 @@
 import glm
 from .rectangle import Rectangle
 from .glyph import Glyph
+from .texturing import Texture, TextureSpec
 
 __all__ = [
     'Rectangle',
