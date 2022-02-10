@@ -1,4 +1,5 @@
 from OpenGL import GL
+from OpenGL.GL.EXT import texture_compression_s3tc
 import openal
 import glfw
 import enum
@@ -34,17 +35,7 @@ class Vendor(enum.Enum):
 # region OpenGL
 
 
-class TextureMagFilter:
-    Linear = GL.GL_LINEAR
-    Nearest = GL.GL_NEAREST
-
-
-class TextureType:
-    Rgb = GL.GL_RGB
-    Rgba = GL.GL_RGBA
-
-
-class HintMode:
+class HintMode(enum.IntEnum):
     Fastest = GL.GL_FASTEST
     Nicest = GL.GL_NICEST
     DontCare = GL.GL_DONT_CARE
@@ -122,16 +113,16 @@ class MinFilter(enum.IntEnum):
     LinearMipmapLinear = GL.GL_LINEAR_MIPMAP_LINEAR
 
 
+class MagFilter(enum.IntEnum):
+    Nearest = GL.GL_NEAREST
+    Linear = GL.GL_LINEAR
+
+
 class AttachmentPoint(enum.IntEnum):
     ColorAttachment = GL.GL_COLOR_ATTACHMENT0
     DepthAttachment = GL.GL_DEPTH_ATTACHMENT
     StencilAttachment = GL.GL_STENCIL_ATTACHMENT
     DepthStencilAttachment = GL.GL_DEPTH_STENCIL_ATTACHMENT
-
-
-class MagFilter(enum.IntEnum):
-    Nearest = GL.GL_NEAREST
-    Linear = GL.GL_LINEAR
 
 
 class WrapMode(enum.IntEnum):
@@ -246,27 +237,37 @@ class TextureCompareMode(enum.IntEnum):
 
 class TextureParameter(enum.IntEnum):
     DepthStencilTextureMode = GL.GL_DEPTH_STENCIL_TEXTURE_MODE
-    TextureBaseLevel = GL.GL_TEXTURE_BASE_LEVEL
-    TextureBorderColor = GL.GL_TEXTURE_BORDER_COLOR
-    TextureCompareFunc = GL.GL_TEXTURE_COMPARE_FUNC
-    TextureCompareMode = GL.GL_TEXTURE_COMPARE_MODE
-    TextureLodBias = GL.GL_TEXTURE_LOD_BIAS
-    TextureMinFilter = GL.GL_TEXTURE_MIN_FILTER
-    TextureMagFilter = GL.GL_TEXTURE_MAG_FILTER
-    TextureMinLod = GL.GL_TEXTURE_MIN_LOD
-    TextureMaxLod = GL.GL_TEXTURE_MAX_LOD
-    TextureMaxLevel = GL.GL_TEXTURE_MAX_LEVEL
-    TextureSwizzleR = GL.GL_TEXTURE_SWIZZLE_R
-    TextureSwizzleG = GL.GL_TEXTURE_SWIZZLE_G
-    TextureSwizzleB = GL.GL_TEXTURE_SWIZZLE_B
-    TextureSwizzleA = GL.GL_TEXTURE_SWIZZLE_A
-    TextureSwizzleRgba = GL.GL_TEXTURE_SWIZZLE_RGBA
-    TextureWrapS = GL.GL_TEXTURE_WRAP_S
-    TextureWrapT = GL.GL_TEXTURE_WRAP_T
-    TextureWrapR = GL.GL_TEXTURE_WRAP_R
+    BaseLevel = GL.GL_TEXTURE_BASE_LEVEL
+    BorderColor = GL.GL_TEXTURE_BORDER_COLOR
+    CompareFunc = GL.GL_TEXTURE_COMPARE_FUNC
+    CompareMode = GL.GL_TEXTURE_COMPARE_MODE
+    LodBias = GL.GL_TEXTURE_LOD_BIAS
+    MinFilter = GL.GL_TEXTURE_MIN_FILTER
+    MagFilter = GL.GL_TEXTURE_MAG_FILTER
+    MinLod = GL.GL_TEXTURE_MIN_LOD
+    MaxLod = GL.GL_TEXTURE_MAX_LOD
+    MaxLevel = GL.GL_TEXTURE_MAX_LEVEL
+    SwizzleR = GL.GL_TEXTURE_SWIZZLE_R
+    SwizzleG = GL.GL_TEXTURE_SWIZZLE_G
+    SwizzleB = GL.GL_TEXTURE_SWIZZLE_B
+    SwizzleA = GL.GL_TEXTURE_SWIZZLE_A
+    SwizzleRgba = GL.GL_TEXTURE_SWIZZLE_RGBA
+    WrapS = GL.GL_TEXTURE_WRAP_S
+    WrapT = GL.GL_TEXTURE_WRAP_T
+    WrapR = GL.GL_TEXTURE_WRAP_R
+
+# internal format
 
 
-class SizedInternalFormat(enum.IntEnum):
+class _InternalFormat(enum.IntEnum):
+    pass
+
+
+class _CompressedInternalFormat(_InternalFormat):
+    pass
+
+
+class SizedInternalFormat(_InternalFormat):
     R8 = GL.GL_R8
     R8Snorm = GL.GL_R8_SNORM
     R16 = GL.GL_R16
@@ -336,6 +337,13 @@ class SizedInternalFormat(enum.IntEnum):
     Depth32fStencil8 = GL.GL_DEPTH32F_STENCIL8
 
 
+class S3tcCompressedInternalFormat(_CompressedInternalFormat):
+    CompressedRgbS3tcDxt1 = texture_compression_s3tc.GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+    CompressedRgbaS3tcDxt1 = texture_compression_s3tc.GL_COMPRESSED_RGBA_S3TC_DXT1_EXT
+    CompressedRgbaS3tcDxt3 = texture_compression_s3tc.GL_COMPRESSED_RGBA_S3TC_DXT3_EXT
+    CompressedRgbaS3tcDxt5 = texture_compression_s3tc.GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+
+
 class TextureBufferSizedInternalFormat(enum.IntEnum):
     R8 = GL.GL_R8
     R16 = GL.GL_R16
@@ -395,7 +403,7 @@ class TextureTarget(enum.IntEnum):
     Texture2dMultisampleArray = GL.GL_TEXTURE_2D_MULTISAMPLE_ARRAY
 
 
-class CompressedSizedInternalFormat(enum.IntEnum):
+class _____CompressedSizedInternalFormat(enum.IntEnum):
     CompressedRed = GL.GL_COMPRESSED_RED
     CompressedRg = GL.GL_COMPRESSED_RG
     CompressedRgb = GL.GL_COMPRESSED_RGB
@@ -454,13 +462,13 @@ class BufferUsageFlag:
 # region Input
 
 
-class MouseButtons:
+class MouseButtons(enum.IntEnum):
     Left = glfw.MOUSE_BUTTON_LEFT
     Middle = glfw.MOUSE_BUTTON_MIDDLE
     Right = glfw.MOUSE_BUTTON_RIGHT
 
 
-class KeyMods:
+class KeyMods(enum.IntEnum):
     ModControl = glfw.MOD_CONTROL
     ModShift = glfw.MOD_SHIFT
     ModAlt = glfw.MOD_ALT
@@ -469,7 +477,7 @@ class KeyMods:
     ModNumLock = glfw.MOD_NUM_LOCK
 
 
-class Keys:
+class Keys(enum.IntEnum):
     KeyInvalid = glfw.KEY_UNKNOWN
 
     # special
