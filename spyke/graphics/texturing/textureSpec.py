@@ -2,23 +2,23 @@ from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
     from typing import Optional, Sequence
-    from spyke.enums import SwizzleTarget, SizedInternalFormat, SwizzleMask
+    from spyke.enums import SwizzleTarget, SwizzleMask
 
 import numpy as np
-from spyke.enums import MinFilter, MagFilter, TextureFormat, WrapMode
+from spyke.enums import MinFilter, MagFilter, WrapMode, SizedInternalFormat
 from dataclasses import dataclass
 
 
 @dataclass
 class TextureSpec:
+    width: int = 0
+    height: int = 0
     mipmaps: int = 3
     min_filter: MinFilter = MinFilter.LinearMipmapLinear
     mag_filter: MagFilter = MagFilter.Linear
     wrap_mode: WrapMode = WrapMode.Repeat
-    format: TextureFormat = TextureFormat.Rgba
-    texture_swizzle: Optional[SizedInternalFormat] = None
-    internal_format: Optional[SwizzleTarget] = None
-    pixel_alignment: int = 4
+    texture_swizzle: Optional[SwizzleTarget] = None
+    internal_format: SizedInternalFormat = SizedInternalFormat.Rgba8
     _swizzle_mask: Optional[np.ndarray] = None
 
     @property

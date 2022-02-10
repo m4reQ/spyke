@@ -1,13 +1,12 @@
 from __future__ import annotations
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Dict, List, Sequence, Tuple, Union
+    from typing import Dict, List, Sequence, Tuple
     from uuid import UUID
 
 from .resource import Resource
-from spyke.enums import SizedInternalFormat, MagFilter, MinFilter, SwizzleMask, SwizzleTarget, WrapMode, TextureFormat
-from spyke.exceptions import SpykeException
-from spyke.graphics.texturing import TextureData, TextureSpec, Texture
+from spyke.enums import PixelType, SizedInternalFormat, MagFilter, MinFilter, SwizzleMask, SwizzleTarget, WrapMode, TextureFormat
+from spyke.graphics.texturing import TextureSpec, Texture
 from spyke.graphics.rectangle import Rectangle
 from spyke.graphics import Glyph
 from spyke import debug, utils
@@ -170,29 +169,28 @@ class Font(Resource):
 
             cur_x += width + 1
 
-        texture_data = TextureData()
-        texture_data.width = atlas_width
-        texture_data.height = atlas_height
-        texture_data.data = atlas
-
         texture_spec = TextureSpec()
-        texture_spec.format = TextureFormat.Red
+        texture_spec.width = atlas_width
+        texture_spec.height = atlas_height
         texture_spec.internal_format = SizedInternalFormat.R8
         texture_spec.mipmaps = 1
         texture_spec.min_filter = MinFilter.Linear
         texture_spec.mag_filter = MagFilter.Linear
         texture_spec.wrap_mode = WrapMode.ClampToEdge
-        texture_spec.pixel_alignment = 1
         texture_spec.texture_swizzle = SwizzleTarget.TextureSwizzleRgba
         texture_spec.swizzle_mask = [
             SwizzleMask.One, SwizzleMask.One, SwizzleMask.One, SwizzleMask.Red]
 
-        self._loading_data['texture_spec'] = texture_spec
-        self._loading_data['texture_data'] = texture_data
+        self._loading_data['spec'] = texture_spec
+        self._loading_data['data'] = atlas
 
     def _finalize(self) -> None:
-        self.texture = Texture(
-            self._loading_data['texture_data'], self._loading_data['texture_spec'])
+        self.texture = Texture(self._loading_data['spec'])
+        Texture.set_pixel_alignment(1)
+        self.texture.upload(None, 0, TextureFormat.Red,
+                            PixelType.UnsignedByte, self._loading_data['data'])
+        Texture.set_pixel_alignment(4)
+        self.texture._check_immutable()
 
         debug.log_info(
             f'Font from file "{self.filepath}" loaded in {time.perf_counter() - self._loading_start} seconds.')

@@ -91,6 +91,28 @@ class ErrorCode(enum.IntEnum):
     ContextLost = GL.GL_CONTEXT_LOST
 
 
+class PixelType(enum.IntEnum):
+    UnsignedByte = GL.GL_UNSIGNED_BYTE
+    Byte = GL.GL_BYTE
+    UnsignedShort = GL.GL_UNSIGNED_SHORT
+    Short = GL.GL_SHORT
+    UnsignedInt = GL.GL_UNSIGNED_INT
+    Int = GL.GL_INT
+    Float = GL.GL_FLOAT
+    UnsignedByte332 = GL.GL_UNSIGNED_BYTE_3_3_2
+    UnsignedByte233Rev = GL.GL_UNSIGNED_BYTE_2_3_3_REV
+    UnsignedShort565 = GL.GL_UNSIGNED_SHORT_5_6_5
+    UnsignedShort565Rev = GL.GL_UNSIGNED_SHORT_5_6_5_REV
+    UnsignedShort4444 = GL.GL_UNSIGNED_SHORT_4_4_4_4
+    UnsignedShort4444Rev = GL.GL_UNSIGNED_SHORT_4_4_4_4_REV
+    UnsignedShort5551 = GL.GL_UNSIGNED_SHORT_5_5_5_1
+    UnsignedShort1555Rev = GL.GL_UNSIGNED_SHORT_1_5_5_5_REV
+    UnsignedInt8888 = GL.GL_UNSIGNED_INT_8_8_8_8
+    UnsignedInt8888Rev = GL.GL_UNSIGNED_INT_8_8_8_8_REV
+    UnsignedInt1010102 = GL.GL_UNSIGNED_INT_10_10_10_2
+    UnsignedInt2101010Rev = GL.GL_UNSIGNED_INT_2_10_10_10_REV
+
+
 class MinFilter(enum.IntEnum):
     Nearest = GL.GL_NEAREST
     Linear = GL.GL_LINEAR

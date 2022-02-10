@@ -3,8 +3,7 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import Any
 
-from spyke.enums import GLType, TextureFormat
-from spyke.exceptions import GraphicsException
+from spyke.enums import GLType, SizedInternalFormat, TextureFormat
 import ctypes
 import numpy as np
 
@@ -40,28 +39,28 @@ _IMAGE_MODE_TO_TEXTURE_FORMAT_MAP = {
     'rgb': TextureFormat.Rgb
 }
 
+_TEXTURE_FORMAT_TO_INTERNAL_FORMAT_MAP = {
+    TextureFormat.Rgba: SizedInternalFormat.Rgba8,
+    TextureFormat.Rgb: SizedInternalFormat.Rgb8,
+}
+
+
+def texture_format_to_internal_format(_format: TextureFormat) -> SizedInternalFormat:
+    assert _format in _TEXTURE_FORMAT_TO_INTERNAL_FORMAT_MAP, f'Invalid OpenGL texture format: {_format}.'
+    return _TEXTURE_FORMAT_TO_INTERNAL_FORMAT_MAP[_format]
+
 
 def gl_type_to_size(gl_type: GLType) -> int:
-    if __debug__:
-        if gl_type not in _GL_TYPE_TO_SIZE_MAP:
-            raise GraphicsException(f'Invalid OpenGL type: {gl_type}.')
-
+    assert gl_type in _GL_TYPE_TO_SIZE_MAP, f'Invalid OpenGL type: {gl_type}.'
     return _GL_TYPE_TO_SIZE_MAP[gl_type]
 
 
 def gl_type_to_np_type(gl_type: GLType) -> Any:
-    if __debug__:
-        if gl_type not in _GL_TYPE_TO_NP_TYPE_MAP:
-            raise GraphicsException(f'Invalid OpenGL type: {gl_type}.')
-
+    assert gl_type in _GL_TYPE_TO_NP_TYPE_MAP, f'Invalid OpenGL type: {gl_type}.'
     return _GL_TYPE_TO_NP_TYPE_MAP[gl_type]
 
 
 def image_mode_to_texture_format(img_mode: str) -> TextureFormat:
     img_mode = img_mode.lower()
-
-    if __debug__:
-        if img_mode not in _IMAGE_MODE_TO_TEXTURE_FORMAT_MAP:
-            raise GraphicsException(f'Invalid image mode: {img_mode}.')
-
+    assert img_mode in _IMAGE_MODE_TO_TEXTURE_FORMAT_MAP, f'Invalid image mode: {img_mode}.'
     return _IMAGE_MODE_TO_TEXTURE_FORMAT_MAP[img_mode]
