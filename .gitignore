@@ -68,6 +68,9 @@ instance/
 # Scrapy stuff:
 .scrapy
 
+# Mypy cache
+.mypy_cache
+
 # Sphinx documentation
 docs/_build/
 

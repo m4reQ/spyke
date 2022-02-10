@@ -93,7 +93,7 @@ class Renderer:
         self.polygon_mode_generator: PolygonModeGenerator = self._polygon_mode_generator_impl()
         self.polygon_mode: PolygonMode = next(self.polygon_mode_generator)
 
-        self.ubo: UniformBuffer = None
+        self.ubo: DynamicBuffer = None
         self.ibo: StaticBuffer = None
         self.instance_data_buffer: DynamicBuffer = None
         self.pos_data_buffer: StaticBuffer = None
@@ -159,7 +159,7 @@ class Renderer:
         self.ibo = StaticBuffer(create_quad_indices(
             MAX_QUADS_COUNT), GLType.UnsignedInt)
         self.basic_shader = Shader()
-        self.ubo = UniformBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
+        self.ubo = DynamicBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
         self.vao = VertexArray()
         self.textures[0] = Texture.create_white_texture().id
 
@@ -210,13 +210,6 @@ class Renderer:
             'uMatrices', MATRICES_UNIFORM_BLOCK_INDEX)
         self.basic_shader.validate()
 
-        # // per-instance data:
-        # layout(location=1) in vec4 aColor;
-        # layout(location=2) in vec2 aTiling;
-        # layout(location=3) in float aTexIndex;
-        # layout(location=4) in float aEntityId;
-        # layout(location=5) in mat4 aTransform;
-
         self.vao.bind_element_buffer(self.ibo)
 
         self.vao.bind_vertex_buffer(
@@ -237,7 +230,7 @@ class Renderer:
         self.vao.add_matrix_layout(self.basic_shader.get_attrib_location(
             'aTransform'), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float, False, 1)
 
-        self.ubo.bind_to_uniform(MATRICES_UNIFORM_BLOCK_INDEX)
+        Buffer.bind_to_uniform(self.ubo, MATRICES_UNIFORM_BLOCK_INDEX)
 
         debug.get_gl_error()
         debug.log_info('Master renderer fully initialized.')
@@ -283,11 +276,10 @@ class Renderer:
         else:
             view_projection = primary_camera.view_projection
 
-        self.ubo.add_data(np.asarray(
-            view_projection, dtype=np.float32).T.flatten())
-        self.ubo.flip()
+        self.ubo.add_data_direct(np.asarray(
+            view_projection, dtype=np.float32).T)
 
-        self.ubo.bind()
+        Buffer.bind_ubo(self.ubo)
 
         # per-vertex data (in vbo): position // only ONE model
         # per-vertex data (in tbo): all of texture coordinates for every instance -> [], [], [] ...
