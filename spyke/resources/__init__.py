@@ -17,6 +17,10 @@ import uuid
 from functools import lru_cache
 from os import path
 import weakref
+from spyke import debug, loaders
+from spyke.exceptions import SpykeException
+from .image import Image
+from .font import Font
 
 # NOTE: All functions from this module are called from main thread.
 # Concurrent calls only occur through ThreadPoolExecutor.
@@ -30,7 +34,6 @@ def _detect_resource_type(filepath: str) -> Type[Resource]:
     _, ext = path.splitext(filepath)
     ext = ext.lower().replace('.', '')
 
-    # TODO: Add support for .dds files
     # TODO: Move this to somewhere in loaders
     if ext in ['png', 'jpg', 'jpeg', 'dds']:
         return Image
@@ -55,6 +58,17 @@ def _load(id: uuid.UUID, filepath: str, **resource_settings) -> Resource:
     return res
 
 
+def _is_resource_from_filepath_loaded(filepath: str) -> bool:
+    for res in _resources.values():
+        if isinstance(res, Future):
+            continue
+
+        if res.filepath == filepath:
+            return True
+
+    return False
+
+
 def load(filepath: str, **resource_settings) -> uuid.UUID:
     '''
     Submits loading task for resource from given file and returns its UUID.
@@ -66,7 +80,14 @@ def load(filepath: str, **resource_settings) -> uuid.UUID:
     if not path.exists(filepath):
         raise SpykeException(f'Resource file "{filepath}" does not exist.')
 
-    # TODO: Consider having guard that disallows loading the same file as multiple resources
+    _, ext = path.splitext(filepath)
+
+    if not loaders.has_loader(ext):
+        raise SpykeException(f'Cannot load resource with extension: "{ext}"')
+
+    if _is_resource_from_filepath_loaded(filepath):
+        debug.log_warning(
+            f'Resource from file "{filepath}" is already loaded. Avoid loading the same resource multiple times.')
 
     _id = uuid.uuid4()
     res_future = _thread_executor.submit(

@@ -9,3 +9,4 @@ glfw
 Pillow
 esper
 freetype-py
+pydub

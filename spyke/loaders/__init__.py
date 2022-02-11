@@ -57,3 +57,7 @@ def get(restype: str) -> Loader:
             f'Could not find loader for resource type: {restype}')
 
     return _registered_loaders[restype]()
+
+
+def has_loader(restype: str) -> bool:
+    return restype in _registered_loaders
