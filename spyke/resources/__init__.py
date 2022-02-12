@@ -81,13 +81,14 @@ def load(filepath: str, **resource_settings) -> uuid.UUID:
         raise SpykeException(f'Resource file "{filepath}" does not exist.')
 
     _, ext = path.splitext(filepath)
+    ext = ext.replace('.', '').upper()
 
     if not loaders.has_loader(ext):
         raise SpykeException(f'Cannot load resource with extension: "{ext}"')
 
     if _is_resource_from_filepath_loaded(filepath):
-        debug.log_warning(
-            f'Resource from file "{filepath}" is already loaded. Avoid loading the same resource multiple times.')
+        logging.log(logging.SP_WARNING,
+                    f'Resource from file "{filepath}" is already loaded. Avoid loading the same resource multiple times.')
 
     _id = uuid.uuid4()
     res_future = _thread_executor.submit(
