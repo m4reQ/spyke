@@ -6,7 +6,7 @@ if typing.TYPE_CHECKING:
     ReturnType = TypeVar('ReturnType')
     _Event = TypeVar('_Event', bound=Event)
 
-from spyke import debug
+import logging
 from spyke.exceptions import SpykeException
 from . import types
 from .types import *
@@ -92,8 +92,8 @@ def register_method(method: Callable[[_Event], ReturnType], event_type: Type[_Ev
     handler = Handler(method, priority, consume)
 
     if handler in _handlers:
-        debug.log_warning(
-            f'Handler {handler} already registered for event type: {event_type.__name__}.')
+        logging.log(logging.SP_INFO,
+                    f'Handler {handler} already registered for event type: {event_type.__name__}.')
         return
 
     # raise error when we try to register funciton thats not part
@@ -105,8 +105,8 @@ def register_method(method: Callable[[_Event], ReturnType], event_type: Type[_Ev
     _handlers[event_type].append(handler)
     _handlers[event_type].sort(key=lambda x: x.priority)
 
-    debug.log_info(
-        f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+    logging.log(logging.SP_INFO,
+                f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
 
 
 # TODO: Make register funciton accept bound methods
@@ -138,8 +138,8 @@ def register(event_type: Type[_Event], *, priority: int, consume: bool = False):
             handler(event)
 
         if handler in _handlers:
-            debug.log_warning(
-                f'Handler {handler} already registered for event type: {event_type.__name__}.')
+            logging.log(logging.SP_INFO,
+                        f'Handler {handler} already registered for event type: {event_type.__name__}.')
             return wrapper
 
         # raise error when we try to register funciton thats not part
@@ -151,8 +151,8 @@ def register(event_type: Type[_Event], *, priority: int, consume: bool = False):
         _handlers[event_type].append(handler)
         _handlers[event_type].sort(key=lambda x: x.priority)
 
-        debug.log_info(
-            f'Function {handler_fn.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+        logging.log(logging.SP_INFO,
+                    f'Function {handler_fn.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
 
         return wrapper
 
@@ -193,8 +193,8 @@ def register_user_event(event_type: EventType) -> None:
             'User-defined events have to be subclasses of the Event class.')
 
     if event_type in _handlers:
-        debug.log_warning(
-            f'User-defined event type "{event_type.__name__}" already registered.')
+        logging.log(logging.SP_INFO,
+                    f'User-defined event type "{event_type.__name__}" already registered.')
         return
 
     _handlers[event_type] = list()

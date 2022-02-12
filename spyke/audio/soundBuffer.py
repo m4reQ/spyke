@@ -1,6 +1,6 @@
 from spyke.enums import SoundFormat
 from spyke.audio import al
-from spyke import debug
+import logging
 from openal import al as AL
 
 
@@ -12,8 +12,8 @@ class SoundBuffer(al.ALObject):
         self.size = len(data)
         AL.alBufferData(self._id, _format, data, self.size, sample_rate)
 
-        debug.log_info(
-            f'{self} created succesfully (data size: {self.size / 1024.0}kB).')
+        logging.log(logging.SP_INFO,
+                    f'{self} created succesfully (data size: {self.size / 1024.0}kB).')
 
     def delete(self) -> None:
         al.delete_buffer(self._id)

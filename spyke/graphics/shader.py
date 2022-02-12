@@ -1,10 +1,11 @@
 from __future__ import annotations
+import logging
 import typing
 if typing.TYPE_CHECKING:
     from spyke.enums import ShaderType
 
 from spyke.graphics import gl
-from spyke import debug
+import logging
 from typing import List, Union
 from spyke.exceptions import GraphicsException, SpykeException
 
@@ -27,8 +28,8 @@ class Shader(gl.GLObject):
 
     def add_stage(self, stage: ShaderType, filepath: str) -> None:
         if self._compiled:
-            debug.log_warning(
-                'Tried to add shader stage to already compiled shader.')
+            logging.log(logging.SP_INFO,
+                        'Tried to add shader stage to already compiled shader.')
             return
 
         try:
@@ -53,7 +54,7 @@ class Shader(gl.GLObject):
 
     def compile(self) -> None:
         if self._compiled:
-            debug.log_warning('Shader already compiled.')
+            logging.log(logging.SP_INFO, 'Shader already compiled.')
             return
 
         GL.glLinkProgram(self.id)
@@ -65,11 +66,12 @@ class Shader(gl.GLObject):
         self._stages.clear()
         self._compiled = True
 
-        debug.log_info(f'{self} compiled succesfully.')
+        logging.log(logging.SP_INFO, f'{self} compiled succesfully.')
 
     def validate(self) -> None:
         if not self._compiled:
-            debug.log_warning('Cannot validate not compiled shader program.')
+            logging.log(logging.SP_INFO,
+                        'Cannot validate not compiled shader program.')
             return
 
         GL.glValidateProgram(self.id)
@@ -79,7 +81,7 @@ class Shader(gl.GLObject):
             raise GraphicsException(
                 f'{self} validation failure:\n{info_log.decode("ansi")}.')
 
-        debug.log_info(f'{self} has been validated succesfully.')
+        logging.log(logging.SP_INFO, f'{self} has been validated succesfully.')
 
     def use(self) -> None:
         GL.glUseProgram(self.id)

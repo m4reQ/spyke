@@ -1,5 +1,4 @@
 import spyke
-from spyke import Application, WindowSpecs
 from spyke.ecs import components
 from spyke.ecs import scene
 from spyke.application import Application

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from spyke.exceptions import SpykeException
-from spyke import debug
+import logging
 from .textureData import TextureData, CompressedTextureData
 from .loader import Loader
 from . import classes
@@ -43,8 +43,8 @@ def _register_loaders() -> None:
             for restype in restypes:
                 _registered_loaders[restype] = _loader
 
-                debug.log_info(
-                    f'Loader {name} for resource type: {restype} registered.')
+                logging.log(logging.SP_INFO,
+                            f'Loader {name} for resource type: {restype} registered.')
 
 
 _registered_loaders: Dict[str, Loader] = {}

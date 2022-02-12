@@ -5,8 +5,7 @@ if typing.TYPE_CHECKING:
     from spyke.enums import TextureTarget
     from typing import List
 
-from spyke import debug
-from spyke.exceptions import GraphicsException
+import logging
 from OpenGL import GL
 from abc import ABC, abstractmethod
 
@@ -55,12 +54,13 @@ class GLObject(ABC):
 
         GLObject._objects.clear()
 
-        debug.log_info(f'{cnt} OpenGL objects have been deleted.')
+        logging.log(logging.SP_INFO,
+                    f'{cnt} OpenGL objects have been deleted.')
 
     @staticmethod
     def register(obj: GLObject) -> None:
         if obj in GLObject._objects:
-            debug.GLObject(f'OpenGL object ({obj}) already registered.')
+            logging.log(logging.SP_INFO, f'OpenGL object ({obj}) already registered.')
             return
 
         GLObject._objects.append(obj)
@@ -91,8 +91,7 @@ class GLObject(ABC):
         self.delete()
         GLObject.unregister(self)
         self._deleted = True
-
-        debug.log_info(f'{self} deleted succesfully.')
+        logging.log(logging.SP_INFO, f'{self} deleted succesfully.')
 
     @abstractmethod
     def delete(self) -> None:

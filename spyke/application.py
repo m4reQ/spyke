@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 import typing
 
 if typing.TYPE_CHECKING:
@@ -10,8 +11,8 @@ from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
 from spyke.audio import AudioDevice
 from spyke.ecs import scene
-from spyke import debug, resources, events, utils
-
+from spyke import resources, events, utils
+import logging
 import time
 from abc import ABC, abstractmethod
 from openal import alc as ALC
@@ -53,8 +54,8 @@ class Application(ABC):
         resources._shutdown_thread_executor()
         utils.garbage_collect()
 
-        debug.log_info(
-            f'Application loaded in {time.perf_counter() - self._loading_start} seconds.')
+        logging.log(
+            logging.SP_INFO, f'Application loaded in {time.perf_counter() - self._loading_start} seconds.')
 
         # enginePreview.CleanupPreview()
         # glfw.swap_buffers(self._handle)

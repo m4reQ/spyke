@@ -1,4 +1,5 @@
-from spyke import debug, events
+from spyke import events
+import logging
 from spyke.exceptions import GraphicsException
 import glfw
 
@@ -15,7 +16,7 @@ def register(window: glfw._GLFWwindow):
     glfw.set_window_pos_callback(window, _window_pos_callback)
     glfw.set_window_focus_callback(window, _window_focus_callback)
 
-    debug.log_info('GLFW window callbacks registered.')
+    logging.log(logging.SP_INFO, 'GLFW window callbacks registered.')
 
 
 def _error_callback(code: int, message: str) -> None:
@@ -24,7 +25,7 @@ def _error_callback(code: int, message: str) -> None:
 
 def _resize_cb(_, width: int, height: int) -> None:
     events.invoke(events.ResizeEvent(width, height))
-    debug.log_info(f'Window resized to ({width}, {height})')
+    logging.log(logging.SP_INFO, f'Window resized to ({width}, {height})')
 
 
 def _window_focus_callback(_, value: int) -> None:

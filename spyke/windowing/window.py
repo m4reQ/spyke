@@ -6,7 +6,7 @@ if typing.TYPE_CHECKING:
 from spyke.exceptions import GraphicsException
 # TODO: Do something with those constants AAAAAAAAAAAAAA
 from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
-from spyke import debug
+import logging
 from . import glfwCallbacks
 import glfw
 from PIL import Image
@@ -44,7 +44,7 @@ class Window:
 
     def set_vsync(self, value: bool) -> None:
         glfw.swap_interval(int(value))
-        debug.log_info(f'Vsync set to: {value}.')
+        logging.log(logging.SP_INFO, f'Vsync set to: {value}.')
 
     def swap_buffers(self) -> None:
         glfw.swap_buffers(self._handle)
@@ -57,10 +57,10 @@ class Window:
 
     def close(self) -> None:
         glfw.destroy_window(self._handle)
-        debug.log_info('Window destroyed.')
+        logging.log(logging.SP_INFO, 'Window destroyed.')
 
         glfw.terminate()
-        debug.log_info('Glfw terminated.')
+        logging.log(logging.SP_INFO, 'Glfw terminated.')
 
     @property
     def handle(self) -> glfw._GLFWwindow:

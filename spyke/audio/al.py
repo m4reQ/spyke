@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List
-from spyke import debug
+import logging
 import ctypes as ct
 from openal import al as AL
 import openal
@@ -19,12 +19,14 @@ class ALObject(ABC):
 
         ALObject._objects.clear()
 
-        debug.log_info(f'{cnt} OpenAL objects have been deleted.')
+        logging.log(logging.SP_INFO,
+                    f'{cnt} OpenAL objects have been deleted.')
 
     @staticmethod
     def register(obj: ALObject) -> None:
         if obj in ALObject._objects:
-            debug.log_warning(f'OpenAL object ({obj}) already registered.')
+            logging.log(logging.SP_INFO,
+                        f'OpenAL object ({obj}) already registered.')
             return
 
         ALObject._objects.append(obj)
@@ -56,7 +58,7 @@ class ALObject(ABC):
         ALObject.unregister(self)
         self._deleted = True
 
-        debug.log_info(f'{self} deleted succesfully.')
+        logging.log(logging.SP_INFO, f'{self} deleted succesfully.')
 
     @abstractmethod
     def delete(self) -> None:

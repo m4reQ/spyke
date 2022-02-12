@@ -7,7 +7,8 @@ from spyke.enums import AttachmentPoint, FramebufferStatus, MagFilter, MinFilter
 from spyke.graphics import gl
 from spyke.graphics.texturing.textureProxy import TextureProxy
 from spyke.exceptions import GraphicsException
-from spyke import debug, events
+from spyke import events
+import logging
 
 from OpenGL import GL
 
@@ -86,8 +87,7 @@ class Framebuffer(gl.GLObject):
             events.register_method(self._resize_callback,
                                    events.ResizeEvent, priority=-2)
 
-        debug.get_gl_error()
-        debug.log_info(f'{self} created succesfully.')
+        logging.log(logging.SP_INFO, f'{self} created succesfully.')
 
     def bind(self) -> None:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.id)
@@ -106,7 +106,7 @@ class Framebuffer(gl.GLObject):
 
         self._invalidate(False)
 
-        debug.log_info(f'{self} resized to ({width}, {height}).')
+        logging.log(logging.SP_INFO, f'{self} resized to ({width}, {height}).')
 
     def delete(self) -> None:
         GL.glDeleteFramebuffers(1, [self.id])
@@ -135,8 +135,8 @@ class Framebuffer(gl.GLObject):
         for attachment_spec in specification.attachments_specs:
             if attachment_spec.texture_format in [TextureFormat.DepthComponent, TextureFormat.StencilIndex]:
                 if self.depth_attachment_spec:
-                    debug.log_warning(
-                        'Multiple depth attachment specifications found. Only the first one will be used.')
+                    logging.log(logging.SP_INFO,
+                                'Multiple depth attachment specifications found. Only the first one will be used.')
                     continue
 
                 self.depth_attachment_spec = attachment_spec

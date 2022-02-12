@@ -5,77 +5,80 @@ import logging
 import colorama
 import os
 import time
+import sys
 from OpenGL import GL
 
 LOG_FILE = 'nova_log.log'
 
+_log_levels = {
+    'SP_INFO': 2137,
+    'SP_OK': 2137 + 1,
+    'SP_WARNING': 2137 + 2,
+    'SP_ERROR': 2137 + 3
+}
 
-class ConsoleFormatter(logging.Formatter):
-    ColorMap = {
-        logging.DEBUG: colorama.Fore.WHITE,
-        logging.INFO: colorama.Fore.WHITE,
-        logging.WARNING: colorama.Fore.YELLOW,
-        logging.ERROR: colorama.Fore.RED
-    }
+for name, lvl in _log_levels.items():
+    logging.addLevelName(lvl, name)
+    setattr(logging, name, lvl)
 
-    StyleReset = colorama.Style.RESET_ALL
 
+class _FileFormatter(logging.Formatter):
     def __init__(self):
-        super().__init__()
-
-        self.fmt = '[%(levelname)s] %(message)s'
+        super().__init__(fmt='[%(levelname)s][%(asctime)s] %(message)s')
 
     def format(self, record: logging.LogRecord) -> str:
-        fmt = self.ColorMap[record.levelno] + self.fmt + self.StyleReset
+        formatter = logging.Formatter(self._fmt)
+
+        return formatter.format(record)
+
+
+class _ConsoleFormatter(logging.Formatter):
+    _color_map = {
+        logging.SP_INFO: colorama.Fore.WHITE,
+        logging.SP_OK: colorama.Fore.GREEN,
+        logging.SP_WARNING: colorama.Fore.YELLOW,
+        logging.SP_ERROR: colorama.Fore.RED
+    }
+
+    _style_reset = colorama.Style.RESET_ALL
+
+    def __init__(self):
+        super().__init__(fmt='[%(levelname)s] %(message)s')
+
+    def format(self, record: logging.LogRecord) -> str:
+        fmt = _ConsoleFormatter._color_map[record.levelno] + \
+            self._fmt + _ConsoleFormatter._style_reset
         formatter = logging.Formatter(fmt)
 
         return formatter.format(record)
 
 
-class FileFormatter(logging.Formatter):
-    def __init__(self):
-        super().__init__()
+def _init_logging() -> None:
+    colorama.init()
 
-        self.fmt = '[%(levelname)s][%(asctime)s] %(message)s'
+    if os.path.isfile(LOG_FILE):
+        open(LOG_FILE, 'w').close()
 
-    def format(self, record: logging.LogRecord) -> str:
-        formatter = logging.Formatter(self.fmt)
+    _file_handler = logging.FileHandler(LOG_FILE, mode='w+')
+    _file_handler.setLevel(logging.SP_INFO)
+    _file_handler.setFormatter(_FileFormatter())
 
-        return formatter.format(record)
+    _con_handler = logging.StreamHandler(sys.stdout)
+    _con_handler.setLevel(logging.SP_INFO)
+    _con_handler.setFormatter(_ConsoleFormatter())
 
-
-colorama.init()
-
-if os.path.isfile(LOG_FILE):
-    open(LOG_FILE, 'w').close()
-
-_logger = logging.getLogger()
-_logger.setLevel(logging.INFO)
-
-_file_handler = logging.FileHandler(LOG_FILE)
-_file_handler.setLevel(logging.INFO)
-_file_handler.setFormatter(FileFormatter())
-_logger.addHandler(_file_handler)
-
-_con_handler = logging.StreamHandler()
-_con_handler.setLevel(logging.INFO)
-_con_handler.setFormatter(ConsoleFormatter())
-_logger.addHandler(_con_handler)
+    logging.basicConfig(
+        level=logging.SP_INFO,
+        handlers=[
+            _con_handler,
+            _file_handler,
+        ],
+        force=True
+    )
 
 
-def log_info(msg: str) -> None:
-    if __debug__:
-        _logger.info(msg)
-
-
-def log_warning(msg: str) -> None:
-    if __debug__:
-        _logger.warning(msg)
-
-
-def log_error(msg: str, log_info: bool = True) -> None:
-    if __debug__:
-        _logger.error(msg, log_info)
+if __debug__:
+    _init_logging()
 
 
 def get_gl_error():
@@ -103,8 +106,8 @@ def timed(func: Callable) -> Callable:
         start = time.perf_counter()
         res = func(*args, **kwargs)
 
-        log_info(
-            f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
+        logging.log(
+            logging.SP_INFO, f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
 
         return res
 

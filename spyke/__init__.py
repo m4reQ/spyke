@@ -9,6 +9,7 @@ if typing.TYPE_CHECKING:
     from spyke.editor import Editor
 
 import sys
+from . import debug
 
 _PYTHON_MIN_VERSION = (3, 7)
 

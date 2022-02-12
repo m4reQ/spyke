@@ -6,9 +6,8 @@ if typing.TYPE_CHECKING:
     from .resource import Resource
     from typing import Dict, Type, Union
 
-from spyke import debug
+import logging
 from spyke.exceptions import SpykeException
-from .sound import Sound
 from .image import Image
 from .font import Font
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -40,7 +39,8 @@ def _detect_resource_type(filepath: str) -> Type[Resource]:
     elif ext == 'ttf':
         return Font
     elif ext in ['mp3', 'wav']:
-        return Sound
+        raise NotImplementedError()
+        # return Sound
     else:
         raise SpykeException(f'Unknown resource file extension: {ext}.')
 
@@ -135,13 +135,13 @@ def unload(_id: uuid.UUID) -> None:
     res = _resources.pop(_id)
     # TODO: Handle this specific case more accurately
     if isinstance(res, Future):
-        debug.log_warning(
-            'Tried to unload resource that has not been yet loaded.')
+        logging.log(logging.SP_INFO,
+                    'Tried to unload resource that has not been yet loaded.')
         return
 
     if weakref.getweakrefcount(res) != 0:
-        debug.log_warning(
-            f'Resource ({res}) is already in use. To unload resource make sure that no components are using it anymore.')
+        logging.log(logging.SP_INFO,
+                    f'Resource ({res}) is already in use. To unload resource make sure that no components are using it anymore.')
         return
 
     res.unload()

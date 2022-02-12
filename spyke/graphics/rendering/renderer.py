@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
     PolygonModeGenerator = Generator[PolygonMode, None, None]
 
 # TODO: Remove unused import statements
-from spyke import debug
+import logging
 from spyke.ecs.components.camera import CameraComponent
 from spyke.enums import GLType, ClearMask, Hint, TextureBufferSizedInternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys, SizedInternalFormat
 from spyke import events
@@ -108,10 +108,8 @@ class Renderer:
 
     def initialize(self, window_handle: _GLFWwindow) -> None:
         if self.is_initialized:
-            debug.log_warning('Renderer already initialized.')
+            logging.log(logging.SP_INFO, 'Renderer already initialized.')
             return
-
-        debug.check_context()
 
         self.info._get(window_handle)
 
@@ -232,8 +230,7 @@ class Renderer:
 
         Buffer.bind_to_uniform(self.ubo, MATRICES_UNIFORM_BLOCK_INDEX)
 
-        debug.get_gl_error()
-        debug.log_info('Master renderer fully initialized.')
+        logging.log(logging.SP_INFO, 'Master renderer fully initialized.')
 
         self.is_initialized = True
 
@@ -258,7 +255,7 @@ class Renderer:
         filename = os.path.join(SCREENSHOT_DIRECTORY,
                                 f'screenshot_{time.time()}.jpg')
         img.save(filename, 'JPEG')
-        debug.log_info(f'Screenshot was saved as "{filename}".')
+        logging.log(logging.SP_INFO, f'Screenshot was saved as "{filename}".')
 
     def render_scene(self, scene: Scene) -> None:
         self.info.reset_frame_stats()
@@ -470,8 +467,8 @@ class Renderer:
 
         if e.key == Keys.KeyGrave:
             self.polygon_mode = next(self.polygon_mode_generator)
-            debug.log_info(
-                f'Renderer drawing mode set to: {self.polygon_mode.name}')
+            logging.log(logging.SP_INFO,
+                        f'Renderer drawing mode set to: {self.polygon_mode.name}')
         elif e.key == Keys.KeyF1:
             self.capture_frame()
         elif e.key == Keys.KeyF2:
