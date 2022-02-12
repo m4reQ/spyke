@@ -15,68 +15,75 @@ class App(Application):
     def on_load(self):
         main_scene = scene.create()
 
-        tex1 = resources.load('tests/test1.jpg')
-        tex2 = resources.load('tests/test2.png')
-        tex3 = resources.load('tests/test3.jpg')
-        tex4 = resources.load('tests/test3_dxt5.dds')
-        font_futuram = resources.load('tests/futuram.ttf', size=96)
+        sound1 = resources.load('tests/test_sound.mp3')
+        print(resources.get(sound1))
 
         main_scene.create_entity(
-            components.TagComponent('texture'),
-            components.TransformComponent(
-                Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
-            components.SpriteComponent(
-                tex1, Vector2(2.0), color(1.0, 1.0, 1.0, 0.3))
+            components.TagComponent('sound1'),
         )
 
-        main_scene.create_entity(
-            components.TagComponent('texture3'),
-            components.TransformComponent(
-                Vector3(0.2, 0.7, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0, 0.0, 45.0)),
-            components.SpriteComponent(
-                tex3, Vector2(1.0), color(1.0, 0.0, 1.0, 0.3))
-        )
+        # tex1 = resources.load('tests/test1.jpg')
+        # tex2 = resources.load('tests/test2.png')
+        # tex3 = resources.load('tests/test3.jpg')
+        # tex4 = resources.load('tests/test3_dxt5.dds')
+        # font_futuram = resources.load('tests/futuram.ttf', size=96)
 
-        main_scene.create_entity(
-            components.TagComponent('text'),
-            components.TransformComponent(
-                Vector3(-0.5, 0.5, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
-            components.TextComponent(
-                'jebać papieża 2137', 100, font_futuram, color(1.0, 0.0, 0.0, 1.0))
-        )
+        # main_scene.create_entity(
+        #     components.TagComponent('texture'),
+        #     components.TransformComponent(
+        #         Vector3(0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+        #     components.SpriteComponent(
+        #         tex1, Vector2(2.0), color(1.0, 1.0, 1.0, 0.3))
+        # )
 
-        main_scene.create_entity(
-            components.TagComponent('text2'),
-            components.TransformComponent(
-                Vector3(0.4), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
-            components.TextComponent(
-                'TEST', 42, font_futuram, color(1.0, 1.0, 0.0, 1.0))
-        )
+        # main_scene.create_entity(
+        #     components.TagComponent('texture3'),
+        #     components.TransformComponent(
+        #         Vector3(0.2, 0.7, 0.0), Vector3(0.3, 0.3, 0.0), Vector3(0.0, 0.0, 45.0)),
+        #     components.SpriteComponent(
+        #         tex3, Vector2(1.0), color(1.0, 0.0, 1.0, 0.3))
+        # )
 
-        main_scene.create_entity(
-            components.TagComponent('texture2'),
-            components.TransformComponent(
-                Vector3(0.5), Vector3(0.5, 0.5, 0.0), Vector3(0.0)),
-            components.SpriteComponent(
-                tex2, Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
-        )
+        # main_scene.create_entity(
+        #     components.TagComponent('text'),
+        #     components.TransformComponent(
+        #         Vector3(-0.5, 0.5, 0.0), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+        #     components.TextComponent(
+        #         'jebać papieża 2137', 100, font_futuram, color(1.0, 0.0, 0.0, 1.0))
+        # )
 
-        main_scene.create_entity(
-            components.TagComponent('single_char'),
-            components.TransformComponent(
-                Vector3(-0.5, -0.5, 0.0), Vector3(1.0), Vector3(0.0)),
-            components.TextComponent(
-                'H', 600, font_futuram, color(1.0, 1.0, 1.0, 1.0))
-        )
+        # main_scene.create_entity(
+        #     components.TagComponent('text2'),
+        #     components.TransformComponent(
+        #         Vector3(0.4), Vector3(1.0, 1.0, 0.0), Vector3(0.0)),
+        #     components.TextComponent(
+        #         'TEST', 42, font_futuram, color(1.0, 1.0, 0.0, 1.0))
+        # )
 
-        main_scene.create_entity(
-            components.TagComponent('dds_texture'),
-            components.TransformComponent(
-                Vector3(-1.0, -1.0, 0.0), Vector3(1.0), Vector3(15.0),
-            ),
-            components.SpriteComponent(
-                tex4, Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
-        )
+        # main_scene.create_entity(
+        #     components.TagComponent('texture2'),
+        #     components.TransformComponent(
+        #         Vector3(0.5), Vector3(0.5, 0.5, 0.0), Vector3(0.0)),
+        #     components.SpriteComponent(
+        #         tex2, Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
+        # )
+
+        # main_scene.create_entity(
+        #     components.TagComponent('single_char'),
+        #     components.TransformComponent(
+        #         Vector3(-0.5, -0.5, 0.0), Vector3(1.0), Vector3(0.0)),
+        #     components.TextComponent(
+        #         'H', 600, font_futuram, color(1.0, 1.0, 1.0, 1.0))
+        # )
+
+        # main_scene.create_entity(
+        #     components.TagComponent('dds_texture'),
+        #     components.TransformComponent(
+        #         Vector3(-1.0, -1.0, 0.0), Vector3(1.0), Vector3(15.0),
+        #     ),
+        #     components.SpriteComponent(
+        #         tex4, Vector2(1.0), color(1.0, 1.0, 1.0, 1.0))
+        # )
 
         scene.set_current(main_scene)
         # LoadScene("tests/newScene.scn")

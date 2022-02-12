@@ -1,7 +1,7 @@
 from typing import Sequence, List, TypeVar, Generator
 import time
 import gc
-import sys
+import ctypes as ct
 
 from .math import *
 from spyke import debug
@@ -16,6 +16,7 @@ __all__ = [
     'create_rotation_z',
     'create_transform_3d',
     'garbage_collect',
+    'pointer',
     'get_closest_factors',
     'Iterator',
     'Delayer',
@@ -24,6 +25,8 @@ __all__ = [
     'Vector4',
     'Matrix4'
 ]
+
+pointer = ct.pointer
 
 
 def garbage_collect():

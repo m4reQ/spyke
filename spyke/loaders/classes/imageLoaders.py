@@ -3,7 +3,7 @@ from spyke.exceptions import GraphicsException
 from spyke.enums import MagFilter, MinFilter, PixelType, S3tcCompressedInternalFormat, TextureParameter
 from spyke.graphics.texturing import Texture, TextureSpec
 from spyke.loaders.textureData import TextureData, CompressedTextureData
-from spyke.loaders.loader import Loader
+from spyke.loaders.loader import Loader, LoadingData
 from spyke.utils import convert
 from typing import Tuple
 from PIL import Image
@@ -69,7 +69,7 @@ def _finalize_normal_texture(data: TextureData):
 
 
 class JPEGLoader(Loader):
-    __restypes__ = 'JPEG'
+    __restypes__ = ['JPEG', 'JPG']
 
     def load(self, img: Image.Image) -> TextureData:
         data = _load_image_data(img)

@@ -8,11 +8,13 @@ if typing.TYPE_CHECKING:
 from spyke.windowing.window import Window
 from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
+from spyke.audio import AudioDevice
 from spyke.ecs import scene
 from spyke import debug, resources, events, utils
 
 import time
 from abc import ABC, abstractmethod
+from openal import alc as ALC
 
 
 class Application(ABC):
@@ -21,6 +23,7 @@ class Application(ABC):
 
         self._window: Window = Window(window_specification)
         self._renderer: Renderer = Renderer()
+        self._audio_device: AudioDevice = AudioDevice()
 
         # TODO: Implement this at some point
         # enginePreview.RenderPreview()
@@ -79,6 +82,7 @@ class Application(ABC):
         self.on_close()
         GLObject.delete_all()
         self.window.close()
+        self.audio_device.close()
 
     @property
     def frametime(self) -> float:
@@ -91,3 +95,7 @@ class Application(ABC):
     @property
     def window(self) -> Window:
         return self._window
+
+    @property
+    def audio_device(self) -> AudioDevice:
+        return self._audio_device

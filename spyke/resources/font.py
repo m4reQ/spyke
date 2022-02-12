@@ -6,7 +6,6 @@ if typing.TYPE_CHECKING:
     from spyke.graphics import Texture, Glyph
 
 from .resource import Resource
-from spyke import loaders
 
 
 class Font(Resource):
@@ -19,13 +18,11 @@ class Font(Resource):
         self.name: str = ''
 
     def _load(self, *, size: int = 64, **_) -> None:
-        loader = loaders.get('TTF')
-        self._loading_data = loader.load(self.filepath, size)
+        self._loading_data = self._loader.load(self.filepath, size)
         self.base_size = size
 
     def _finalize(self) -> None:
-        loader = loaders.get('TTF')
-        self.texture, self.glyphs, self.name = loader.finalize(
+        self.texture, self.glyphs, self.name = self._loader.finalize(
             self._loading_data)
 
     def _unload(self) -> None:

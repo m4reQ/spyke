@@ -1,29 +1,29 @@
 from __future__ import annotations
 import typing
 
+
 if typing.TYPE_CHECKING:
     from .resource import Resource
     from typing import Dict, Type, Union
 
+from spyke import debug
+from spyke.exceptions import SpykeException
+from .sound import Sound
+from .image import Image
+from .font import Font
 from concurrent.futures import ThreadPoolExecutor, Future
 import threading
 import uuid
 from functools import lru_cache
 from os import path
 import weakref
-from spyke import debug
-from spyke.exceptions import SpykeException
-from .image import Image
-from .font import Font
 
 # NOTE: All functions from this module are called from main thread.
 # Concurrent calls only occur through ThreadPoolExecutor.
 
-MAX_LOADING_THREADS = 4
-
 _resources: Dict[uuid.UUID, Union[Resource, Future[Resource]]] = {}
 _thread_executor: ThreadPoolExecutor = ThreadPoolExecutor(
-    max_workers=MAX_LOADING_THREADS, thread_name_prefix='spyke.load.')
+    max_workers=None, thread_name_prefix='spyke.load.')
 
 
 def _detect_resource_type(filepath: str) -> Type[Resource]:
@@ -32,10 +32,12 @@ def _detect_resource_type(filepath: str) -> Type[Resource]:
 
     # TODO: Add support for .dds files
     # TODO: Move this to somewhere in loaders
-    if ext in ['png', 'jpg', 'jpeg', 'bmp', 'dds']:
+    if ext in ['png', 'jpg', 'jpeg', 'dds']:
         return Image
-    if ext == 'ttf':
+    elif ext == 'ttf':
         return Font
+    elif ext in ['mp3', 'wav']:
+        return Sound
     else:
         raise SpykeException(f'Unknown resource file extension: {ext}.')
 

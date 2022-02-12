@@ -1,22 +1,24 @@
 from OpenGL import GL
 from OpenGL.GL.EXT import texture_compression_s3tc
-import openal
+from openal import al as AL
 import glfw
 import enum
 
 # TODO: Make all OpenGL enums `IntEnum`
 
-# region Audio
+
+class AudioState(enum.IntEnum):
+    Initial = AL.AL_INITIAL
+    Paused = AL.AL_PAUSED
+    Playing = AL.AL_PLAYING
+    Stopped = AL.AL_STOPPED
 
 
-class AudioState:
-    Initial = openal.AL_INITIAL
-    Paused = openal.AL_PAUSED
-    Playing = openal.AL_PLAYING
-    Stopped = openal.AL_STOPPED
-# endregion
-
-# region Graphics
+class SoundFormat(enum.IntEnum):
+    Mono8 = AL.AL_FORMAT_MONO8
+    Mono16 = AL.AL_FORMAT_MONO16
+    Stereo8 = AL.AL_FORMAT_STEREO8
+    Stereo16 = AL.AL_FORMAT_STEREO16
 
 
 class CameraType(enum.Enum):
@@ -30,7 +32,6 @@ class Vendor(enum.Enum):
     Amd = enum.auto()
     WindowsSoftware = enum.auto()
     Unknown = enum.auto()
-# endregion
 
 # region OpenGL
 

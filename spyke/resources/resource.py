@@ -6,16 +6,25 @@ if typing.TYPE_CHECKING:
     from uuid import UUID
 
 from spyke.exceptions import SpykeException
+from spyke import loaders
 from abc import ABC, abstractmethod
 import time
 from spyke import debug
+from os import path
 
 
 class Resource(ABC):
+    @staticmethod
+    def _get_resource_type(filepath: str) -> str:
+        _, ext = path.splitext(filepath)
+        return ext[1:].upper()
+
     def __init__(self, _id: UUID, filepath: str = ''):
         self.filepath: str = filepath
         self.is_internal: bool = False
         self.id: UUID = _id
+        self._resource_type: str = Resource._get_resource_type(self.filepath)
+        self._loader: loaders.Loader = loaders.get(self._resource_type)
         self._is_loaded: bool = False
         self._is_finalized: bool = False
         self._loading_data: Any = None
@@ -85,6 +94,7 @@ class Resource(ABC):
                     f'An exception occured while finalizing resource ({self}) loading: {e}.') from e
 
         del self._loading_data
+        del self._loader
         debug.log_info(
             f'{self} loaded in {time.perf_counter() - self._loading_start} seconds.')
         self._is_finalized = True

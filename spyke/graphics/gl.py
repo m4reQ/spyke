@@ -57,11 +57,26 @@ class GLObject(ABC):
 
         debug.log_info(f'{cnt} OpenGL objects have been deleted.')
 
+    @staticmethod
+    def register(obj: GLObject) -> None:
+        if obj in GLObject._objects:
+            debug.GLObject(f'OpenGL object ({obj}) already registered.')
+            return
+
+        GLObject._objects.append(obj)
+
+    @staticmethod
+    def unregister(obj: GLObject) -> None:
+        if obj not in GLObject._objects:
+            return
+
+        GLObject._objects.remove(obj)
+
     def __init__(self):
         self._id: GL.GLint = GL.GLint(-1)
         self._deleted: bool = False
 
-        GLObject._objects.append(self)
+        GLObject.register(self)
 
     def __str__(self):
         return f'{type(self).__name__} (id: {self._id.value})'
@@ -74,9 +89,9 @@ class GLObject(ABC):
             return
 
         self.delete()
-
-        GLObject._objects.remove(self)
+        GLObject.unregister(self)
         self._deleted = True
+
         debug.log_info(f'{self} deleted succesfully.')
 
     @abstractmethod
@@ -85,13 +100,8 @@ class GLObject(ABC):
 
     @property
     def id(self) -> int:
-        if __debug__:
-            if self._id.value == -1:
-                raise GraphicsException(
-                    f'Tried to use uninitialized OpenGL object of type {type(self).__name__}.')
-
-            if self._deleted:
-                raise GraphicsException(
-                    'Tried to use OpenGL object that is already deleted.')
+        assert self._id.value != - \
+            1, f'Tried to use uninitialized OpenGL object ({self}).'
+        assert not self._deleted, 'Tried to use OpenGL object that is already deleted.'
 
         return self._id.value

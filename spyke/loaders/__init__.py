@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import Dict, Type
 
 from spyke.exceptions import SpykeException
+from spyke import debug
 from .textureData import TextureData, CompressedTextureData
 from .loader import Loader
 from . import classes
+from typing import Dict, Type
 import inspect
 
 __all__ = [
@@ -41,7 +42,9 @@ def _register_loaders() -> None:
 
             for restype in restypes:
                 _registered_loaders[restype] = _loader
-                # TODO: Add logging success
+
+                debug.log_info(
+                    f'Loader {name} for resource type: {restype} registered.')
 
 
 _registered_loaders: Dict[str, Loader] = {}
