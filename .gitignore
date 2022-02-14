@@ -142,3 +142,6 @@ tests/
 screenshots/
 
 Thumbs.db
+
+# Main test file
+test.py
