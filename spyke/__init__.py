@@ -3,14 +3,7 @@ import ctypes as ct
 import inspect
 import openal
 import OpenGL
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.application import Application
-    from spyke.editor import Editor
-
 import sys
-from . import debug
-from spyke.exceptions import SpykeException
 
 _PYTHON_MIN_VER = (3, 7)
 
@@ -24,10 +17,10 @@ OpenGL.UNSIGNED_BYTE_IMAGES_AS_STRING = True
 OpenGL.ERROR_CHECKING = __debug__
 OpenGL.ERROR_ON_COPY = False
 
-
-def _err_check(result, func, args):
-    return result
-
+from . import debug
+from spyke.application import Application
+from spyke.exceptions import SpykeException
+from spyke.windowing import WindowSpecs
 
 openal.OAL_DONT_AUTO_INIT = True
 # NOTE: We are loading openal in this messy way to remove unnecessary and expensive error checking.
@@ -46,8 +39,11 @@ def run(app: Application, run_editor: bool = False) -> None:
             'You cannot run application in spyke editor with optimization enabled.')
 
     if run_editor:
-        editor = Editor(app=app)
-        editor._run()
+        # TODO: Implement editor
+
+        raise NotImplementedError('Editor is not implemented yet.')
+        # editor = Editor(app=app)
+        # editor._run()
     else:
         app._run()
 
