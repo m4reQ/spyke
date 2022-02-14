@@ -13,12 +13,12 @@ class App(Application):
     def on_load(self):
         main_scene = scene.create()
 
-        sound1 = resources.load('tests/test_sound.mp3')
-        print(resources.get(sound1))
+        # sound1 = resources.load('tests/test_sound.mp3')
+        # print(resources.get(sound1))
 
-        main_scene.create_entity(
-            components.TagComponent('sound1'),
-        )
+        # main_scene.create_entity(
+        #     components.TagComponent('sound1'),
+        # )
         scene.set_current(main_scene)
 
     def on_frame(self):

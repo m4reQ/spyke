@@ -1,21 +1,24 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.windowing import WindowSpecs
 
 from spyke.exceptions import GraphicsException
+from spyke.windowing import WindowSpecs
+from spyke.windowing import glfwCallbacks
 # TODO: Do something with those constants AAAAAAAAAAAAAA
-from spyke.constants import _OPENGL_VER_MAJOR, _OPENGL_VER_MINOR, DEFAULT_ICON_FILEPATH
+from spyke.constants import DEFAULT_ICON_FILEPATH
+from spyke.utils import Deletable
 import logging
-from . import glfwCallbacks
 import glfw
 from PIL import Image
 
+_OPENGL_REQUIRED_VERSION = (4, 5)
 
-class Window:
+
+class Window(Deletable):
     # TODO: Decide if we want to move whole window creation to
     # separate initalize method or if we should leave it in constructor
     def __init__(self, specification: WindowSpecs):
+        super().__init__()
+        
         self._handle: glfw._GLFWwindow
 
         if not glfw.init():
@@ -55,13 +58,6 @@ class Window:
     def get_time(self) -> float:
         return glfw.get_time()
 
-    def close(self) -> None:
-        glfw.destroy_window(self._handle)
-        logging.log(logging.SP_INFO, 'Window destroyed.')
-
-        glfw.terminate()
-        logging.log(logging.SP_INFO, 'Glfw terminated.')
-
     @property
     def handle(self) -> glfw._GLFWwindow:
         return self._handle
@@ -69,6 +65,13 @@ class Window:
     @property
     def should_close(self) -> bool:
         return glfw.window_should_close(self._handle)
+    
+    def _delete(self) -> None:
+        glfw.destroy_window(self._handle)
+        logging.log(logging.SP_INFO, 'Window destroyed.')
+
+        glfw.terminate()
+        logging.log(logging.SP_INFO, 'Glfw terminated.')
 
     def _create_window_normal(self, specification: WindowSpecs) -> None:
         glfw.window_hint(glfw.RESIZABLE, specification.resizable)
@@ -90,8 +93,10 @@ class Window:
             specification.width, specification.height, specification.title, mon, None)
 
     def _set_default_window_flags(self, specification: WindowSpecs) -> None:
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, _OPENGL_VER_MAJOR)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, _OPENGL_VER_MINOR)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR,
+                         _OPENGL_REQUIRED_VERSION[0])
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR,
+                         _OPENGL_REQUIRED_VERSION[1])
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.SAMPLES, specification.samples)

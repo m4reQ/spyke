@@ -1,9 +1,11 @@
 import logging
 from openal import alc as ALC
+from spyke.utils import Deletable
 
 
-class AudioDevice:
+class AudioDevice(Deletable):
     def __init__(self):
+        super().__init__()
         self._handle: int = ALC.alcOpenDevice(None)
         assert self._handle, 'Cannot open sound device'
 
@@ -17,8 +19,8 @@ class AudioDevice:
             self._handle, ALC.ALC_DEVICE_SPECIFIER).decode('utf-8')
 
         logging.log(logging.SP_INFO, f'Audio device "{self.name}" opened.')
-
-    def close(self) -> None:
+    
+    def _delete(self) -> None:
         ALC.alcDestroyContext(self._context)
         ALC.alcCloseDevice(self._handle)
 

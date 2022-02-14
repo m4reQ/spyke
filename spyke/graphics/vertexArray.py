@@ -51,5 +51,5 @@ class VertexArray(gl.GLObject):
     def bind(self) -> None:
         GL.glBindVertexArray(self.id)
 
-    def delete(self) -> None:
+    def _delete(self) -> None:
         GL.glDeleteVertexArrays(1, [self.id])

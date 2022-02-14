@@ -10,24 +10,24 @@ if typing.TYPE_CHECKING:
     PolygonModeGenerator = Generator[PolygonMode, None, None]
 
 # TODO: Remove unused import statements
-import logging
-from spyke.ecs.components.camera import CameraComponent
 from spyke.enums import GLType, ClearMask, Hint, TextureBufferSizedInternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys, SizedInternalFormat
 from spyke import events
 from spyke.graphics import Rectangle
+from spyke import utils
+from spyke.utils import convert
+from spyke.ecs import components
 from ..texturing import Texture
 from ..vertexArray import VertexArray
-from ...utils import create_quad_indices
 from .rendererInfo import RendererInfo
 from ..shader import Shader
 from ..buffers import *
-from ...constants import _GL_FLOAT_SIZE
 from ...ecs import components
 
 from OpenGL import GL
 from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
 from PIL import Image
 import glm
+import logging
 import time
 import numpy as np
 import os
@@ -39,6 +39,7 @@ import os
 SCREENSHOT_DIRECTORY = "screenshots/"
 SHADER_SOURCES_DIRECTORY = "spyke/graphics/shaderSources/"
 
+_GL_FLOAT_SIZE = convert.gl_type_to_size(GLType.Float)
 UNIFORM_BLOCK_SIZE = 16 * _GL_FLOAT_SIZE
 MATRICES_UNIFORM_BLOCK_INDEX = 0
 
@@ -154,7 +155,7 @@ class Renderer:
             BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, GLType.Float)
         self.vertex_data_buffer = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE *
                                                 MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, TextureBufferSizedInternalFormat.Rg32f)
-        self.ibo = StaticBuffer(create_quad_indices(
+        self.ibo = StaticBuffer(utils.create_quad_indices(
             MAX_QUADS_COUNT), GLType.UnsignedInt)
         self.basic_shader = Shader()
         self.ubo = DynamicBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
@@ -264,7 +265,7 @@ class Renderer:
         start = time.perf_counter()
 
         primary_camera = None
-        for _, camera in scene.get_component(CameraComponent):
+        for _, camera in scene.get_component(components.CameraComponent):
             if camera.is_primary:
                 primary_camera = camera
 

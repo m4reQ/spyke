@@ -86,7 +86,7 @@ class Shader(gl.GLObject):
     def use(self) -> None:
         GL.glUseProgram(self.id)
 
-    def delete(self) -> None:
+    def _delete(self) -> None:
         GL.glDeleteProgram(self.id)
 
     @lru_cache

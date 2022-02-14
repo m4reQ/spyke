@@ -1,5 +1,10 @@
+from __future__ import annotations
 from spyke.enums import ErrorCode
 from typing import Union
+import sys
+import ctypes as ct
+import traceback
+import logging
 
 
 class GraphicsException(Exception):
@@ -26,3 +31,16 @@ class SpykeException(Exception):
 
     def __init__(self, message: str):
         super().__init__(message)
+
+
+def _exception_handler(_type, _, _traceback) -> None:
+    exc_formatted = ''.join(
+        [_type.__name__, '\n', 'Traceback (most recent call last):\n'] + traceback.format_tb(_traceback))
+    logging.log(logging.SP_ERROR, exc_formatted)
+    ct.windll.user32.MessageBoxW(
+        None, f'A fatal error occured.\n{exc_formatted}', 'Spyke error', 0x10)
+    sys.exit(1)
+
+
+if not __debug__:
+    sys.excepthook = _exception_handler

@@ -1,29 +1,29 @@
 from __future__ import annotations
-
-from spyke.exceptions import SpykeException
-import logging
 from .textureData import TextureData, CompressedTextureData
+from .fontData import FontData
 from .loader import Loader
 from . import classes
 from typing import Dict, Type
+import logging
 import inspect
 
 __all__ = [
     'Loader',
     'TextureData',
+    'FontData',
     'CompressedTextureData',
     'get'
 ]
 
 
-def _is_loader(obj: object) -> bool:
+def _is_loader(obj: Type) -> bool:
     return inspect.isclass(obj) and \
         obj.__name__.endswith('Loader') and \
         not inspect.isabstract(obj) and \
         issubclass(obj, Loader)
 
 
-def _has_restypes(_type: Type) -> bool:
+def _has_restypes(_type) -> bool:
     return '__restypes__' in dir(_type)
 
 
@@ -47,15 +47,12 @@ def _register_loaders() -> None:
                             f'Loader {name} for resource type: {restype} registered.')
 
 
-_registered_loaders: Dict[str, Loader] = {}
+_registered_loaders: Dict[str, Type[Loader]] = {}
 _register_loaders()
 
 
 def get(restype: str) -> Loader:
-    if restype not in _registered_loaders:
-        raise SpykeException(
-            f'Could not find loader for resource type: {restype}')
-
+    assert restype in _registered_loaders, f'Could not find loader for resource type: {restype}'
     return _registered_loaders[restype]()
 
 

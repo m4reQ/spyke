@@ -10,13 +10,13 @@ if typing.TYPE_CHECKING:
 
 import sys
 from . import debug
+from spyke.exceptions import SpykeException
 
-_PYTHON_MIN_VERSION = (3, 7)
+_PYTHON_MIN_VER = (3, 7)
 
-if sys.version_info.major < _PYTHON_MIN_VERSION[0] or (sys.version_info.major >= _PYTHON_MIN_VERSION[0] and sys.version_info.minor < _PYTHON_MIN_VERSION[1]):
-    from spyke.exceptions import SpykeException
+if sys.version_info.major < _PYTHON_MIN_VER[0] or (sys.version_info.major >= _PYTHON_MIN_VER[0] and sys.version_info.minor < _PYTHON_MIN_VER[1]):
     raise SpykeException(
-        f'To run spyke you require python version at least {_PYTHON_MIN_VERSION[0]}.{_PYTHON_MIN_VERSION[1]} (currently using {sys.version_info.major}.{sys.version_info.minor}).')
+        f'To run spyke you require python version at least {_PYTHON_MIN_VER[0]}.{_PYTHON_MIN_VER[1]} (currently using {sys.version_info.major}.{sys.version_info.minor}).')
 
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True

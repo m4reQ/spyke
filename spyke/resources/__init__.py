@@ -16,7 +16,7 @@ import uuid
 from functools import lru_cache
 from os import path
 import weakref
-from spyke import debug, loaders
+from spyke import loaders
 from spyke.exceptions import SpykeException
 from .image import Image
 from .font import Font
@@ -43,10 +43,6 @@ def _detect_resource_type(filepath: str) -> Type[Resource]:
         # return Sound
     else:
         raise SpykeException(f'Unknown resource file extension: {ext}.')
-
-
-def _shutdown_thread_executor() -> None:
-    _thread_executor.shutdown()
 
 
 def _load(id: uuid.UUID, filepath: str, **resource_settings) -> Resource:

@@ -1,13 +1,8 @@
 from __future__ import annotations
-import typing
-
-if typing.TYPE_CHECKING:
-    from spyke.enums import TextureTarget
-    from typing import List
-
-import logging
+from spyke.enums import TextureTarget
+from spyke.utils import Deletable
 from OpenGL import GL
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 def create_program() -> GL.GLint:
@@ -42,41 +37,10 @@ def create_framebuffer() -> GL.GLint:
     return _id
 
 
-class GLObject(ABC):
-    _objects: List[GLObject] = []
-
-    @staticmethod
-    def delete_all() -> None:
-        cnt = len(GLObject._objects)
-
-        for obj in GLObject._objects:
-            obj._delete()
-
-        GLObject._objects.clear()
-
-        logging.log(logging.SP_INFO,
-                    f'{cnt} OpenGL objects have been deleted.')
-
-    @staticmethod
-    def register(obj: GLObject) -> None:
-        if obj in GLObject._objects:
-            logging.log(logging.SP_INFO, f'OpenGL object ({obj}) already registered.')
-            return
-
-        GLObject._objects.append(obj)
-
-    @staticmethod
-    def unregister(obj: GLObject) -> None:
-        if obj not in GLObject._objects:
-            return
-
-        GLObject._objects.remove(obj)
-
+class GLObject(Deletable, ABC):
     def __init__(self):
-        self._id: GL.GLint = GL.GLint(-1)
-        self._deleted: bool = False
-
-        GLObject.register(self)
+        super().__init__()
+        self._id: GL.GLint = GL.GLint(0)
 
     def __str__(self):
         return f'{type(self).__name__} (id: {self._id.value})'
@@ -84,23 +48,9 @@ class GLObject(ABC):
     def __repr__(self):
         return str(self)
 
-    def _delete(self) -> None:
-        if self._deleted:
-            return
-
-        self.delete()
-        GLObject.unregister(self)
-        self._deleted = True
-        logging.log(logging.SP_INFO, f'{self} deleted succesfully.')
-
-    @abstractmethod
-    def delete(self) -> None:
-        pass
-
     @property
     def id(self) -> int:
-        assert self._id.value != - \
-            1, f'Tried to use uninitialized OpenGL object ({self}).'
-        assert not self._deleted, 'Tried to use OpenGL object that is already deleted.'
+        assert self._id.value != 0, f'Tried to use uninitialized OpenGL object: {self}.'
+        assert not self._deleted, f'Tried to use OpenGL object that is already deleted: {self}.'
 
         return self._id.value

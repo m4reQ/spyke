@@ -1,21 +1,13 @@
 from __future__ import annotations
-import logging
-import typing
-
-if typing.TYPE_CHECKING:
-    from spyke.windowing.windowSpecs import WindowSpecs
-
-# from . import enginePreview
+from spyke.windowing.windowSpecs import WindowSpecs
 from spyke.windowing.window import Window
-from spyke.graphics.gl import GLObject
 from spyke.graphics.rendering import Renderer
 from spyke.audio import AudioDevice
 from spyke.ecs import scene
-from spyke import resources, events, utils
+from spyke import events, utils
 import logging
 import time
 from abc import ABC, abstractmethod
-from openal import alc as ALC
 
 
 class Application(ABC):
@@ -51,7 +43,6 @@ class Application(ABC):
         # TODO: Add loading time profiling
         self.renderer.initialize(self.window.handle)
         self.on_load()
-        resources._shutdown_thread_executor()
         utils.garbage_collect()
 
         logging.log(
@@ -81,9 +72,6 @@ class Application(ABC):
             self.renderer.info.frametime = self.window.get_time() - start
 
         self.on_close()
-        GLObject.delete_all()
-        self.window.close()
-        self.audio_device.close()
 
     @property
     def frametime(self) -> float:

@@ -108,7 +108,7 @@ class Framebuffer(gl.GLObject):
 
         logging.log(logging.SP_INFO, f'{self} resized to ({width}, {height}).')
 
-    def delete(self) -> None:
+    def _delete(self) -> None:
         GL.glDeleteFramebuffers(1, [self.id])
         GL.glDeleteTextures(len(self.color_attachments) + 1,
                             self.color_attachments + [self.depth_attachment, ])
@@ -188,7 +188,7 @@ class Framebuffer(gl.GLObject):
 
     def _invalidate(self, check_complete: bool) -> None:
         if self.id:
-            self.delete()
+            self._delete()
 
         self._id = gl.create_framebuffer()
 

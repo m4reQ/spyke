@@ -77,7 +77,7 @@ class Texture(gl.GLObject):
     def bind_to_unit(self, slot) -> None:
         GL.glBindTextureUnit(slot, self.id)
 
-    def delete(self) -> None:
+    def _delete(self) -> None:
         GL.glDeleteTextures(1, [self.id])
 
     def _check_immutable(self) -> None:

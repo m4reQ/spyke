@@ -11,10 +11,10 @@ from OpenGL import GL
 LOG_FILE = 'nova_log.log'
 
 _log_levels = {
-    'SP_INFO': 2137,
-    'SP_OK': 2137 + 1,
-    'SP_WARNING': 2137 + 2,
-    'SP_ERROR': 2137 + 3
+    'SP_INFO': logging.DEBUG + 1,
+    'SP_OK': logging.DEBUG + 2,
+    'SP_WARNING': logging.DEBUG + 3,
+    'SP_ERROR': logging.DEBUG + 4,
 }
 
 for name, lvl in _log_levels.items():

@@ -10,9 +10,10 @@ from spyke.graphics import gl
 from spyke.utils import convert
 from OpenGL import GL
 import numpy as np
+from abc import ABC
 
 
-class Buffer(gl.GLObject):
+class Buffer(gl.GLObject, ABC):
     @staticmethod
     def bind_pbo_load(pbo: Buffer) -> None:
         GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, pbo.id)
@@ -44,7 +45,7 @@ class Buffer(gl.GLObject):
         logging.log(logging.SP_INFO,
                     f'{self} created succesfully (data size: {self.size / 1000.0}kB).')
 
-    def delete(self) -> None:
+    def _delete(self) -> None:
         GL.glDeleteBuffers(1, [self.id])
 
     @property

@@ -1,29 +1,16 @@
+from dataclasses import dataclass
 from typing import Optional
 
 
+@dataclass
 class WindowSpecs:
-    __slots__ = (
-        '__weakref__',
-        'width',
-        'height',
-        'samples',
-        'title',
-        'vsync',
-        'resizable',
-        'fullscreen',
-        'borderless',
-        'cursor_visible',
-        'icon_filepath'
-    )
-
-    def __init__(self, width: int, height: int, title: str):
-        self.width: int = width
-        self.height: int = height
-        self.samples: int = 1
-        self.title: str = title
-        self.vsync: bool = True
-        self.resizable: bool = True
-        self.fullscreen: bool = False
-        self.borderless: bool = False
-        self.cursor_visible: bool = True
-        self.icon_filepath: Optional[str] = None
+    width: int
+    height: int
+    title: str
+    samples: int = 1
+    vsync: bool = True
+    resizable: bool = True
+    fullscreen: bool = False
+    borderless: bool = False
+    cursor_visible: bool = True
+    icon_filepath: Optional[str] = None

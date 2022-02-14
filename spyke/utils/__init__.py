@@ -1,10 +1,11 @@
+from __future__ import annotations
+from .deletable import Deletable
+from .math import *
 from typing import Sequence, List, TypeVar, Generator
 import time
 import gc
 import ctypes as ct
 import logging
-
-from .math import *
 
 __all__ = [
     'lerp_float',
@@ -23,7 +24,8 @@ __all__ = [
     'Vector2',
     'Vector3',
     'Vector4',
-    'Matrix4'
+    'Matrix4',
+    'Deletable'
 ]
 
 pointer = ct.pointer
