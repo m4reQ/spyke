@@ -17,7 +17,7 @@ class Font(Resource):
         self.base_size: int = 0
         self.name: str = ''
 
-    def _load(self, *, size: int = 64, **_) -> None:
+    def _load(self, size: int = 64, *_, **__) -> None:
         self._loading_data = self._loader.load(self.filepath, size)
         self.base_size = size
 

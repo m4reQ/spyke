@@ -4,7 +4,7 @@ from spyke.graphics import Glyph, Rectangle, TextureSpec, Texture
 from spyke.loaders.fontData import FontData
 from spyke.loaders.loader import Loader
 from spyke.loaders.textureData import TextureData
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Iterable, Tuple
 from dataclasses import dataclass
 import math
 import glm
@@ -26,7 +26,7 @@ class _CharPrototype:
 class FontLoader(Loader):
     __restypes__ = 'TTF'
 
-    def load(self, filepath: str, font_size: int) -> TextureData:
+    def load(self, filepath: str, font_size: int, *_, **__) -> FontData:
         face = ft.Face(filepath)
         assert face.is_scalable, 'Cannot load non scalable fonts'
         face.set_pixel_sizes(0, font_size)
@@ -97,7 +97,7 @@ class FontLoader(Loader):
 
         return FontData(texture_data, name, glyphs)
 
-    def finalize(self, data: FontData) -> Tuple[Texture, Dict[str, Glyph], str]:
+    def finalize(self, data: FontData, *_) -> Tuple[Texture, Dict[str, Glyph], str]:
         texture_data = data.texture_data
 
         texture = Texture(texture_data.specification)
@@ -160,7 +160,7 @@ class FontLoader(Loader):
 
         return prototype
 
-    def _determine_atlas_size(self, chars_data: Sequence[_CharPrototype], cols: int) -> Tuple[int, int, List[int]]:
+    def _determine_atlas_size(self, chars_data: Iterable[_CharPrototype], cols: int) -> Tuple[int, int, List[int]]:
         atlas_width = 0
         rows_heights: List[int] = list()
 

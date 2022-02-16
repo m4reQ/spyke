@@ -5,7 +5,7 @@ from typing import Sequence, List, TypeVar, Generator
 import time
 import gc
 import ctypes as ct
-import logging
+from spyke import debug
 
 __all__ = [
     'lerp_float',
@@ -35,8 +35,7 @@ def garbage_collect():
     prev = gc.get_count()[0]
     gc.collect()
 
-    logging.log(logging.SP_INFO,
-                f'Garbage collection freed {prev - gc.get_count()[0]} objects')
+    debug.log_info(f'Garbage collection freed {prev - gc.get_count()[0]} objects')
 
 
 def create_quad_indices(quadsCount: int) -> List[int]:

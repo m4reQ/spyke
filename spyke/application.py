@@ -4,8 +4,8 @@ from spyke.windowing.window import Window
 from spyke.graphics.rendering import Renderer
 from spyke.audio import AudioDevice
 from spyke.ecs import scene
-from spyke import events, utils
-import logging
+from spyke import events, utils, debug
+from spyke import debug
 import time
 from abc import ABC, abstractmethod
 
@@ -44,9 +44,8 @@ class Application(ABC):
         self.renderer.initialize(self.window.handle)
         self.on_load()
         utils.garbage_collect()
-
-        logging.log(
-            logging.SP_INFO, f'Application loaded in {time.perf_counter() - self._loading_start} seconds.')
+        
+        debug.log_info(f'Application loaded in {time.perf_counter() - self._loading_start} seconds.')
 
         # enginePreview.CleanupPreview()
         # glfw.swap_buffers(self._handle)

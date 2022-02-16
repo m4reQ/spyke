@@ -4,7 +4,7 @@ if typing.TYPE_CHECKING:
     from spyke.enums import GLType
     from typing import Union
 
-import logging
+from spyke import debug
 from spyke.exceptions import GraphicsException
 from spyke.graphics import gl
 from spyke.utils import convert
@@ -42,8 +42,7 @@ class Buffer(gl.GLObject, ABC):
         self._size = size
         self.data_type: GLType = data_type
 
-        logging.log(logging.SP_INFO,
-                    f'{self} created succesfully (data size: {self.size / 1000.0}kB).')
+        debug.log_info(f'{self} created succesfully (data size: {self.size / 1000.0}kB).')
 
     def _delete(self) -> None:
         GL.glDeleteBuffers(1, [self.id])

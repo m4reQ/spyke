@@ -1,5 +1,5 @@
 from __future__ import annotations
-import logging
+from spyke import debug
 import typing
 
 if typing.TYPE_CHECKING:
@@ -10,7 +10,7 @@ from spyke.exceptions import SpykeException
 from spyke import loaders
 from abc import ABC, abstractmethod
 import time
-import logging
+from spyke import debug
 from os import path
 
 

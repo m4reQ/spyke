@@ -1,5 +1,5 @@
 from spyke.enums import NvidiaIntegerName, StringName, Vendor
-import logging
+from spyke import debug
 
 from typing import List, Tuple
 import glfw
@@ -90,7 +90,7 @@ class RendererInfo:
                 GL.GL_EXTENSIONS, i).decode('ascii').lower()
             self.extensions.append(ext_name)
 
-        logging.log(logging.SP_INFO, 'Renderer informations retrieved.')
+        debug.log_info('Renderer informations retrieved.')
 
     def _get_string(self, name: StringName) -> str:
         return GL.glGetString(name).decode('ascii')

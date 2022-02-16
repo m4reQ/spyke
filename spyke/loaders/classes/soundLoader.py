@@ -7,10 +7,10 @@ from pydub import AudioSegment
 class SoundLoader(Loader):
     __restypes__ = ['MP3', 'OGG', 'AAC', 'WAV', 'MP4', 'WMA', 'FLV']
 
-    def load(self, filepath: str, _format: str) -> AudioSegment:
+    def load(self, filepath: str, _format: str, *_) -> AudioSegment:
         return AudioSegment.from_file(filepath, _format)
 
-    def finalize(self, audio_segment: AudioSegment) -> SoundBuffer:
+    def finalize(self, audio_segment: AudioSegment, *_) -> SoundBuffer:
         channels = audio_segment.channels
         width = audio_segment.sample_width * 8
         _format: SoundFormat

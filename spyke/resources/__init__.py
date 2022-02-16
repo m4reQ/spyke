@@ -6,7 +6,7 @@ if typing.TYPE_CHECKING:
     from .resource import Resource
     from typing import Dict, Type, Union
 
-import logging
+from spyke import debug
 from spyke.exceptions import SpykeException
 from .image import Image
 from .font import Font

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from spyke.exceptions import GraphicsException
 from .textureSpec import TextureSpec
-from spyke.enums import _CompressedInternalFormat, MagFilter, MinFilter, PixelType, TextureFormat, TextureParameter, TextureTarget, SizedInternalFormat
+from spyke.enums import _CompressedInternalFormat, MagFilter, MinFilter, PixelType, _TextureFormat, TextureFormat, TextureParameter, TextureTarget, SizedInternalFormat
 from spyke.graphics import gl
 from typing import Any, Tuple, Union
 
@@ -48,7 +48,7 @@ class Texture(gl.GLObject):
             GL.glTextureParameteriv(
                 self.id, specification.texture_swizzle, specification.swizzle_mask)
 
-    def upload(self, size: Union[Tuple[int, int], None], level: int, format: TextureFormat, pixel_type: PixelType, data: np.ndarray) -> None:
+    def upload(self, size: Union[Tuple[int, int], None], level: int, format: _TextureFormat, pixel_type: PixelType, data: np.ndarray) -> None:
         assert not self.is_compressed, 'Cannot use Texture.upload on compressed texture. Use Texture.upload_compressed instead.'
 
         # TODO: Add check for weird texture conversion from formats that differ much
@@ -59,7 +59,7 @@ class Texture(gl.GLObject):
         GL.glTextureSubImage2D(self.id, level, 0, 0,
                                size[0], size[1], format, pixel_type, data)
 
-    def upload_compressed(self, size: Union[Tuple[int, int], None], level: int, format: TextureFormat, image_size: int, data: np.ndarray) -> None:
+    def upload_compressed(self, size: Union[Tuple[int, int], None], level: int, format: _TextureFormat, image_size: int, data: np.ndarray) -> None:
         assert self.is_compressed, 'Cannot use Texture.upload_compressed on non-compressed texture. Use Texture.upload instead.'
 
         if size is None:

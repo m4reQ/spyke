@@ -58,14 +58,14 @@ def Initialize() -> None:
     global _isRunning, _isInitialized
 
     if _isInitialized:
-        logging.log(logging.SP_INFO, 'Imgui already initialized.')
+        debug.log_info('Imgui already initialized.')
         return
 
     _Setup()
     _isRunning = True
     _isInitialized = True
 
-    logging.log(logging.SP_INFO, 'Imgui initialized.')
+    debug.log_info('Imgui initialized.')
 
 
 def Close() -> None:
@@ -80,7 +80,7 @@ def Close() -> None:
     _window.destroy()
     del _window
 
-    logging.log(logging.SP_INFO, 'ImGui closed')
+    debug.log_info('ImGui closed')
 
 
 def _Setup() -> None:

@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union, List
 
 LoadingData = TypeVar('LoadingData')
 
 
 class Loader(ABC):
-    __restypes__ = ''
+    __restypes__: Union[List[str], str] = ''
 
     @abstractmethod
-    def load(self, *args) -> LoadingData:
+    def load(self, *_) -> LoadingData:
         pass
 
     @abstractmethod

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List
-import logging
+from spyke import debug
 import atexit
 
 
@@ -19,7 +19,7 @@ class Deletable(ABC):
             return
 
         Deletable._objects.append(obj)
-        logging.log(logging.SP_INFO, f'Deletable object of type {type(obj).__name__} registered.')
+        debug.log_info(f'Deletable object of type {type(obj).__name__} registered.')
 
     @staticmethod
     def _unregister(obj: Deletable) -> None:
@@ -27,7 +27,7 @@ class Deletable(ABC):
             return
 
         Deletable._objects.remove(obj)
-        logging.log(logging.SP_INFO, f'Deletable object of type {type(obj).__name__} unregistered.')
+        debug.log_info(f'Deletable object of type {type(obj).__name__} unregistered.')
 
     @staticmethod
     def delete_all() -> None:
@@ -38,8 +38,7 @@ class Deletable(ABC):
 
         Deletable._objects.clear()
 
-        logging.log(logging.SP_INFO,
-                    f'{cnt} deletable objects have been deleted.')
+        debug.log_info(f'{cnt} deletable objects have been deleted.')
 
     def __init__(self):
         self._deleted: bool = False
@@ -57,6 +56,6 @@ class Deletable(ABC):
         Deletable._unregister(self)
         self._deleted = True
 
-        logging.log(logging.SP_INFO, f'{self} deleted succesfully.')
+        debug.log_info(f'{self} deleted succesfully.')
 
 atexit.register(Deletable.delete_all)

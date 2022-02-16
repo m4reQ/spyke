@@ -4,7 +4,7 @@ if typing.TYPE_CHECKING:
     from spyke.graphics.buffers import Buffer
     from spyke.enums import GLType
 
-import logging
+from spyke import debug
 from spyke.graphics import gl
 from spyke.utils import convert
 
@@ -19,7 +19,7 @@ class VertexArray(gl.GLObject):
 
         self._offsets = {}
 
-        logging.log(logging.SP_INFO, f'{self} created succesfully.')
+        debug.log_info(f'{self} created succesfully.')
 
     def bind_vertex_buffer(self, binding_index: int, buffer: Buffer, offset: int, stride: int) -> None:
         GL.glVertexArrayVertexBuffer(

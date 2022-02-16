@@ -8,18 +8,11 @@ import time
 import sys
 from OpenGL import GL
 
+
 LOG_FILE = 'nova_log.log'
 
-_log_levels = {
-    'SP_INFO': logging.DEBUG + 1,
-    'SP_OK': logging.DEBUG + 2,
-    'SP_WARNING': logging.DEBUG + 3,
-    'SP_ERROR': logging.DEBUG + 4,
-}
 
-for name, lvl in _log_levels.items():
-    logging.addLevelName(lvl, name)
-    setattr(logging, name, lvl)
+colorama.init()
 
 
 class _FileFormatter(logging.Formatter):
@@ -34,10 +27,9 @@ class _FileFormatter(logging.Formatter):
 
 class _ConsoleFormatter(logging.Formatter):
     _color_map = {
-        logging.SP_INFO: colorama.Fore.WHITE,
-        logging.SP_OK: colorama.Fore.GREEN,
-        logging.SP_WARNING: colorama.Fore.YELLOW,
-        logging.SP_ERROR: colorama.Fore.RED
+        logging.INFO: colorama.Fore.WHITE,
+        logging.WARNING: colorama.Fore.YELLOW,
+        logging.ERROR: colorama.Fore.RED,
     }
 
     _style_reset = colorama.Style.RESET_ALL
@@ -53,32 +45,42 @@ class _ConsoleFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def _init_logging() -> None:
-    colorama.init()
+class _SpykeLogger(logging.Logger):
+    def __init__(self):
+        super().__init__('SpykeLogger')
 
-    if os.path.isfile(LOG_FILE):
-        open(LOG_FILE, 'w').close()
+        _file_handler = logging.FileHandler(LOG_FILE, mode='w+')
+        _file_handler.setLevel(logging.INFO)
+        _file_handler.setFormatter(_FileFormatter())
 
-    _file_handler = logging.FileHandler(LOG_FILE, mode='w+')
-    _file_handler.setLevel(logging.SP_INFO)
-    _file_handler.setFormatter(_FileFormatter())
+        _con_handler = logging.StreamHandler(sys.stdout)
+        _con_handler.setLevel(logging.INFO)
+        _con_handler.setFormatter(_ConsoleFormatter())
 
-    _con_handler = logging.StreamHandler(sys.stdout)
-    _con_handler.setLevel(logging.SP_INFO)
-    _con_handler.setFormatter(_ConsoleFormatter())
-
-    logging.basicConfig(
-        level=logging.SP_INFO,
-        handlers=[
-            _con_handler,
-            _file_handler,
-        ],
-        force=True
-    )
+        self.addHandler(_file_handler)
+        self.addHandler(_con_handler)
 
 
-if __debug__:
-    _init_logging()
+if os.path.isfile(LOG_FILE):
+    open(LOG_FILE, 'w').close()
+
+
+_logger = _SpykeLogger()
+
+
+def log_info(msg: object) -> None:
+    if __debug__:
+        _logger.info(msg)
+
+
+def log_warning(msg: object) -> None:
+    if __debug__:
+        _logger.warning(msg)
+
+
+def log_error(msg: object) -> None:
+    if __debug__:
+        _logger.error(msg)
 
 
 def get_gl_error():
@@ -106,8 +108,7 @@ def timed(func: Callable) -> Callable:
         start = time.perf_counter()
         res = func(*args, **kwargs)
 
-        logging.log(
-            logging.SP_INFO, f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
+        log_info(f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
 
         return res
 
@@ -120,9 +121,4 @@ def check_context() -> None:
     GraphicsException.
     '''
 
-    if not __debug__:
-        return
-
-    if glfw.get_current_context() is None:
-        raise GraphicsException(
-            'Required OpenGL context but no context was made current.')
+    assert glfw.get_current_context() is not None, 'Required OpenGL context but no context is set current.'

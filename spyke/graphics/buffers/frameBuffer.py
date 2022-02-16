@@ -8,7 +8,7 @@ from spyke.graphics import gl
 from spyke.graphics.texturing.textureProxy import TextureProxy
 from spyke.exceptions import GraphicsException
 from spyke import events
-import logging
+from spyke import debug
 
 from OpenGL import GL
 
@@ -87,7 +87,7 @@ class Framebuffer(gl.GLObject):
             events.register_method(self._resize_callback,
                                    events.ResizeEvent, priority=-2)
 
-        logging.log(logging.SP_INFO, f'{self} created succesfully.')
+        debug.log_info(f'{self} created succesfully.')
 
     def bind(self) -> None:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.id)
@@ -106,7 +106,7 @@ class Framebuffer(gl.GLObject):
 
         self._invalidate(False)
 
-        logging.log(logging.SP_INFO, f'{self} resized to ({width}, {height}).')
+        debug.log_info(f'{self} resized to ({width}, {height}).')
 
     def _delete(self) -> None:
         GL.glDeleteFramebuffers(1, [self.id])
@@ -194,7 +194,7 @@ class Framebuffer(gl.GLObject):
 
         self._create_attachments()
 
-        if self.depth_attachment:
+        if self.depth_attachment_spec:
             self._attach_texture(self.depth_attachment, 0,
                                  self.depth_attachment_spec.attachment_point)
 

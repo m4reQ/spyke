@@ -192,17 +192,6 @@ class GLType(enum.IntEnum):
     UnsignedShort = GL.GL_UNSIGNED_SHORT
 
 
-class TextureFormat(enum.IntEnum):
-    Red = GL.GL_RED
-    Rg = GL.GL_RG
-    Rgb = GL.GL_RGB
-    Bgr = GL.GL_BGR
-    Rgba = GL.GL_RGBA
-    Bgra = GL.GL_BGRA
-    DepthComponent = GL.GL_DEPTH_COMPONENT
-    StencilIndex = GL.GL_STENCIL_INDEX
-
-
 class SwizzleMask(enum.IntEnum):
     Red = GL.GL_RED
     Green = GL.GL_GREEN
@@ -259,16 +248,28 @@ class TextureParameter(enum.IntEnum):
 
 # internal format
 
+class _TextureFormat(enum.IntEnum):
+    pass
 
-class _InternalFormat(enum.IntEnum):
+class TextureFormat(_TextureFormat):
+    Red = GL.GL_RED
+    Rg = GL.GL_RG
+    Rgb = GL.GL_RGB
+    Bgr = GL.GL_BGR
+    Rgba = GL.GL_RGBA
+    Bgra = GL.GL_BGRA
+    DepthComponent = GL.GL_DEPTH_COMPONENT
+    StencilIndex = GL.GL_STENCIL_INDEX
+
+class _SizedInternalFormat(enum.IntEnum):
     pass
 
 
-class _CompressedInternalFormat(_InternalFormat):
+class _CompressedInternalFormat(_SizedInternalFormat):
     pass
 
 
-class SizedInternalFormat(_InternalFormat):
+class SizedInternalFormat(_SizedInternalFormat):
     R8 = GL.GL_R8
     R8Snorm = GL.GL_R8_SNORM
     R16 = GL.GL_R16
@@ -338,7 +339,7 @@ class SizedInternalFormat(_InternalFormat):
     Depth32fStencil8 = GL.GL_DEPTH32F_STENCIL8
 
 
-class S3tcCompressedInternalFormat(_CompressedInternalFormat):
+class S3tcCompressedInternalFormat(_CompressedInternalFormat, _TextureFormat):
     CompressedRgbS3tcDxt1 = texture_compression_s3tc.GL_COMPRESSED_RGB_S3TC_DXT1_EXT
     CompressedRgbaS3tcDxt1 = texture_compression_s3tc.GL_COMPRESSED_RGBA_S3TC_DXT1_EXT
     CompressedRgbaS3tcDxt3 = texture_compression_s3tc.GL_COMPRESSED_RGBA_S3TC_DXT3_EXT

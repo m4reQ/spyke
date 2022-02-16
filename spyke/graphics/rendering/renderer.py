@@ -27,7 +27,7 @@ from OpenGL import GL
 from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
 from PIL import Image
 import glm
-import logging
+from spyke import debug
 import time
 import numpy as np
 import os
@@ -109,7 +109,7 @@ class Renderer:
 
     def initialize(self, window_handle: _GLFWwindow) -> None:
         if self.is_initialized:
-            logging.log(logging.SP_INFO, 'Renderer already initialized.')
+            debug.log_info('Renderer already initialized.')
             return
 
         self.info._get(window_handle)
@@ -231,7 +231,7 @@ class Renderer:
 
         Buffer.bind_to_uniform(self.ubo, MATRICES_UNIFORM_BLOCK_INDEX)
 
-        logging.log(logging.SP_INFO, 'Master renderer fully initialized.')
+        debug.log_info('Master renderer fully initialized.')
 
         self.is_initialized = True
 
@@ -256,7 +256,7 @@ class Renderer:
         filename = os.path.join(SCREENSHOT_DIRECTORY,
                                 f'screenshot_{time.time()}.jpg')
         img.save(filename, 'JPEG')
-        logging.log(logging.SP_INFO, f'Screenshot was saved as "{filename}".')
+        debug.log_info(f'Screenshot was saved as "{filename}".')
 
     def render_scene(self, scene: Scene) -> None:
         self.info.reset_frame_stats()

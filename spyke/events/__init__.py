@@ -6,7 +6,7 @@ if typing.TYPE_CHECKING:
     ReturnType = TypeVar('ReturnType')
     _Event = TypeVar('_Event', bound=Event)
 
-import logging
+from spyke import debug
 from spyke.exceptions import SpykeException
 from . import types
 from .types import *
@@ -92,21 +92,17 @@ def register_method(method: Callable[[_Event], ReturnType], event_type: Type[_Ev
     handler = Handler(method, priority, consume)
 
     if handler in _handlers:
-        logging.log(logging.SP_INFO,
-                    f'Handler {handler} already registered for event type: {event_type.__name__}.')
+        debug.log_info(f'Handler {handler} already registered for event type: {event_type.__name__}.')
         return
 
     # raise error when we try to register funciton thats not part
     # of spyke module, with negative priority
-    if priority < 0 and not method.__module__.startswith('spyke'):
-        raise SpykeException(
-            'Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
+    assert not (priority < 0 and not method.__module__.startswith('spyke')), 'Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.'
 
     _handlers[event_type].append(handler)
     _handlers[event_type].sort(key=lambda x: x.priority)
 
-    logging.log(logging.SP_INFO,
-                f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+    debug.log_info(f'Function {method.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
 
 
 # TODO: Make register funciton accept bound methods
@@ -138,8 +134,7 @@ def register(event_type: Type[_Event], *, priority: int, consume: bool = False):
             handler(event)
 
         if handler in _handlers:
-            logging.log(logging.SP_INFO,
-                        f'Handler {handler} already registered for event type: {event_type.__name__}.')
+            debug.log_info(f'Handler {handler} already registered for event type: {event_type.__name__}.')
             return wrapper
 
         # raise error when we try to register funciton thats not part
@@ -151,8 +146,7 @@ def register(event_type: Type[_Event], *, priority: int, consume: bool = False):
         _handlers[event_type].append(handler)
         _handlers[event_type].sort(key=lambda x: x.priority)
 
-        logging.log(logging.SP_INFO,
-                    f'Function {handler_fn.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+        debug.log_info(f'Function {handler_fn.__name__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
 
         return wrapper
 
@@ -193,8 +187,7 @@ def register_user_event(event_type: EventType) -> None:
             'User-defined events have to be subclasses of the Event class.')
 
     if event_type in _handlers:
-        logging.log(logging.SP_INFO,
-                    f'User-defined event type "{event_type.__name__}" already registered.')
+        debug.log_info(f'User-defined event type "{event_type.__name__}" already registered.')
         return
 
     _handlers[event_type] = list()

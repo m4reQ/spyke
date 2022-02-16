@@ -4,7 +4,7 @@ from .fontData import FontData
 from .loader import Loader
 from . import classes
 from typing import Dict, Type
-import logging
+from spyke import debug
 import inspect
 
 __all__ = [
@@ -43,8 +43,7 @@ def _register_loaders() -> None:
             for restype in restypes:
                 _registered_loaders[restype] = _loader
 
-                logging.log(logging.SP_INFO,
-                            f'Loader {name} for resource type: {restype} registered.')
+                debug.log_info(f'Loader {name} for resource type: {restype} registered.')
 
 
 _registered_loaders: Dict[str, Type[Loader]] = {}

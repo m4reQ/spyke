@@ -6,7 +6,7 @@ from spyke.windowing import glfwCallbacks
 # TODO: Do something with those constants AAAAAAAAAAAAAA
 from spyke.constants import DEFAULT_ICON_FILEPATH
 from spyke.utils import Deletable
-import logging
+from spyke import debug
 import glfw
 from PIL import Image
 
@@ -47,7 +47,7 @@ class Window(Deletable):
 
     def set_vsync(self, value: bool) -> None:
         glfw.swap_interval(int(value))
-        logging.log(logging.SP_INFO, f'Vsync set to: {value}.')
+        debug.log_info(f'Vsync set to: {value}.')
 
     def swap_buffers(self) -> None:
         glfw.swap_buffers(self._handle)
@@ -68,10 +68,10 @@ class Window(Deletable):
     
     def _delete(self) -> None:
         glfw.destroy_window(self._handle)
-        logging.log(logging.SP_INFO, 'Window destroyed.')
+        debug.log_info('Window destroyed.')
 
         glfw.terminate()
-        logging.log(logging.SP_INFO, 'Glfw terminated.')
+        debug.log_info('Glfw terminated.')
 
     def _create_window_normal(self, specification: WindowSpecs) -> None:
         glfw.window_hint(glfw.RESIZABLE, specification.resizable)

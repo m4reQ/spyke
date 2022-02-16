@@ -1,11 +1,11 @@
 from __future__ import annotations
-import logging
+from spyke import debug
 import typing
 if typing.TYPE_CHECKING:
     from spyke.enums import ShaderType
 
 from spyke.graphics import gl
-import logging
+from spyke import debug
 from typing import List, Union
 from spyke.exceptions import GraphicsException, SpykeException
 
@@ -54,7 +54,7 @@ class Shader(gl.GLObject):
 
     def compile(self) -> None:
         if self._compiled:
-            logging.log(logging.SP_INFO, 'Shader already compiled.')
+            debug.log_info('Shader already compiled.')
             return
 
         GL.glLinkProgram(self.id)
@@ -66,7 +66,7 @@ class Shader(gl.GLObject):
         self._stages.clear()
         self._compiled = True
 
-        logging.log(logging.SP_INFO, f'{self} compiled succesfully.')
+        debug.log_info(f'{self} compiled succesfully.')
 
     def validate(self) -> None:
         if not self._compiled:
@@ -81,7 +81,7 @@ class Shader(gl.GLObject):
             raise GraphicsException(
                 f'{self} validation failure:\n{info_log.decode("ansi")}.')
 
-        logging.log(logging.SP_INFO, f'{self} has been validated succesfully.')
+        debug.log_info(f'{self} has been validated succesfully.')
 
     def use(self) -> None:
         GL.glUseProgram(self.id)

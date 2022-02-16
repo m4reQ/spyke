@@ -71,7 +71,7 @@ def _finalize_normal_texture(data: TextureData):
 class JPEGLoader(Loader):
     __restypes__ = ['JPEG', 'JPG']
 
-    def load(self, img: Image.Image) -> TextureData:
+    def load(self, img: Image.Image, *_) -> TextureData:
         data = _load_image_data(img)
 
         texture_format = convert.image_mode_to_texture_format(img.mode)
@@ -85,14 +85,14 @@ class JPEGLoader(Loader):
 
         return TextureData(spec, texture_format, img.format, data)
 
-    def finalize(self, data: TextureData) -> Texture:
+    def finalize(self, data: TextureData, *_) -> Texture:
         return _finalize_normal_texture(data)
 
 
 class PNGLoader(Loader):
     __restypes__ = 'PNG'
 
-    def load(self, img: Image.Image) -> TextureData:
+    def load(self, img: Image.Image, *_) -> TextureData:
         data = _load_image_data(img)
 
         texture_format = convert.image_mode_to_texture_format(img.mode)
@@ -106,7 +106,7 @@ class PNGLoader(Loader):
 
         return TextureData(spec, texture_format, img.format, data)
 
-    def finalize(self, data: TextureData) -> Texture:
+    def finalize(self, data: TextureData, *_) -> Texture:
         return _finalize_normal_texture(data)
 
 
@@ -148,7 +148,7 @@ class DDSLoader(Loader):
 
         return CompressedTextureData(spec, texture_format, img.format, buffer, block_size)
 
-    def finalize(self, data: CompressedTextureData) -> Texture:
+    def finalize(self, data: CompressedTextureData, *_) -> Texture:
         texture = Texture(data.specification)
         texture.set_parameter(TextureParameter.MinFilter,
                               MinFilter.LinearMipmapLinear)
