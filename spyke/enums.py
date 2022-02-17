@@ -172,6 +172,34 @@ class BlendFactor:
     OneMinusSrc1Alpha = GL.GL_ONE_MINUS_SRC1_ALPHA
 
 
+class DebugSeverity(enum.IntEnum):
+    High = GL.GL_DEBUG_SEVERITY_HIGH
+    Medium = GL.GL_DEBUG_SEVERITY_MEDIUM
+    Low = GL.GL_DEBUG_SEVERITY_LOW
+    Notification = GL.GL_DEBUG_SEVERITY_NOTIFICATION
+
+
+class DebugSource(enum.IntEnum):
+    Api = GL.GL_DEBUG_SOURCE_API
+    WindowSystem = GL.GL_DEBUG_SOURCE_WINDOW_SYSTEM
+    ShaderCompiler = GL.GL_DEBUG_SOURCE_SHADER_COMPILER
+    ThirdParty = GL.GL_DEBUG_SOURCE_THIRD_PARTY
+    Application = GL.GL_DEBUG_SOURCE_APPLICATION
+    Other = GL.GL_DEBUG_SOURCE_OTHER
+
+
+class DebugType(enum.IntEnum):
+    Error = GL.GL_DEBUG_TYPE_ERROR
+    DeprecatedBehaviour = GL.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR
+    UndefinedBehaviour = GL.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR
+    Portability = GL.GL_DEBUG_TYPE_PORTABILITY
+    Performance = GL.GL_DEBUG_TYPE_PERFORMANCE
+    Marker = GL.GL_DEBUG_TYPE_MARKER
+    PushGroup = GL.GL_DEBUG_TYPE_PUSH_GROUP
+    PopGroup = GL.GL_DEBUG_TYPE_POP_GROUP
+    Other = GL.GL_DEBUG_TYPE_OTHER
+
+
 class StringName(enum.IntEnum):
     Vendor = GL.GL_VENDOR,
     Renderer = GL.GL_RENDERER,

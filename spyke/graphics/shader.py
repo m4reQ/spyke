@@ -1,13 +1,10 @@
 from __future__ import annotations
 from spyke import debug
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.enums import ShaderType
-
+from spyke.enums import ShaderType
+from spyke.exceptions import GraphicsException, SpykeException
 from spyke.graphics import gl
 from spyke import debug
 from typing import List, Union
-from spyke.exceptions import GraphicsException, SpykeException
 
 from OpenGL import GL
 import numpy as np
@@ -28,8 +25,7 @@ class Shader(gl.GLObject):
 
     def add_stage(self, stage: ShaderType, filepath: str) -> None:
         if self._compiled:
-            logging.log(logging.SP_INFO,
-                        'Tried to add shader stage to already compiled shader.')
+            debug.log_info('Tried to add shader stage to already compiled shader.')
             return
 
         try:
@@ -37,7 +33,7 @@ class Shader(gl.GLObject):
                 source = f.read()
         except FileNotFoundError as e:
             raise SpykeException(
-                f"Cannot find shader file named '{e.filename}'")
+                f'Cannot find shader file named "{e.filename}"')
 
         shader = GL.glCreateShader(stage)
         self._stages.append(shader)
@@ -45,11 +41,9 @@ class Shader(gl.GLObject):
         GL.glShaderSource(shader, source)
         GL.glCompileShader(shader)
 
-        infoLog = GL.glGetShaderInfoLog(shader)
-        if len(infoLog) != 0:
-            raise GraphicsException(
-                f'{self} compilation error:\n{infoLog.decode("ansi")}.')
-
+        info_log = GL.glGetShaderInfoLog(shader)
+        assert len(info_log) == 0, f'{self} compilation error:\n{info_log.decode("ansi")}.'
+        
         GL.glAttachShader(self.id, shader)
 
     def compile(self) -> None:
@@ -70,16 +64,13 @@ class Shader(gl.GLObject):
 
     def validate(self) -> None:
         if not self._compiled:
-            logging.log(logging.SP_INFO,
-                        'Cannot validate not compiled shader program.')
+            debug.log_info('Cannot validate not compiled shader program.')
             return
 
         GL.glValidateProgram(self.id)
 
         info_log = GL.glGetProgramInfoLog(self.id)
-        if len(info_log) != 0:
-            raise GraphicsException(
-                f'{self} validation failure:\n{info_log.decode("ansi")}.')
+        assert len(info_log) == 0, f'{self} validation failure:\n{info_log.decode("ansi")}.'
 
         debug.log_info(f'{self} has been validated succesfully.')
 
@@ -92,8 +83,7 @@ class Shader(gl.GLObject):
     @lru_cache
     def get_attrib_location(self, name: str) -> int:
         loc = GL.glGetAttribLocation(self.id, name)
-        if loc == -1:
-            raise GraphicsException(f'Cannot find attribute named "{name}".')
+        assert loc != -1, f'Cannot find attribute named "{name}".'
 
         return loc
 
@@ -102,8 +92,7 @@ class Shader(gl.GLObject):
             return self.uniforms[name]
 
         loc = GL.glGetUniformLocation(self.id, name)
-        if loc == -1:
-            raise GraphicsException(f'Cannot find uniform named "{name}".')
+        assert loc != -1, f'Cannot find uniform named "{name}".'
 
         self.uniforms[name] = loc
 
@@ -112,9 +101,7 @@ class Shader(gl.GLObject):
     @lru_cache
     def get_uniform_block_location(self, name: str) -> int:
         loc = GL.glGetUniformBlockIndex(self.id, name)
-        if loc == -1:
-            raise GraphicsException(
-                f'Cannot find uniform block named "{name}".')
+        assert loc != -1, f'Cannot find uniform block named "{name}".'
 
         return loc
 

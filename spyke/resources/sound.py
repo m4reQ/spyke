@@ -1,7 +1,7 @@
 from __future__ import annotations
-from uuid import UUID
 from spyke.audio import SoundBuffer
 from .resource import Resource
+from uuid import UUID
 
 
 class Sound(Resource):
@@ -10,7 +10,7 @@ class Sound(Resource):
 
         self.buffer: SoundBuffer
 
-    def _load(self) -> None:
+    def _load(self, *_, **__) -> None:
         self._loading_data = self._loader.load(
             self.filepath, self._resource_type)
 
@@ -18,4 +18,4 @@ class Sound(Resource):
         self.buffer = self._loader.finalize(self._loading_data)
 
     def _unload(self) -> None:
-        pass
+        self.buffer.delete()

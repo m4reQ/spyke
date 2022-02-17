@@ -1,4 +1,5 @@
 from typing import Callable
+from spyke.enums import DebugSeverity, DebugSource, DebugType
 from spyke.exceptions import GraphicsException
 import glfw
 import logging
@@ -66,6 +67,30 @@ if os.path.isfile(LOG_FILE):
 
 
 _logger = _SpykeLogger()
+
+
+def _opengl_debug_callback(source: int, msg_type: int, _, severity: int, __, raw: bytes, ___) -> None:
+    _source = DebugSource(source).name.upper()
+    _msg_type = DebugType(msg_type).name.upper()
+    _severity = DebugSeverity(severity)
+
+    message_formatted = f'OpenGL {_source} -> {_msg_type}: {raw.decode("ansi")}.'
+
+    if _severity == DebugSeverity.High:
+        raise GraphicsException(message_formatted)
+    elif _severity == DebugSeverity.Medium:
+        log_warning(message_formatted)
+    elif _severity in [DebugSeverity.Low, DebugSeverity.Notification]:
+        log_info(message_formatted)
+
+
+_debug_proc = GL.GLDEBUGPROC(_opengl_debug_callback)
+
+
+def enable_opengl_debug() -> None:
+    GL.glEnable(GL.GL_DEBUG_OUTPUT)
+    GL.glEnable(GL.GL_DEBUG_OUTPUT_SYNCHRONOUS)
+    GL.glDebugMessageCallback(_debug_proc, None)
 
 
 def log_info(msg: object) -> None:

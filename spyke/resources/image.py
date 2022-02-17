@@ -1,10 +1,7 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from uuid import UUID
-    from spyke.graphics import Texture
-
+from spyke.graphics import Texture
 from .resource import Resource
+from uuid import UUID
 from PIL import Image as _Image
 
 

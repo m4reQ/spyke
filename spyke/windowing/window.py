@@ -33,6 +33,9 @@ class Window(Deletable):
 
         glfw.make_context_current(self._handle)
 
+        if __debug__:
+            debug.enable_opengl_debug()
+
         input_mode = glfw.CURSOR_NORMAL if specification.cursor_visible else glfw.CURSOR_HIDDEN
         glfw.set_input_mode(self._handle, glfw.CURSOR, input_mode)
 
@@ -100,3 +103,4 @@ class Window(Deletable):
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.SAMPLES, specification.samples)
+        glfw.window_hint(glfw.OPENGL_DEBUG_CONTEXT, __debug__)

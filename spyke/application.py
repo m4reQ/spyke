@@ -5,7 +5,6 @@ from spyke.graphics.rendering import Renderer
 from spyke.audio import AudioDevice
 from spyke.ecs import scene
 from spyke import events, utils, debug
-from spyke import debug
 import time
 from abc import ABC, abstractmethod
 

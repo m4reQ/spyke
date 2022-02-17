@@ -25,12 +25,25 @@ class ALObject(Deletable, ABC):
         return self._id
 
 
-def generate_buffer() -> ct.c_uint:
-    _id = ct.c_uint()
+def generate_buffer() -> openal.ALuint:
+    _id = openal.ALuint(0)
     AL.alGenBuffers(1, ct.pointer(_id))
+    assert _id.value != 0, 'Cannot generate OpenAL buffer'
 
     return _id
 
 
-def delete_buffer(buffer: ct.c_uint) -> None:
+def generate_source() -> openal.ALuint:
+    _id = openal.ALuint(0)
+    AL.alGenSources(1, ct.pointer(_id))
+    assert _id.value != 0, 'Cannot generate OpenAL source'
+
+    return _id
+
+
+def delete_buffer(buffer: openal.ALuint) -> None:
     AL.alDeleteBuffers(1, ct.pointer(buffer))
+
+
+def delete_source(source: openal.ALuint) -> None:
+    AL.alDeleteSources(1, ct.pointer(source))

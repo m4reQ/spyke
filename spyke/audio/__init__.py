@@ -1,9 +1,11 @@
 from .al import ALObject
-from .soundBuffer import SoundBuffer
+from .buffer import SoundBuffer
 from .audioDevice import AudioDevice
+from .source import SoundSource
 
 __all__ = [
     'ALObject',
     'SoundBuffer',
-    'AudioDevice'
+    'AudioDevice',
+    'SoundSource'
 ]

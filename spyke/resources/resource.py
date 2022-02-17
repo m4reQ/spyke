@@ -1,16 +1,10 @@
 from __future__ import annotations
-from spyke import debug
-import typing
-
-if typing.TYPE_CHECKING:
-    from typing import Any
-    from uuid import UUID
-
 from spyke.exceptions import SpykeException
-from spyke import loaders
+from spyke import loaders, debug
+from typing import Any
+from uuid import UUID
 from abc import ABC, abstractmethod
 import time
-from spyke import debug
 from os import path
 
 
@@ -51,8 +45,7 @@ class Resource(ABC):
 
     def unload(self) -> None:
         if not self.is_ready:
-            logging.log(logging.SP_INFO,
-                        f'Cannot unload not loaded resource ({self}).')
+            debug.log_info(f'Cannot unload not loaded resource ({self}).')
             return
 
         self._unload()
@@ -61,8 +54,7 @@ class Resource(ABC):
 
     def load(self, *args, **kwargs) -> None:
         if self.is_ready:
-            logging.log(logging.SP_INFO,
-                        f'Resource ({self}) is already loaded.')
+            debug.log_info(f'Resource ({self}) is already loaded.')
             return
 
         self._loading_start = time.perf_counter()
@@ -84,8 +76,7 @@ class Resource(ABC):
                 f'Cannot finalize loading of resource ({self}) that has not been fully loaded yet.')
 
         if self._is_finalized:
-            logging.log(logging.SP_INFO,
-                        f'Tried to finalize loading of resource ({self}) that already has been finalized.')
+            debug.log_info(f'Tried to finalize loading of resource ({self}) that already has been finalized.')
 
         if __debug__:
             self._finalize()
@@ -98,8 +89,7 @@ class Resource(ABC):
 
         del self._loading_data
         del self._loader
-        logging.log(logging.SP_INFO,
-                    f'{self} loaded in {time.perf_counter() - self._loading_start} seconds.')
+        debug.log_info(f'{self} loaded in {time.perf_counter() - self._loading_start} seconds.')
         self._is_finalized = True
 
     @property

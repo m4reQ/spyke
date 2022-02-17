@@ -20,6 +20,7 @@ from spyke import loaders
 from spyke.exceptions import SpykeException
 from .image import Image
 from .font import Font
+from .sound import Sound
 
 # NOTE: All functions from this module are called from main thread.
 # Concurrent calls only occur through ThreadPoolExecutor.
@@ -39,10 +40,9 @@ def _detect_resource_type(filepath: str) -> Type[Resource]:
     elif ext == 'ttf':
         return Font
     elif ext in ['mp3', 'wav']:
-        raise NotImplementedError()
-        # return Sound
-    else:
-        raise SpykeException(f'Unknown resource file extension: {ext}.')
+        return Sound
+    
+    raise SpykeException(f'Unknown resource file extension: {ext}.')
 
 
 def _load(id: uuid.UUID, filepath: str, **resource_settings) -> Resource:
@@ -73,18 +73,15 @@ def load(filepath: str, **resource_settings) -> uuid.UUID:
     :param filepath: Path to a file containing resource data.
     '''
 
-    if not path.exists(filepath):
-        raise SpykeException(f'Resource file "{filepath}" does not exist.')
+    assert path.exists(filepath), f'Resource file "{filepath}" does not exist.'
 
     _, ext = path.splitext(filepath)
     ext = ext.replace('.', '').upper()
 
-    if not loaders.has_loader(ext):
-        raise SpykeException(f'Cannot load resource with extension: "{ext}"')
+    assert loaders.has_loader(ext), f'Cannot load resource with extension: {ext}'
 
     if _is_resource_from_filepath_loaded(filepath):
-        logging.log(logging.SP_WARNING,
-                    f'Resource from file "{filepath}" is already loaded. Avoid loading the same resource multiple times.')
+        debug.log_warning(f'Resource from file "{filepath}" is already loaded. Avoid loading the same resource multiple times.')
 
     _id = uuid.uuid4()
     res_future = _thread_executor.submit(
@@ -105,14 +102,8 @@ def get(_id: uuid.UUID) -> Resource:
     '''
 
     # TODO: Handle resource not found in safer way instead of throwing an exception
-    # TODO: Convert below check to assertion
-    if __debug__:
-        if threading.current_thread() is not threading.main_thread():
-            raise SpykeException(
-                'resource.get function can only be called from main thread.')
-
-    if _id not in _resources:
-        raise SpykeException(f'Resource with id: {_id} not found.')
+    assert threading.current_thread() is threading.main_thread(), 'resource.get function can only be called from main thread.'
+    assert _id in _resources, f'Resource with id: {_id} not found.'
 
     res = _resources[_id]
     if isinstance(res, Future):
@@ -132,13 +123,11 @@ def unload(_id: uuid.UUID) -> None:
     res = _resources.pop(_id)
     # TODO: Handle this specific case more accurately
     if isinstance(res, Future):
-        logging.log(logging.SP_INFO,
-                    'Tried to unload resource that has not been yet loaded.')
+        debug.log_warning('Tried to unload resource that has not been yet loaded.')
         return
 
     if weakref.getweakrefcount(res) != 0:
-        logging.log(logging.SP_INFO,
-                    f'Resource ({res}) is already in use. To unload resource make sure that no components are using it anymore.')
+        debug.log_warning(f'Resource ({res}) is already in use. To unload resource make sure that no components are using it anymore.')
         return
 
     res.unload()
