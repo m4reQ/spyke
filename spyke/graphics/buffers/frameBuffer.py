@@ -84,7 +84,7 @@ class Framebuffer(gl.GLObject):
         self._invalidate(True)
 
         if specification.is_resizable:
-            events.register_method(self._resize_callback,
+            events.register(self._resize_callback,
                                    events.ResizeEvent, priority=-2)
 
         debug.log_info(f'{self} created succesfully.')

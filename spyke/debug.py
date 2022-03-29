@@ -1,6 +1,7 @@
-from typing import Callable
+from __future__ import annotations
 from spyke.enums import DebugSeverity, DebugSource, DebugType
 from spyke.exceptions import GraphicsException
+from typing import Callable
 import glfw
 import logging
 import colorama
@@ -123,22 +124,6 @@ def get_bound_texture(unit: int) -> int:
 
     GL.glActiveTexture(GL.GL_TEXTURE0 + unit)
     return GL.glGetInteger(GL.GL_TEXTURE_BINDING_2D)
-
-
-def timed(func: Callable) -> Callable:
-    def inner(*args, **kwargs):
-        if not __debug__:
-            return func(*args, **kwargs)
-
-        start = time.perf_counter()
-        res = func(*args, **kwargs)
-
-        log_info(f'Function {func.__qualname__} executed in {time.perf_counter() - start} seconds.')
-
-        return res
-
-    return inner
-
 
 def check_context() -> None:
     '''

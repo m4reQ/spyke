@@ -1,9 +1,8 @@
-from spyke.utils import Deletable
 from spyke import debug
 from openal import alc as ALC
 
 
-class AudioDevice(Deletable):
+class AudioDevice:
     def __init__(self):
         super().__init__()
         self._handle: int = ALC.alcOpenDevice(None)
@@ -20,7 +19,7 @@ class AudioDevice(Deletable):
 
         debug.log_info(f'Audio device "{self.name}" opened.')
     
-    def _delete(self) -> None:
+    def close(self) -> None:
         ALC.alcDestroyContext(self._context)
         ALC.alcCloseDevice(self._handle)
 

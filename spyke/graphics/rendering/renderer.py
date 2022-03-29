@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
     PolygonModeGenerator = Generator[PolygonMode, None, None]
 
 # TODO: Remove unused import statements
-from spyke.enums import GLType, ClearMask, Hint, TextureBufferSizedInternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Keys, SizedInternalFormat
+from spyke.enums import GLType, ClearMask, Hint, TextureBufferSizedInternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Key, SizedInternalFormat
 from spyke import events
 from spyke.graphics import Rectangle
 from spyke import utils
@@ -102,10 +102,25 @@ class Renderer:
         self.basic_shader: Shader = None
         self.vao: VertexArray = None
         self.framebuffer: Framebuffer = None
+        self.white_texture: Texture = None
 
         self.last_texture: int = 1
         self.instance_count: int = 0
         self.textures: List[int] = [0] * MAX_TEXTURES_COUNT
+    
+    def shutdown(self) -> None:
+        self.ubo.delete()
+        self.ibo.delete()
+        self.instance_data_buffer.delete()
+        self.pos_data_buffer.delete()
+        self.vertex_data_buffer.delete()
+        self.basic_shader.delete()
+        self.vao.delete()
+        self.framebuffer.delete()
+        self.white_texture.delete()
+
+        self.is_initialized = False
+        debug.log_info('Renderer shutdown completed.')
 
     def initialize(self, window_handle: _GLFWwindow) -> None:
         if self.is_initialized:
@@ -115,11 +130,11 @@ class Renderer:
         self.info._get(window_handle)
 
         # register callbacks
-        events.register_method(self._key_down_callback,
+        events.register(self._key_down_callback,
                                events.KeyDownEvent, priority=-1)
-        events.register_method(self._resize_callback,
+        events.register(self._resize_callback,
                                events.ResizeEvent, priority=-1)
-        events.register_method(self._window_move_callback,
+        events.register(self._window_move_callback,
                                events.WindowMoveEvent, priority=-1)
 
         # TODO: Possibly move this to resource manager
@@ -160,7 +175,10 @@ class Renderer:
         self.basic_shader = Shader()
         self.ubo = DynamicBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
         self.vao = VertexArray()
-        self.textures[0] = Texture.create_white_texture().id
+
+        self.white_texture = Texture.create_white_texture()
+
+        self.textures[0] = self.white_texture.id
 
         color_attachment_spec = AttachmentSpec(SizedInternalFormat.Rgba8)
 
@@ -466,13 +484,12 @@ class Renderer:
         if e.repeat:
             return
 
-        if e.key == Keys.KeyGrave:
+        if e.key == Key.Grave:
             self.polygon_mode = next(self.polygon_mode_generator)
-            logging.log(logging.SP_INFO,
-                        f'Renderer drawing mode set to: {self.polygon_mode.name}')
-        elif e.key == Keys.KeyF1:
+            debug.log_info(f'Renderer drawing mode set to: {self.polygon_mode.name}')
+        elif e.key == Key.F1:
             self.capture_frame()
-        elif e.key == Keys.KeyF2:
+        elif e.key == Key.F2:
             events.invoke(events.ToggleVsyncEvent(not self.info.vsync))
 
     def _resize_callback(self, e: events.ResizeEvent) -> None:

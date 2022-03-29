@@ -1,39 +1,17 @@
+import enum
 from OpenGL import GL
 from OpenGL.GL.EXT import texture_compression_s3tc
-from openal import al as AL
-import glfw
-import enum
 
-# TODO: Make all OpenGL enums `IntEnum`
+class _SizedInternalFormat(enum.IntEnum):
+    pass
 
 
-class AudioState(enum.IntEnum):
-    Initial = AL.AL_INITIAL
-    Paused = AL.AL_PAUSED
-    Playing = AL.AL_PLAYING
-    Stopped = AL.AL_STOPPED
+class _CompressedInternalFormat(_SizedInternalFormat):
+    pass
 
 
-class SoundFormat(enum.IntEnum):
-    Mono8 = AL.AL_FORMAT_MONO8
-    Mono16 = AL.AL_FORMAT_MONO16
-    Stereo8 = AL.AL_FORMAT_STEREO8
-    Stereo16 = AL.AL_FORMAT_STEREO16
-
-
-class CameraType(enum.Enum):
-    Orthographic = enum.auto()
-    Perspective = enum.auto()
-
-
-class Vendor(enum.Enum):
-    Nvidia = enum.auto()
-    Intel = enum.auto()
-    Amd = enum.auto()
-    WindowsSoftware = enum.auto()
-    Unknown = enum.auto()
-
-# region OpenGL
+class _TextureFormat(enum.IntEnum):
+    pass
 
 
 class HintMode(enum.IntEnum):
@@ -42,7 +20,7 @@ class HintMode(enum.IntEnum):
     DontCare = GL.GL_DONT_CARE
 
 
-class Hint:
+class Hint(enum.IntEnum):
     FogHint = GL.GL_FOG_HINT
     FragmentShaderDerivativeHint = GL.GL_FRAGMENT_SHADER_DERIVATIVE_HINT
     GenerateMipmapHint = GL.GL_GENERATE_MIPMAP_HINT
@@ -54,7 +32,7 @@ class Hint:
     MultisampleFilterNvHint = 0x8534
 
 
-class NvidiaIntegerName:
+class NvidiaIntegerName(enum.IntEnum):
     GpuMemInfoTotalAvailable = 0x9048
     GpuMemInfoCurrentAvailable = 0x9049
 
@@ -134,7 +112,7 @@ class WrapMode(enum.IntEnum):
     ClampToBorder = GL.GL_CLAMP_TO_BORDER
 
 
-class PrimitiveMode:
+class PrimitiveMode(enum.IntEnum):
     Triangles = GL.GL_TRIANGLES
     Points = GL.GL_POINTS
     LineStrip = GL.GL_LINE_STRIP
@@ -144,13 +122,12 @@ class PrimitiveMode:
     LinesAdjacency = GL.GL_LINES_ADJACENCY
     TriangleStrip = GL.GL_TRIANGLE_STRIP
     TriangleFan = GL.GL_TRIANGLE_FAN
-    Triangles = GL.GL_TRIANGLES
     TriangleStripAdjacency = GL.GL_TRIANGLE_STRIP_ADJACENCY
     TrianglesAdjacency = GL.GL_TRIANGLES_ADJACENCY
     Patches = GL.GL_PATCHES
 
 
-class BlendFactor:
+class BlendFactor(enum.IntEnum):
     Zero = GL.GL_ZERO
     One = GL.GL_ONE
     SrcColor = GL.GL_SRC_COLOR
@@ -274,10 +251,6 @@ class TextureParameter(enum.IntEnum):
     WrapT = GL.GL_TEXTURE_WRAP_T
     WrapR = GL.GL_TEXTURE_WRAP_R
 
-# internal format
-
-class _TextureFormat(enum.IntEnum):
-    pass
 
 class TextureFormat(_TextureFormat):
     Red = GL.GL_RED
@@ -288,13 +261,6 @@ class TextureFormat(_TextureFormat):
     Bgra = GL.GL_BGRA
     DepthComponent = GL.GL_DEPTH_COMPONENT
     StencilIndex = GL.GL_STENCIL_INDEX
-
-class _SizedInternalFormat(enum.IntEnum):
-    pass
-
-
-class _CompressedInternalFormat(_SizedInternalFormat):
-    pass
 
 
 class SizedInternalFormat(_SizedInternalFormat):
@@ -433,23 +399,6 @@ class TextureTarget(enum.IntEnum):
     Texture2dMultisampleArray = GL.GL_TEXTURE_2D_MULTISAMPLE_ARRAY
 
 
-class _____CompressedSizedInternalFormat(enum.IntEnum):
-    CompressedRed = GL.GL_COMPRESSED_RED
-    CompressedRg = GL.GL_COMPRESSED_RG
-    CompressedRgb = GL.GL_COMPRESSED_RGB
-    CompressedRgba = GL.GL_COMPRESSED_RGBA
-    CompressedSrgb = GL.GL_COMPRESSED_SRGB
-    CompressedSrgbAlpha = GL.GL_COMPRESSED_SRGB_ALPHA
-    CompressedRedRgtc1 = GL.GL_COMPRESSED_RED_RGTC1
-    CompressedSignedRedRgtc1 = GL.GL_COMPRESSED_SIGNED_RED_RGTC1
-    CompressedRgRgtc2 = GL.GL_COMPRESSED_RG_RGTC2
-    CompressedSignedRgRgtc2 = GL.GL_COMPRESSED_SIGNED_RG_RGTC2
-    CompressedRgbaBptcUnorm = GL.GL_COMPRESSED_RGBA_BPTC_UNORM
-    CompressedSrgbAlphaBptcUnorm = GL.GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM
-    CompressedRgbBptcSignedFloat = GL.GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT
-    CompressedRgbBptcUnsignedFloat = GL.GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT
-
-
 class ClearMask(enum.IntEnum):
     ColorBufferBit = GL.GL_COLOR_BUFFER_BIT
     DepthBufferBit = GL.GL_DEPTH_BUFFER_BIT
@@ -461,151 +410,3 @@ class PolygonMode(enum.IntEnum):
     Line = GL.GL_LINE
     Fill = GL.GL_FILL
     Point = GL.GL_POINT
-
-
-class EnableCap:
-    Blend = GL.GL_BLEND
-    DepthTest = GL.GL_DEPTH_TEST
-    CullFace = GL.GL_CULL_FACE
-    MultiSample = GL.GL_MULTISAMPLE
-    AlphaTest = GL.GL_ALPHA_TEST
-    ScissorTest = GL.GL_SCISSOR_TEST
-
-
-class AlphaOperator:
-    Never = GL.GL_NEVER
-    Always = GL.GL_ALWAYS
-    Less = GL.GL_LESS
-    Equal = GL.GL_EQUAL
-    Greater = GL.GL_GREATER
-    LessOrEqual = GL.GL_LEQUAL
-    GreaterOrEqual = GL.GL_GEQUAL
-    NotEqual = GL.GL_NOTEQUAL
-
-
-class BufferUsageFlag:
-    StaticDraw = GL.GL_STATIC_DRAW
-    DynamicDraw = GL.GL_DYNAMIC_DRAW
-    StreamDraw = GL.GL_STREAM_DRAW
-# endregion
-
-# region Input
-
-
-class MouseButtons(enum.IntEnum):
-    Left = glfw.MOUSE_BUTTON_LEFT
-    Middle = glfw.MOUSE_BUTTON_MIDDLE
-    Right = glfw.MOUSE_BUTTON_RIGHT
-
-
-class KeyMods(enum.IntEnum):
-    ModControl = glfw.MOD_CONTROL
-    ModShift = glfw.MOD_SHIFT
-    ModAlt = glfw.MOD_ALT
-    ModSuper = glfw.MOD_SUPER
-    ModCapsLock = glfw.MOD_CAPS_LOCK
-    ModNumLock = glfw.MOD_NUM_LOCK
-
-
-class Keys(enum.IntEnum):
-    KeyInvalid = glfw.KEY_UNKNOWN
-
-    # special
-    KeySpace = glfw.KEY_SPACE
-    KeyApostrophe = glfw.KEY_APOSTROPHE
-    KeyComma = glfw.KEY_COMMA
-    KeyMinus = glfw.KEY_MINUS
-    KeyPeriod = glfw.KEY_PERIOD
-    KeySlash = glfw.KEY_SLASH
-    KeySemicolon = glfw.KEY_SEMICOLON
-    KeyLeftBracket = glfw.KEY_LEFT_BRACKET
-    KeyRightBracket = glfw.KEY_RIGHT_BRACKET
-    KeyBackslash = glfw.KEY_BACKSLASH
-    KeyGrave = glfw.KEY_GRAVE_ACCENT
-    KeyEscape = glfw.KEY_ESCAPE
-    KeyEnter = glfw.KEY_ENTER
-    KeyTab = glfw.KEY_TAB
-    KeyBackspace = glfw.KEY_BACKSPACE
-    KeyInsert = glfw.KEY_INSERT
-    KeyDelete = glfw.KEY_DELETE
-    KeyPageUp = glfw.KEY_PAGE_UP
-    KeyPageDown = glfw.KEY_PAGE_DOWN
-    KeyHome = glfw.KEY_HOME
-    KeyEnd = glfw.KEY_END
-    KeyCapsLock = glfw.KEY_CAPS_LOCK
-    KeyScrollLock = glfw.KEY_SCROLL_LOCK
-    KeyNumLock = glfw.KEY_NUM_LOCK
-    KeyPrintScreen = glfw.KEY_PRINT_SCREEN
-    KeyPause = glfw.KEY_PAUSE
-    KeyMenu = glfw.KEY_MENU
-
-    # functional
-    KeyF1 = glfw.KEY_F1
-    KeyF2 = glfw.KEY_F2
-    KeyF3 = glfw.KEY_F3
-    KeyF4 = glfw.KEY_F4
-    KeyF5 = glfw.KEY_F5
-    KeyF6 = glfw.KEY_F6
-    KeyF7 = glfw.KEY_F7
-    KeyF8 = glfw.KEY_F8
-    KeyF9 = glfw.KEY_F9
-    KeyF10 = glfw.KEY_F10
-    KeyF11 = glfw.KEY_F11
-    KeyF12 = glfw.KEY_F12
-
-    # modifiers
-    KeyLeftShift = glfw.KEY_LEFT_SHIFT
-    KeyRightShift = glfw.KEY_RIGHT_SHIFT
-    KeyLeftControl = glfw.KEY_LEFT_CONTROL
-    KeyRightControl = glfw.KEY_RIGHT_CONTROL
-    KeyLeftAlt = glfw.KEY_LEFT_ALT
-    KeyRightAlt = glfw.KEY_RIGHT_ALT
-    KeyLeftSuper = glfw.KEY_LEFT_SUPER
-    KeyRightSuper = glfw.KEY_RIGHT_SUPER
-
-    # arrows
-    KeyRight = glfw.KEY_RIGHT
-    KeyLeft = glfw.KEY_LEFT
-    KeyUp = glfw.KEY_UP
-    KeyDown = glfw.KEY_DOWN
-
-    # numerical
-    Key0 = glfw.KEY_0
-    Key1 = glfw.KEY_1
-    Key2 = glfw.KEY_2
-    Key3 = glfw.KEY_3
-    Key4 = glfw.KEY_4
-    Key5 = glfw.KEY_5
-    Key6 = glfw.KEY_6
-    Key7 = glfw.KEY_7
-    Key8 = glfw.KEY_8
-    Key9 = glfw.KEY_9
-
-    # alphabetical
-    KeyA = glfw.KEY_A
-    KeyB = glfw.KEY_B
-    KeyC = glfw.KEY_C
-    KeyD = glfw.KEY_D
-    KeyE = glfw.KEY_E
-    KeyF = glfw.KEY_F
-    KeyG = glfw.KEY_G
-    KeyH = glfw.KEY_H
-    KeyI = glfw.KEY_I
-    KeyJ = glfw.KEY_J
-    KeyK = glfw.KEY_K
-    KeyL = glfw.KEY_L
-    KeyM = glfw.KEY_M
-    KeyN = glfw.KEY_N
-    KeyO = glfw.KEY_O
-    KeyP = glfw.KEY_P
-    KeyQ = glfw.KEY_Q
-    KeyR = glfw.KEY_R
-    KeyS = glfw.KEY_S
-    KeyT = glfw.KEY_T
-    KeyU = glfw.KEY_U
-    KeyV = glfw.KEY_V
-    KeyW = glfw.KEY_W
-    KeyX = glfw.KEY_X
-    KeyY = glfw.KEY_Y
-    KeyZ = glfw.KEY_Z
-# endregion

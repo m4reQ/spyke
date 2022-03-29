@@ -1,11 +1,15 @@
 from __future__ import annotations
 from .deletable import Deletable
 from .math import *
+from .windows import *
+from spyke import debug
 from typing import Sequence, List, TypeVar, Generator
+from types import ModuleType
+from os import path
 import time
 import gc
 import ctypes as ct
-from spyke import debug
+import inspect
 
 __all__ = [
     'lerp_float',
@@ -19,6 +23,9 @@ __all__ = [
     'garbage_collect',
     'pointer',
     'get_closest_factors',
+    'get_known_folder_path',
+    'get_extension_name',
+    'get_submodules',
     'Iterator',
     'Delayer',
     'Vector2',
@@ -28,7 +35,21 @@ __all__ = [
     'Deletable'
 ]
 
+
 pointer = ct.pointer
+
+
+def get_submodules(module: ModuleType) -> List[ModuleType]:
+    return [x[1] for x in inspect.getmembers(module, lambda x: inspect.ismodule(x))]
+
+
+def get_extension_name(filepath: str) -> str:
+    '''
+    Returns extension of the file in form of uppercase file
+    suffix with dot removed.
+    '''
+
+    return path.splitext(filepath)[1].removeprefix('.').upper()
 
 
 def garbage_collect():

@@ -1,18 +1,20 @@
+from __future__ import annotations
 from spyke.enums import SoundFormat
-from spyke.audio import al
+from spyke.audio import ALObject
 from spyke import debug
-from openal import al as AL
+from openal import al
 
 
-class SoundBuffer(al.ALObject):
+class ALBuffer(ALObject):
     def __init__(self, _format: SoundFormat, data: bytes, sample_rate: int):
         super().__init__()
 
-        self._id = al.generate_buffer()
         self.size = len(data)
-        AL.alBufferData(self._id, _format, data, self.size, sample_rate)
 
-        debug.log_info(f'{self} created succesfully (data size: {self.size / 1024.0}kB).')
+        al.alGenBuffers(1, self._id)
+        al.alBufferData(self._id, _format, data, self.size, sample_rate)
+
+        debug.log_info(f'{self} created succesfully (data size: {(self.size / 1000.0):.3f}kB).')
 
     def _delete(self) -> None:
-        al.delete_buffer(self._id)
+        al.alDeleteBuffers(1, self._id)

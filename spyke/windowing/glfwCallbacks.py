@@ -1,5 +1,4 @@
-from spyke import events
-from spyke import debug
+from spyke import events, debug
 from spyke.exceptions import GraphicsException
 import glfw
 

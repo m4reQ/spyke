@@ -15,6 +15,24 @@ class Texture(gl.GLObject):
         assert alignment in [
             1, 2, 4, 8], f'Invalid pixel alignment: {alignment}'
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, alignment)
+    
+    @classmethod
+    def create_white_texture(cls):
+        data = np.array([255, 255, 255, 255], dtype=np.ubyte)
+
+        spec = TextureSpec()
+        spec.width = 1
+        spec.height = 1
+        spec.internal_format = SizedInternalFormat.Rgba8
+        spec.min_filter = MinFilter.Nearest
+        spec.mag_filter = MagFilter.Nearest
+        spec.mipmaps = 1
+
+        tex = cls(spec)
+        tex.upload(None, 0, TextureFormat.Rgba, PixelType.UnsignedByte, data)
+        tex._check_immutable()
+
+        return tex
 
     def __init__(self, specification: TextureSpec):
         super().__init__()
@@ -87,21 +105,3 @@ class Texture(gl.GLObject):
 
         if success.value != 1:
             raise GraphicsException('Cannot create immutable texture.')
-
-    @classmethod
-    def create_white_texture(cls):
-        data = np.array([255, 255, 255, 255], dtype=np.ubyte)
-
-        spec = TextureSpec()
-        spec.width = 1
-        spec.height = 1
-        spec.internal_format = SizedInternalFormat.Rgba8
-        spec.min_filter = MinFilter.Nearest
-        spec.mag_filter = MagFilter.Nearest
-        spec.mipmaps = 1
-
-        tex = cls(spec)
-        tex.upload(None, 0, TextureFormat.Rgba, PixelType.UnsignedByte, data)
-        tex._check_immutable()
-
-        return tex

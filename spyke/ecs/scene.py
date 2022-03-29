@@ -1,16 +1,17 @@
 # TODO: Possibly convert this to an object held by Application class
-
+from __future__ import annotations
 from esper import World as Scene
-from spyke.exceptions import SpykeException
+from spyke import debug
+from typing import Optional
 from .processors import *
+from .components import AudioComponent
 
-_current: Scene = None
+
+_current: Optional[Scene] = None
 
 
 def get_current() -> Scene:
-    if not _current:
-        raise SpykeException('No scene is set current.')
-
+    assert _current is not None, 'No scene is set current.'
     return _current
 
 
@@ -19,10 +20,25 @@ def set_current(scene: Scene) -> None:
     _current = scene
 
 
+def cleanup() -> None:
+    '''
+    Some components directly use internal objects that have to be
+    cleaned up before closing the program (such as textures).
+    This function cleans up all of those objects in current scene.
+    '''
+
+    if _current is None:
+        return
+    
+    for _, audio in _current.get_component(AudioComponent):
+        audio.source.delete()
+    
+    debug.log_info('Current scene cleanup completed.')
+
+
 def create() -> Scene:
     s = Scene()
     s.add_processor(TransformProcessor())
     s.add_processor(ParticleProcessor())
-    s.add_processor(AudioProcessor())
 
     return s

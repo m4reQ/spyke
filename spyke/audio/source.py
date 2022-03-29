@@ -1,30 +1,61 @@
-from typing import Any
-from spyke.audio import al
-from openal import al as AL
+from __future__ import annotations
+from spyke.audio import ALObject
+from spyke.audio import ALBuffer
+from spyke.enums import SourceState
+from openal import al, ALuint, ALint
 import glm
 
-
-class SoundSource(al.ALObject):
+class SoundSource(ALObject):
     def __init__(self):
         super().__init__()
 
-        self._id = al.generate_source()
+        self._current_buffer_id: ALuint = ALuint()
+
+        al.alGenSources(1, self._id)
     
     def set_position(self, pos: glm.vec3) -> None:
-        AL.alSource3f(self._id, AL.AL_POSITION, pos.x, pos.y, pos.z)
+        al.alSource3f(self.id, al.AL_POSITION, pos.x, pos.y, pos.z)
     
     def set_gain(self, gain: float) -> None:
-        AL.alSourcef(self._id, AL.AL_GAIN, gain)
+        al.alSourcef(self.id, al.AL_GAIN, gain)
     
     def set_velocity(self, velocity: glm.vec3) -> None:
-        AL.alSource3f(self._id, AL.AL_VELOCITY, velocity)
+        al.alSource3f(self.id, al.AL_VELOCITY, velocity.x, velocity.y, velocity.z)
     
     def set_pitch(self, pitch: float) -> None:
-        AL.alSourcef(self._id, AL.AL_PITCH, pitch)
+        al.alSourcef(self.id, al.AL_PITCH, pitch)
     
     def set_looping(self, looping: bool) -> None:
-        AL.alSourcei(self._id, AL.AL_LOOPING, 1 if looping else 0)
+        al.alSourcei(self.id, al.AL_LOOPING, 1 if looping else 0)
+    
+    def play(self) -> None:
+        al.alSourcePlay(self.id)
+
+    def pause(self) -> None:
+        al.alSourcePause(self.id)
+    
+    def stop(self) -> None:
+        al.alSourceStop(self.id)
+    
+    def rewind(self) -> None:
+        al.alSourceRewind(self.id)
+
+    def set_buffer(self, buffer: ALBuffer) -> None:
+        if self._current_buffer_id == buffer.id:
+            return
+
+        al.alSourcei(self.id, al.AL_BUFFER, buffer.id)
+        self._current_buffer_id = buffer.id
+    
+    def set_state(self, state: SourceState) -> None:
+        al.alSourcei(self.id, al.AL_SOURCE_STATE, state)
+    
+    def get_state(self) -> SourceState:
+        state = ALint()
+        al.alGetSourcei(self.id, al.AL_SOURCE_STATE, state)
+
+        return SourceState(state.value)
     
     def _delete(self) -> None:
-        al.delete_source(self._id)
-    
+        al.alSourcei(self.id, al.AL_BUFFER, 0)
+        al.alDeleteSources(1, self._id)

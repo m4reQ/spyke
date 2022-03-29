@@ -4,9 +4,10 @@ from spyke.windowing.window import Window
 from spyke.graphics.rendering import Renderer
 from spyke.audio import AudioDevice
 from spyke.ecs import scene
-from spyke import events, utils, debug
-import time
+from spyke import events, utils, debug, resources
 from abc import ABC, abstractmethod
+import atexit
+import time
 
 
 class Application(ABC):
@@ -21,8 +22,9 @@ class Application(ABC):
         # enginePreview.RenderPreview()
         # glfw.swap_buffers(self._handle)
 
-        events.register_method(lambda e: self.window.set_vsync(e.state),
+        events.register(lambda e: self.window.set_vsync(e.state),
                                events.ToggleVsyncEvent, priority=-1)
+        atexit.register(self._close)
 
         self.window.set_vsync(window_specification.vsync)
 
@@ -38,8 +40,14 @@ class Application(ABC):
     def on_load(self) -> None:
         pass
 
+    def _close(self) -> None:
+        scene.cleanup()
+        resources.unload_all()
+        self._renderer.shutdown()
+        self._window.close()
+        self._audio_device.close()
+
     def _run(self) -> None:
-        # TODO: Add loading time profiling
         self.renderer.initialize(self.window.handle)
         self.on_load()
         utils.garbage_collect()
@@ -56,6 +64,8 @@ class Application(ABC):
             if self.window.should_close:
                 events.invoke(events.WindowCloseEvent())
                 is_running = False
+            
+            events._process_events()
 
             _scene = scene.get_current()
             _scene.process(dt=self.frametime)
@@ -70,6 +80,8 @@ class Application(ABC):
             self.renderer.info.frametime = self.window.get_time() - start
 
         self.on_close()
+        self._close()
+        atexit.unregister(self._close)
 
     @property
     def frametime(self) -> float:

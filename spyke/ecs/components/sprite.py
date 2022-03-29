@@ -1,16 +1,10 @@
 from __future__ import annotations
-import typing
-
-from spyke.exceptions import SpykeException
-if typing.TYPE_CHECKING:
-    from typing import Optional
-
-
+from spyke import resources
+from spyke.resources import Image
+from .component import Component
+from typing import Optional
 import glm
 import uuid
-from spyke import resources
-from .component import Component
-from spyke.resources import Image
 
 
 class SpriteComponent(Component):
@@ -27,10 +21,5 @@ class SpriteComponent(Component):
         self.color: glm.vec4 = color
 
         _image = resources.get(image_id) if image_id else None
-        if _image is None:
-            self.image = _image
-        if not isinstance(_image, Image):
-            raise SpykeException(
-                f'UUID: {image_id} points to a resource of type: {type(_image)}. Expected type: {Image.__name__}.')
-
+        assert isinstance(_image, Image) or _image is None, f'UUID: {image_id} points to a resource of type: {type(_image)}. Expected type: {Image.__name__}.'
         self.image = _image

@@ -5,7 +5,6 @@ from spyke.windowing import WindowSpecs
 from spyke.windowing import glfwCallbacks
 # TODO: Do something with those constants AAAAAAAAAAAAAA
 from spyke.constants import DEFAULT_ICON_FILEPATH
-from spyke.utils import Deletable
 from spyke import debug
 import glfw
 from PIL import Image
@@ -13,9 +12,7 @@ from PIL import Image
 _OPENGL_REQUIRED_VERSION = (4, 5)
 
 
-class Window(Deletable):
-    # TODO: Decide if we want to move whole window creation to
-    # separate initalize method or if we should leave it in constructor
+class Window:
     def __init__(self, specification: WindowSpecs):
         super().__init__()
         
@@ -69,7 +66,7 @@ class Window(Deletable):
     def should_close(self) -> bool:
         return glfw.window_should_close(self._handle)
     
-    def _delete(self) -> None:
+    def close(self) -> None:
         glfw.destroy_window(self._handle)
         debug.log_info('Window destroyed.')
 
