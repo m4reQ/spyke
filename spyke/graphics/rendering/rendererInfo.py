@@ -1,10 +1,11 @@
 from spyke.enums import NvidiaIntegerName, StringName, Vendor
-from spyke import debug
 
 from typing import List, Tuple
 import glfw
+import logging
 from OpenGL import GL
 
+_LOGGER = logging.getLogger(__name__)
 
 class RendererInfo:
     __slots__ = (
@@ -90,7 +91,7 @@ class RendererInfo:
                 GL.GL_EXTENSIONS, i).decode('ascii').lower()
             self.extensions.append(ext_name)
 
-        debug.log_info('Renderer informations retrieved.')
+        _LOGGER.debug('Renderer informations retrieved.')
 
     def _get_string(self, name: StringName) -> str:
         return GL.glGetString(name).decode('ascii')

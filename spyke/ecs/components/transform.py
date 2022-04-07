@@ -1,8 +1,6 @@
 import glm
-from .component import Component
 
-
-class TransformComponent(Component):
+class TransformComponent:
     __slots__ = (
         '__weakref__',
         '_pos',
@@ -21,7 +19,7 @@ class TransformComponent(Component):
     def __init__(self, position: glm.vec3, size: glm.vec3, rotation: glm.vec3):
         self._pos: glm.vec3 = position
         self._size: glm.vec3 = size
-        self._rot: glm.vec3 = glm.mod(rotation, 360.0)
+        self._rot: glm.vec3 = rotation % 360.0
         self._rot_hint = rotation
 
         self._pos_changed: bool = True
@@ -80,6 +78,6 @@ class TransformComponent(Component):
 
     @rotation.setter
     def rotation(self, val: glm.vec3):
-        self._rot = glm.mod(val, 360.0)
+        self._rot = val % 360.0
         self._rot_hint = val
         self._rot_changed = True

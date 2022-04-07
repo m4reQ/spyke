@@ -4,11 +4,17 @@ from spyke.windowing.window import Window
 from spyke.graphics.rendering import Renderer
 from spyke.audio import AudioDevice
 from spyke.ecs import scene
-from spyke import events, utils, debug, resources
+from spyke import events, utils, resources
 from abc import ABC, abstractmethod
 import atexit
 import time
+import logging
 
+__all__ = [
+    'Application',
+]
+
+_LOGGER = logging.getLogger(__name__)
 
 class Application(ABC):
     def __init__(self, window_specification: WindowSpecs):
@@ -21,12 +27,6 @@ class Application(ABC):
         # TODO: Implement this at some point
         # enginePreview.RenderPreview()
         # glfw.swap_buffers(self._handle)
-
-        events.register(lambda e: self.window.set_vsync(e.state),
-                               events.ToggleVsyncEvent, priority=-1)
-        atexit.register(self._close)
-
-        self.window.set_vsync(window_specification.vsync)
 
     @abstractmethod
     def on_frame(self) -> None:
@@ -47,12 +47,17 @@ class Application(ABC):
         self._window.close()
         self._audio_device.close()
 
+        _LOGGER.info('Application closed.')
+
     def _run(self) -> None:
+        events.register(lambda e: self.window.set_vsync(e.state), events.ToggleVsyncEvent, priority=-1)
+        atexit.register(self._close)
+
         self.renderer.initialize(self.window.handle)
         self.on_load()
         utils.garbage_collect()
         
-        debug.log_info(f'Application loaded in {time.perf_counter() - self._loading_start} seconds.')
+        _LOGGER.info('Application loaded in %f seconds.', time.perf_counter() - self._loading_start)
 
         # enginePreview.CleanupPreview()
         # glfw.swap_buffers(self._handle)

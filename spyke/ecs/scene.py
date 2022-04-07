@@ -1,14 +1,14 @@
 # TODO: Possibly convert this to an object held by Application class
 from __future__ import annotations
-from esper import World as Scene
-from spyke import debug
-from typing import Optional
-from .processors import *
 from .components import AudioComponent
+from .processors import *
+from esper import World as Scene
+from typing import Optional
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 _current: Optional[Scene] = None
-
 
 def get_current() -> Scene:
     assert _current is not None, 'No scene is set current.'
@@ -33,7 +33,7 @@ def cleanup() -> None:
     for _, audio in _current.get_component(AudioComponent):
         audio.source.delete()
     
-    debug.log_info('Current scene cleanup completed.')
+    _LOGGER.debug('Current scene cleanup completed.')
 
 
 def create() -> Scene:

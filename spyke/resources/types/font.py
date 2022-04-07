@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..resource import Resource
+from .resource import Resource
 from spyke.graphics import Texture, Glyph
 from typing import Dict
 from uuid import UUID
@@ -9,8 +9,8 @@ class Font(Resource):
     def __init__(self, _id: UUID, filepath: str=''):
         super().__init__(_id, filepath)
 
-        self.texture: Texture
-        self.glyphs: Dict[str, Glyph] = {}
+        self.texture: Texture = Texture.empty()
+        self.glyphs: Dict[str, Glyph] = dict()
         self.base_size: int = 0
         self.name: str = ''
 

@@ -1,17 +1,14 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from typing import List, Optional
-
 from spyke.enums import AttachmentPoint, FramebufferStatus, MagFilter, MinFilter, SizedInternalFormat, TextureFormat, TextureParameter, TextureTarget, WrapMode
 from spyke.graphics import gl
 from spyke.graphics.texturing.textureProxy import TextureProxy
 from spyke.exceptions import GraphicsException
-from spyke import events
-from spyke import debug
-
+from spyke import events, debug
+from typing import List, Optional
 from OpenGL import GL
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class AttachmentSpec:
     __slots__ = (
@@ -87,7 +84,7 @@ class Framebuffer(gl.GLObject):
             events.register(self._resize_callback,
                                    events.ResizeEvent, priority=-2)
 
-        debug.log_info(f'{self} created succesfully.')
+        _LOGGER.debug('%s created succesfully.', self)
 
     def bind(self) -> None:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.id)
@@ -106,7 +103,7 @@ class Framebuffer(gl.GLObject):
 
         self._invalidate(False)
 
-        debug.log_info(f'{self} resized to ({width}, {height}).')
+        _LOGGER.debug('%s resized to (%d, %d).', self, width, height)
 
     def _delete(self) -> None:
         GL.glDeleteFramebuffers(1, [self.id])
@@ -135,8 +132,7 @@ class Framebuffer(gl.GLObject):
         for attachment_spec in specification.attachments_specs:
             if attachment_spec.texture_format in [TextureFormat.DepthComponent, TextureFormat.StencilIndex]:
                 if self.depth_attachment_spec:
-                    logging.log(logging.SP_INFO,
-                                'Multiple depth attachment specifications found. Only the first one will be used.')
+                    _LOGGER.warning('Multiple depth attachment specifications found. Only the first one will be used.')
                     continue
 
                 self.depth_attachment_spec = attachment_spec
@@ -182,7 +178,7 @@ class Framebuffer(gl.GLObject):
     def _attach_texture(self, _id: int, index: int, attachment_point: AttachmentPoint) -> None:
         attachment = attachment_point
         if attachment == AttachmentPoint.ColorAttachment:
-            attachment += index
+            attachment += index #type: ignore
 
         GL.glNamedFramebufferTexture(self.id, attachment, _id, 0)
 

@@ -1,13 +1,15 @@
 from __future__ import annotations
 from spyke.enums import SourceState
-from spyke import debug, resources
+from spyke import resources
 from spyke.resources import Sound
 from spyke.audio import SoundSource
-from .component import Component
 from typing import Optional
 from uuid import UUID
+import logging
 
-class AudioComponent(Component):
+_LOGGER = logging.getLogger(__name__)
+
+class AudioComponent:
     def __init__(self, sound_id: Optional[UUID]=None):
         self.source: SoundSource = SoundSource()
         self.current_sound: Optional[Sound]
@@ -17,15 +19,14 @@ class AudioComponent(Component):
     
     def _check_sound_set(self) -> bool:
         if self.current_sound is None:
-            debug.log_warning('Audio component has no sound set. To play a sound first associate it with AudioComponent using set_sound method.')
+            _LOGGER.warning('Audio component has no sound set. To play a sound first associate it with AudioComponent using set_sound method.')
             return False
         
         return True
-        
+    
+    # TODO: Fix mypy errors related to lru_cache
     def set_sound(self, sound_id: UUID) -> None:
-        sound = resources.get(sound_id)
-        assert isinstance(sound, Sound), f'UUID: {sound} points to a resource of type: {type(sound)}. Expected type: {Sound.__name__}.'
-
+        sound = resources.get(sound_id, Sound)
         self.source.set_buffer(sound.buffer)
         self.current_sound = sound
 

@@ -1,54 +1,44 @@
 from __future__ import annotations
-import typing
-
-from spyke.graphics.texturing.textureProxy import TextureProxy
-if typing.TYPE_CHECKING:
-    from glfw import _GLFWwindow
-    from spyke.ecs import Scene
-    from typing import Optional, Generator, List, Union
-
-    PolygonModeGenerator = Generator[PolygonMode, None, None]
-
 # TODO: Remove unused import statements
+from spyke import events, resources, paths
+from spyke.ecs import Scene, components
 from spyke.enums import GLType, ClearMask, Hint, TextureBufferSizedInternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Key, SizedInternalFormat
-from spyke import events
-from spyke.graphics import Rectangle
-from spyke import utils
-from spyke.utils import convert
-from spyke.ecs import components
+from spyke.utils import convert, Iterator
+from spyke.resources import Image, Model
 from ..texturing import Texture
 from ..vertexArray import VertexArray
-from .rendererInfo import RendererInfo
 from ..shader import Shader
 from ..buffers import *
-from ...ecs import components
-
+from .renderCommand import RenderCommand
+from .rendererInfo import RendererInfo
+from typing import Generator, List, Dict
+from glfw import _GLFWwindow
+from uuid import UUID
 from OpenGL import GL
 from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
-from PIL import Image
+from PIL import Image as PILImage
+import threading
 import glm
-from spyke import debug
 import time
 import numpy as np
 import os
+import logging
 
+PolygonModeGenerator = Generator[PolygonMode, None, None]
 # TODO: Restore particle rendering
 # TODO: Fix textures not displaying properly
 # TODO: Remove unnecessary constants
 
-SCREENSHOT_DIRECTORY = "screenshots/"
-SHADER_SOURCES_DIRECTORY = "spyke/graphics/shaderSources/"
+_LOGGER = logging.getLogger(__name__)
 
-_GL_FLOAT_SIZE = convert.gl_type_to_size(GLType.Float)
-UNIFORM_BLOCK_SIZE = 16 * _GL_FLOAT_SIZE
+# TODO: Corelate below constant with buffer sizes
+MAX_RENDER_COMMANDS_COUNT = 200
+
+UNIFORM_BLOCK_SIZE = 16 * convert.gl_type_to_size(GLType.Float)
 MATRICES_UNIFORM_BLOCK_INDEX = 0
-
-DEFAULT_RENDER_COLOR_ATTACHMENT = 0
-ENTITY_ID_ATTACHMENT = 1
 
 MAX_QUADS_COUNT = 400
 VERTICES_PER_QUAD = 4
-INDICES_PER_QUAD = 6
 
 POS_VERTEX_VALUES_COUNT = 3
 
@@ -57,22 +47,17 @@ BASIC_VERTEX_VERTEX_VALUES_COUNT = 2
 
 POST_VERTEX_VERTEX_VALUES_COUNT = 3 + 2
 
-POS_DATA_VERTEX_SIZE = POS_VERTEX_VALUES_COUNT * _GL_FLOAT_SIZE
+POS_DATA_VERTEX_SIZE = POS_VERTEX_VALUES_COUNT * convert.gl_type_to_size(GLType.Float)
 
-BASIC_INSTANCE_DATA_VERTEX_SIZE = BASIC_INSTANCE_VERTEX_VALUES_COUNT * _GL_FLOAT_SIZE
-BASIC_VERTEX_DATA_VERTEX_SIZE = BASIC_VERTEX_VERTEX_VALUES_COUNT * _GL_FLOAT_SIZE
+BASIC_INSTANCE_DATA_VERTEX_SIZE = BASIC_INSTANCE_VERTEX_VALUES_COUNT * convert.gl_type_to_size(GLType.Float)
+BASIC_VERTEX_DATA_VERTEX_SIZE = BASIC_VERTEX_VERTEX_VALUES_COUNT * convert.gl_type_to_size(GLType.Float)
 
-POST_VERTEX_DATA_VERTEX_SIZE = POST_VERTEX_VERTEX_VALUES_COUNT * _GL_FLOAT_SIZE
+POST_VERTEX_DATA_VERTEX_SIZE = POST_VERTEX_VERTEX_VALUES_COUNT * convert.gl_type_to_size(GLType.Float)
 
 POS_DATA_BUFFER_BINDING = 0
 INSTANCE_DATA_BUFFER_BINDING = 1
-POST_DATA_BUFFER_BINDING = 0
 
 MAX_TEXTURES_COUNT = 15
-
-MULTISAMPLE_TEXTURE_SAMPLER = 0
-NORMAL_TEXTURE_SAMPLER = 1
-
 BUFFER_TEXTURE_SAMPLER = 15
 
 # TODO: Eventually get this data while loading model for instanced rendering
@@ -82,33 +67,35 @@ _quadVertices = [
     1.0, 0.0, 0.0,
     0.0, 0.0, 0.0]
 
-
 class Renderer:
-    # TODO: Break renderer apart into smaller pieces for easier menagement
+    # TODO: Break renderer apart into smaller pieces for easier management
 
     def __init__(self):
         self.is_initialized: bool = False
 
         self.info: RendererInfo = RendererInfo()
-
-        self.polygon_mode_generator: PolygonModeGenerator = self._polygon_mode_generator_impl()
-        self.polygon_mode: PolygonMode = next(self.polygon_mode_generator)
+        self.polygon_mode_iterator: Iterator[PolygonMode] = Iterator([PolygonMode.Fill, PolygonMode.Line, PolygonMode.Point], looping=True)
 
         self.ubo: DynamicBuffer = None
-        self.ibo: StaticBuffer = None
+        self.ibo: DynamicBuffer = None
         self.instance_data_buffer: DynamicBuffer = None
-        self.pos_data_buffer: StaticBuffer = None
+        self.pos_data_buffer: DynamicBuffer = None
         self.vertex_data_buffer: TextureBuffer = None
         self.basic_shader: Shader = None
         self.vao: VertexArray = None
         self.framebuffer: Framebuffer = None
-        self.white_texture: Texture = None
 
-        self.last_texture: int = 1
-        self.instance_count: int = 0
-        self.textures: List[int] = [0] * MAX_TEXTURES_COUNT
+        self.render_commands: Dict[UUID, List[RenderCommand]] = dict()
+        self.render_lock: threading.RLock = threading.RLock()
+    
+    @property
+    def render_commands_count(self) -> int:
+        return sum(len(x) for x in self.render_commands.values())
     
     def shutdown(self) -> None:
+        if not self.is_initialized:
+            return
+
         self.ubo.delete()
         self.ibo.delete()
         self.instance_data_buffer.delete()
@@ -117,29 +104,26 @@ class Renderer:
         self.basic_shader.delete()
         self.vao.delete()
         self.framebuffer.delete()
-        self.white_texture.delete()
+        
+        if Texture._white_texture:
+            Texture._white_texture.delete()
+        if Texture._invalid_texture:
+            Texture._invalid_texture.delete()
 
         self.is_initialized = False
-        debug.log_info('Renderer shutdown completed.')
+        _LOGGER.debug('Renderer shutdown completed.')
 
     def initialize(self, window_handle: _GLFWwindow) -> None:
         if self.is_initialized:
-            debug.log_info('Renderer already initialized.')
+            _LOGGER.warning('Renderer already initialized.')
             return
 
         self.info._get(window_handle)
 
         # register callbacks
-        events.register(self._key_down_callback,
-                               events.KeyDownEvent, priority=-1)
-        events.register(self._resize_callback,
-                               events.ResizeEvent, priority=-1)
-        events.register(self._window_move_callback,
-                               events.WindowMoveEvent, priority=-1)
-
-        # TODO: Possibly move this to resource manager
-        if not os.path.exists(SCREENSHOT_DIRECTORY):
-            os.mkdir(SCREENSHOT_DIRECTORY)
+        events.register(self._key_down_callback, events.KeyDownEvent, priority=-1)
+        events.register(self._resize_callback, events.ResizeEvent, priority=-1)
+        events.register(self._window_move_callback, events.WindowMoveEvent, priority=-1)
 
         # set vendor-specific properties of the renderer
         # TODO: Add support for nv_commands_lists here
@@ -165,20 +149,17 @@ class Renderer:
         GL.glClearColor(0.0, 0.0, 0.0, 1.0)
 
         # create all components (buffers, vaos, etc.)
-        self.pos_data_buffer = StaticBuffer(_quadVertices, GLType.Float)
+        self.pos_data_buffer = DynamicBuffer(MAX_RENDER_COMMANDS_COUNT * 1024, GLType.Float)
         self.instance_data_buffer = DynamicBuffer(
             BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, GLType.Float)
         self.vertex_data_buffer = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE *
                                                 MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, TextureBufferSizedInternalFormat.Rg32f)
-        self.ibo = StaticBuffer(utils.create_quad_indices(
-            MAX_QUADS_COUNT), GLType.UnsignedInt)
+        self.ibo = DynamicBuffer(MAX_RENDER_COMMANDS_COUNT * 128, GLType.UnsignedInt)
         self.basic_shader = Shader()
         self.ubo = DynamicBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
         self.vao = VertexArray()
 
-        self.white_texture = Texture.create_white_texture()
-
-        self.textures[0] = self.white_texture.id
+        self.white_texture = Texture.empty()
 
         color_attachment_spec = AttachmentSpec(SizedInternalFormat.Rgba8)
 
@@ -212,10 +193,8 @@ class Renderer:
         self.info.framebuffer_height = self.framebuffer.height
 
         # set up all renderer's components
-        self.basic_shader.add_stage(ShaderType.VertexShader,
-                                    SHADER_SOURCES_DIRECTORY + 'basic.vert')
-        self.basic_shader.add_stage(ShaderType.FragmentShader,
-                                    SHADER_SOURCES_DIRECTORY + 'basic.frag')
+        self.basic_shader.add_stage(ShaderType.VertexShader, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert'))
+        self.basic_shader.add_stage(ShaderType.FragmentShader, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag'))
         self.basic_shader.compile()
 
         samplers = list(range(MAX_TEXTURES_COUNT))
@@ -249,7 +228,7 @@ class Renderer:
 
         Buffer.bind_to_uniform(self.ubo, MATRICES_UNIFORM_BLOCK_INDEX)
 
-        debug.log_info('Master renderer fully initialized.')
+        _LOGGER.info('Master renderer fully initialized.')
 
         self.is_initialized = True
 
@@ -260,21 +239,16 @@ class Renderer:
         GL.glClearColor(r, g, b, a)
 
     def capture_frame(self) -> None:
-        # TODO: Decide whether we want to capture frame with the size
-        # of framebuffer or if we want to scale it to the window size
-
         width, height = self.info.framebuffer_size
-        pixels = GL.glReadPixels(0, 0, width, height,
-                                 GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
+        pixels = GL.glReadPixels(0, 0, width, height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
 
-        img = Image.frombytes(
+        img = PILImage.frombytes(
             'RGB', (width, height), pixels)
-        img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
 
-        filename = os.path.join(SCREENSHOT_DIRECTORY,
-                                f'screenshot_{time.time()}.jpg')
+        filename = os.path.join(paths.SCREENSHOTS_DIRECTORY, f'screenshot_{time.time()}.jpg')
         img.save(filename, 'JPEG')
-        debug.log_info(f'Screenshot was saved as "{filename}".')
+        _LOGGER.info('Screenshot was saved as "%s".', filename)
 
     def render_scene(self, scene: Scene) -> None:
         self.info.reset_frame_stats()
@@ -297,38 +271,16 @@ class Renderer:
 
         Buffer.bind_ubo(self.ubo)
 
-        # per-vertex data (in vbo): position // only ONE model
-        # per-vertex data (in tbo): all of texture coordinates for every instance -> [], [], [] ...
-        # per-instance data (in vbo): color, TRANSFORM, tiling, texture index, ... // BIGGER
-
-        # offsetting tbo with indices
-
         # self.framebuffer.bind()
 
         self.clear_screen()
 
-        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, self.polygon_mode)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, self.polygon_mode_iterator.current)
         GL.glEnable(GL.GL_DEPTH_TEST)
 
-        # drawables = [x for x in scene.GetComponents(components.SpriteComponent, components.TransformComponent)]
-        # opaque = [x for x in drawables if x[1][0].color.w == 1.0]
-        # alpha = [x for x in drawables if x not in opaque]
-
-        # alpha.sort(key = lambda x: x[1][0].color.w, reverse = True)
-        # for ent, (sprite, transform) in opaque:
-        # 	_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tiling_factor, entId=int(ent))
-
-        # _Flush()
-
-        # GL.glDisable(GL.GL_DEPTH_TEST)
-        # for ent, (sprite, transform) in alpha:
-        # 	_RenderQuad(transform.matrix, sprite.color, ResourceManager.GetTexture(sprite.texture), sprite.tiling_factor, entId=int(ent))
-
-        # _Flush()
-
         for ent, (sprite, transform) in scene.get_components(components.SpriteComponent, components.TransformComponent):
-            self._render_quad(transform.matrix, sprite.color, sprite.tiling_factor,
-                              texture=sprite.image.texture, ent_id=int(ent))
+            pass
+            # self._render_quad(transform.matrix, sprite.color, sprite.tiling_factor, texture=sprite.image.texture, ent_id=int(ent))
 
         self._flush()
 
@@ -364,11 +316,11 @@ class Renderer:
                 text_transform[0, 0] = width
                 text_transform[1, 1] = height
 
-                self._render_quad(text_transform, text.color,
-                                  glm.vec2(1.0, 1.0), texture=font.texture, tex_rect=glyph.tex_rect, ent_id=int(ent))
+                # self._render_quad(text_transform, text.color, glm.vec2(1.0, 1.0), texture=font.texture, tex_rect=glyph.tex_rect, ent_id=int(ent))
 
         self._flush()
 
+        # TODO: Reimplement particle renderer
         # for _, system in scene.GetComponent(components.ParticleSystemComponent):
         # 	for particle in system.particlePool:
         # 		if particle.isAlive:
@@ -392,86 +344,111 @@ class Renderer:
                 GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
 
         self.info.drawtime = time.perf_counter() - start
-
+    
     def _flush(self) -> None:
-        if not self.instance_count:
-            return
+        # TODO: Add docs
+        self.render_lock.acquire()
 
+        # preallocate list to save some time
+        textures: List[int] = [0] * MAX_TEXTURES_COUNT
+
+        for model_id, commands in self.render_commands.items():
+            instance_count = len(commands)
+            last_texture_idx = 0
+
+            # disabling type checks here as mypy doesn't work well with lru_cache
+            model: Model = resources.get(model_id, Model) #type: ignore
+
+            self.pos_data_buffer.add_data_direct(model.position_data)
+            self.ibo.add_data_direct(model.index_data)
+
+            for command in commands:
+                image: Image = resources.get(command.image_id, Image) #type: ignore
+                texture = image.texture
+                
+                # TODO: Handle case of not enough texture slots
+                if texture.id not in textures:
+                    textures[last_texture_idx] = texture.id
+                    last_texture_idx += 1 
+                
+                texture_idx = textures.index(texture.id)
+        
+                vertex_data = model.texture_coords if command.custom_texture_coords is None else command.custom_texture_coords
+                self.vertex_data_buffer.add_data(vertex_data)
+
+                # texture coords in right order
+                # temporarily stored here
+                # vertex_data = [
+                #     tex_rect.left, tex_rect.top,
+                #     tex_rect.right, tex_rect.top,
+                #     tex_rect.right, tex_rect.bottom,
+                #     tex_rect.left, tex_rect.bottom,
+                # ]
+
+                color = command.color
+                # TODO: Decide if we really want to have ability
+                # to change tiling factor, as it will not work well
+                # with complex models anyway
+                tiling_factor = command.tiling_factor
+
+                instance_data = np.concatenate(
+                    np.array([
+                    color.x,
+                    color.y,
+                    color.z,
+                    color.w,
+                    tiling_factor.x,
+                    tiling_factor.y,
+                    texture_idx,
+                    command.entity_id
+                ], dtype=np.float32),
+                np.asarray(glm.transpose(command.transform), dtype=np.float32).flatten())
+
+                self.instance_data_buffer.add_data(instance_data)
+
+                instance_count += 1
+            
+            self._draw(model, instance_count, textures[:last_texture_idx])
+        
+        self.render_commands.clear()
+        self.render_lock.release()
+    
+    def _draw(self, model: Model, instance_count: int, textures: List[int]) -> None:
+        # TODO: Add docs
         self.vertex_data_buffer.flip()
         self.instance_data_buffer.flip()
 
-        for i in range(self.last_texture):
-            GL.glBindTextureUnit(i, self.textures[i])
+        for i, texture in enumerate(textures):
+            GL.glBindTextureUnit(i, texture)
 
         GL.glBindTextureUnit(15, self.vertex_data_buffer.texture_id)
 
         self.vao.bind()
         self.basic_shader.use()
 
-        # TODO: Unhardcode this later
-        self.basic_shader.set_uniform_int('uVerticesPerInstance', 4)
+        self.basic_shader.set_uniform_int('uVerticesPerInstance', model.vertices_per_instance)
 
-        # TODO: Later unhardcode `INDICES_PER_QUAD` to match actual count of
-        # vertices per rendered object instance
-        GL.glDrawElementsInstanced(
-            GL.GL_TRIANGLES, self.instance_count * INDICES_PER_QUAD, self.ibo.data_type, None, self.instance_count)
+        accumulated_vertex_count = instance_count * model.vertices_per_instance
+        GL.glDrawElementsInstanced(GL.GL_TRIANGLES, accumulated_vertex_count, self.ibo.data_type, None, instance_count)
 
         self.info.draw_calls += 1
-        self.info.accumulated_vertex_count += self.instance_count * VERTICES_PER_QUAD
+        self.info.accumulated_vertex_count += accumulated_vertex_count
+    
+    def _render(self, render_command: RenderCommand) -> None:
+        # TODO: Add docs
+        
+        self.render_lock.acquire()
 
-        self.instance_count = 0
-        self.last_texture = 1
-
-    # TODO: Create some kind of precompiled quad data object that stores below informations
-    def _render_quad(self, transform: glm.mat4, color: glm.vec4, tilingFactor: glm.vec2, texture: Union[Optional[Texture], TextureProxy], tex_rect: Rectangle = Rectangle.one(), ent_id: int = -1) -> None:
-        # TODO: Unhardcode this to match maximum capacity of the vertex buffer
-        # with value given by `instance_count * current_model_vertices_per_instance`
-        if self.instance_count > MAX_QUADS_COUNT:
+        if self.render_commands_count >= MAX_RENDER_COMMANDS_COUNT:
             self._flush()
+        
+        model_id = render_command.model_id
+        if model_id not in self.render_commands:
+            self.render_commands[model_id] = list()
 
-        tex_idx = 0
+        self.render_commands[model_id].append(render_command)
 
-        if texture:
-            for i in range(1, self.last_texture):
-                if self.textures[i] == texture.id:
-                    tex_idx = i
-                    break
-
-            if tex_idx == 0:
-                if self.last_texture >= MAX_TEXTURES_COUNT:
-                    self._flush()
-
-                tex_idx = self.last_texture
-                self.textures[self.last_texture] = texture.id
-                self.last_texture += 1
-
-        vertex_data = [
-            tex_rect.left, tex_rect.top,
-            tex_rect.right, tex_rect.top,
-            tex_rect.right, tex_rect.bottom,
-            tex_rect.left, tex_rect.bottom,
-        ]
-
-        self.vertex_data_buffer.add_data(
-            np.asarray(vertex_data, dtype=np.float32))
-
-        instance_data = np.concatenate((
-            [
-                color.x,
-                color.y,
-                color.z,
-                color.w,
-                tilingFactor.x,
-                tilingFactor.y,
-                tex_idx,
-                ent_id
-            ],
-            np.asarray(glm.transpose(transform), dtype=np.float32).flatten()
-        ))
-
-        self.instance_data_buffer.add_data(instance_data)
-
-        self.instance_count += 1
+        self.render_lock.release()
 
     def _window_change_focus_callback(self, e: events.WindowChangeFocusEvent) -> None:
         self.info.window_active = e.value
@@ -485,8 +462,8 @@ class Renderer:
             return
 
         if e.key == Key.Grave:
-            self.polygon_mode = next(self.polygon_mode_generator)
-            debug.log_info(f'Renderer drawing mode set to: {self.polygon_mode.name}')
+            next(self.polygon_mode_iterator)
+            _LOGGER.info('Renderer drawing mode set to %s', self.polygon_mode_iterator.current)
         elif e.key == Key.F1:
             self.capture_frame()
         elif e.key == Key.F2:
@@ -501,9 +478,3 @@ class Renderer:
 
         self.info.framebuffer_width = self.framebuffer.width
         self.info.framebuffer_height = self.framebuffer.height
-
-    def _polygon_mode_generator_impl(self) -> PolygonModeGenerator:
-        while True:
-            yield PolygonMode.Fill
-            yield PolygonMode.Line
-            yield PolygonMode.Point

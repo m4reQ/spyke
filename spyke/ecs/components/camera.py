@@ -1,17 +1,13 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.graphics.rectangle import Rectangle
-    from typing import Optional, Tuple
-    ClipSpace = Tuple[float, float]
-
-from .component import Component
+from spyke.graphics.rectangle import Rectangle
 from spyke.enums import CameraType
 from spyke.exceptions import SpykeException
+from typing import Optional, Tuple
 import glm
 
+ClipSpace = Tuple[float, float]
 
-class CameraComponent(Component):
+class CameraComponent:
     __slots__ = (
         '__weakref__',
         'is_primary',
@@ -67,5 +63,4 @@ class CameraComponent(Component):
 
     @property
     def view_projection(self) -> glm.mat4:
-        # TODO: Check if the multiplication order is correct
         return self.projection * self.view

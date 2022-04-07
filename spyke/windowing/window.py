@@ -5,12 +5,12 @@ from spyke.windowing import WindowSpecs
 from spyke.windowing import glfwCallbacks
 # TODO: Do something with those constants AAAAAAAAAAAAAA
 from spyke.constants import DEFAULT_ICON_FILEPATH
-from spyke import debug
 import glfw
+import logging
 from PIL import Image
 
 _OPENGL_REQUIRED_VERSION = (4, 5)
-
+_LOGGER = logging.getLogger(__name__)
 
 class Window:
     def __init__(self, specification: WindowSpecs):
@@ -30,9 +30,6 @@ class Window:
 
         glfw.make_context_current(self._handle)
 
-        if __debug__:
-            debug.enable_opengl_debug()
-
         input_mode = glfw.CURSOR_NORMAL if specification.cursor_visible else glfw.CURSOR_HIDDEN
         glfw.set_input_mode(self._handle, glfw.CURSOR, input_mode)
 
@@ -42,12 +39,16 @@ class Window:
 
         glfwCallbacks.register(self._handle)
 
+        self.set_vsync(specification.vsync)
+
+        _LOGGER.info('Window created.')
+
     def set_title(self, title: str) -> None:
         glfw.set_window_title(self._handle, title)
 
     def set_vsync(self, value: bool) -> None:
         glfw.swap_interval(int(value))
-        debug.log_info(f'Vsync set to: {value}.')
+        _LOGGER.debug('Vsync set to: %s.', value)
 
     def swap_buffers(self) -> None:
         glfw.swap_buffers(self._handle)
@@ -68,10 +69,10 @@ class Window:
     
     def close(self) -> None:
         glfw.destroy_window(self._handle)
-        debug.log_info('Window destroyed.')
+        _LOGGER.debug('Window destroyed.')
 
         glfw.terminate()
-        debug.log_info('Glfw terminated.')
+        _LOGGER.debug('Glfw terminated.')
 
     def _create_window_normal(self, specification: WindowSpecs) -> None:
         glfw.window_hint(glfw.RESIZABLE, specification.resizable)

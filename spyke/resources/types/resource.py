@@ -1,10 +1,11 @@
 from __future__ import annotations
-from spyke import debug
 from uuid import UUID
 from abc import ABC, abstractmethod
+import threading
 
 class Resource(ABC):
     def __init__(self, _id: UUID, filepath: str = ''):
+        self._lock: threading.Lock = threading.Lock()
         self.filepath: str = filepath
         self.id: UUID = _id
         self.is_internal: bool = False
@@ -16,23 +17,22 @@ class Resource(ABC):
     def __repr__(self):
         return str(self)
     
-    def unload(self) -> None:
-        self._unload()
-        debug.log_info(f'Resource ({self}) unloaded.')
+    @property
+    def lock(self) -> threading.Lock:
+        '''
+        Returns thread lock that belongs to current resource,
+        to prevent any errors that may happen while trying to render a
+        resource that is still being loaded.
+        '''
+
+        return self._lock
     
-    @classmethod
-    def invalid(cls, _id: UUID):
-        '''
-        Returns resource that is marked invalid and will not be used.
-        '''
-
-        resource = cls(_id)
-        resource.is_invalid = True
-
-        return resource
-
+    def unload(self) -> None:
+        with self._lock:
+            self._unload()
+    
     @abstractmethod
     def _unload(self) -> None:
         pass
 
-# TODO: Add support for: Model, Video?
+# TODO: Add support for: Video?

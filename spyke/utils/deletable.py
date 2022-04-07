@@ -1,7 +1,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from spyke import debug
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class Deletable(ABC):
     '''
@@ -23,4 +24,4 @@ class Deletable(ABC):
         self._delete()
         self._deleted = True
 
-        debug.log_info(f'{self} deleted succesfully.')
+        _LOGGER.debug('%s deleted succesfully.', self)

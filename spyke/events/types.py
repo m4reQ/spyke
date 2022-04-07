@@ -1,104 +1,83 @@
+from __future__ import annotations
 from abc import ABC
-from typing import Tuple
+from typing import Any, Tuple
+from dataclasses import dataclass, field
 
-
+@dataclass
 class Event(ABC):
-    def __init__(self):
-        self.consumed = False
+    consumed: bool = field(default=False, init=False, repr=False)
 
-
+@dataclass
 class KeyDownEvent(Event):
-    def __init__(self, key: int, mods: int, scancode: int, repeat: bool):
-        super().__init__()
+    key: int
+    mods: int
+    scancode: int
+    repeat: bool
 
-        self.key: int = key
-        self.mods: int = mods
-        self.scancode: int = scancode
-        self.repeat: bool = repeat
-
-
+@dataclass
 class KeyUpEvent(Event):
-    def __init__(self, key: int):
-        super().__init__()
+    key: int
 
-        self.key = key
-
-
+@dataclass
 class ResizeEvent(Event):
-    def __init__(self, width: int, height: int):
-        super().__init__()
-
-        self.width = width
-        self.height = height
+    width: int
+    height: int
 
     @property
     def size(self) -> Tuple[int, int]:
         return (self.width, self.height)
 
-
+@dataclass
 class MouseButtonDownEvent(Event):
-    def __init__(self, button: int, mods: int):
-        super().__init__()
+    button: int
+    mods: int
 
-        self.button: int = button
-        self.mods: int = mods
-
-
+@dataclass
 class MouseButtonUpEvent(Event):
-    def __init__(self, button: int, mods: int):
-        super().__init__()
+    button: int
+    mods: int
 
-        self.button: int = button
-        self.mods: int = mods
-
-
+@dataclass
 class MouseMoveEvent(Event):
-    def __init__(self, x: int, y: int):
-        super().__init__()
-
-        self.x = x
-        self.y = y
+    x: int
+    y: int
 
     @property
     def position(self) -> Tuple[int, int]:
         return (self.x, self.y)
 
-
+@dataclass
 class MouseScrollEvent(Event):
-    def __init__(self, x_offset: float, y_offset: float):
-        super().__init__()
+    x_offset: float
+    y_offset: float
 
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-
-
+@dataclass
 class WindowMoveEvent(Event):
-    def __init__(self, x: int, y: int):
-        super().__init__()
-
-        self.x = x
-        self.y = y
+    x: int
+    y: int
 
     @property
     def position(self) -> Tuple[int, int]:
         return (self.x, self.y)
 
-
+@dataclass
 class WindowChangeFocusEvent(Event):
-    def __init__(self, value: bool):
-        super().__init__()
+    value: bool
 
-        self.value: bool = value
-
-
+@dataclass
 class WindowCloseEvent(Event):
     pass
 
-
+@dataclass
 class ToggleVsyncEvent(Event):
-    def __init__(self, state: bool):
-        self.state: bool = state
+    state: bool
 
+@dataclass
+class ResourceLoadedEvent(Event):
+    # TODO: Add proper type hint with value `Loader`
+    # Cannot do this currently because of cyclic import
+    loader: Any
 
+@dataclass
 class FrameEndEvent(Event):
     pass

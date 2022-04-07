@@ -1,15 +1,12 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.graphics.buffers import Buffer
-    from spyke.enums import GLType
-
-from spyke import debug
+from spyke.graphics.buffers import Buffer
 from spyke.graphics import gl
+from spyke.enums import GLType
 from spyke.utils import convert
-
 from OpenGL import GL
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class VertexArray(gl.GLObject):
     def __init__(self):
@@ -19,7 +16,7 @@ class VertexArray(gl.GLObject):
 
         self._offsets = {}
 
-        debug.log_info(f'{self} created succesfully.')
+        _LOGGER.debug('%s created succesfully.', self)
 
     def bind_vertex_buffer(self, binding_index: int, buffer: Buffer, offset: int, stride: int) -> None:
         GL.glVertexArrayVertexBuffer(

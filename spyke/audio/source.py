@@ -1,9 +1,12 @@
 from __future__ import annotations
+import logging
 from spyke.audio import ALObject
 from spyke.audio import ALBuffer
 from spyke.enums import SourceState
 from openal import al, ALuint, ALint
 import glm
+
+_LOGGER = logging.getLogger(__name__)
 
 class SoundSource(ALObject):
     def __init__(self):
@@ -12,6 +15,8 @@ class SoundSource(ALObject):
         self._current_buffer_id: ALuint = ALuint()
 
         al.alGenSources(1, self._id)
+
+        _LOGGER.debug('%s created succesfully.', self)
     
     def set_position(self, pos: glm.vec3) -> None:
         al.alSource3f(self.id, al.AL_POSITION, pos.x, pos.y, pos.z)

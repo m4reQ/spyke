@@ -11,7 +11,7 @@ class ALObject(Deletable, ABC):
         self._id: ALuint = ALuint()
 
     def __str__(self):
-        return f'{type(self).__name__} (id: {self._id.value}) {"(deleted)" if self._deleted else ""}'
+        return f'{type(self).__name__} (id: {self._id.value}){" (deleted)" if self._deleted else ""}'
 
     def __repr__(self):
         return str(self)

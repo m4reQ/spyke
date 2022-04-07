@@ -4,15 +4,23 @@ import inspect
 import OpenGL
 import openal
 import sys
+import logging
 
+__all__ = [
+    'debug',
+    'graphics',
+    'utils',
+    'resources',
+    'events',
+    'Application',
+    'Window',
+    'WindowSpecs',
+    'SpykeException',
+    'GraphicsException',
+    'run'
+]
 
 _PYTHON_MIN_VER = (3, 7)
-
-
-if sys.version_info.major < _PYTHON_MIN_VER[0] or (sys.version_info.major >= _PYTHON_MIN_VER[0] and sys.version_info.minor < _PYTHON_MIN_VER[1]):
-    raise SpykeException(
-        f'To run spyke you require python version at least {_PYTHON_MIN_VER[0]}.{_PYTHON_MIN_VER[1]} (currently using {sys.version_info.major}.{sys.version_info.minor}).')
-
 
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
@@ -20,30 +28,52 @@ OpenGL.UNSIGNED_BYTE_IMAGES_AS_STRING = True
 OpenGL.ERROR_CHECKING = __debug__
 OpenGL.ERROR_ON_COPY = False
 
-
 openal.OAL_DONT_AUTO_INIT = True
-# NOTE: We are loading openal in this messy way to remove unnecessary and expensive error checking.
-if not __debug__:
-    members = inspect.getmembers(
-        openal.al, lambda x: isinstance(x, ct._CFuncPtr))
-    members += inspect.getmembers(openal.alc,
-                                  lambda x: isinstance(x, ct._CFuncPtr))
+
+from . import debug
+from . import utils
+from . import graphics
+from . import resources
+from . import events
+from .application import *
+from .windowing import *
+from .exceptions import *
+
+def _disable_openal_error_check() -> None:
+    # NOTE: We are loading openal in this messy way to remove unnecessary and expensive error checking.
+    members = inspect.getmembers(openal.al, lambda x: isinstance(x, ct._CFuncPtr)) #type: ignore
+    members += inspect.getmembers(openal.alc, lambda x: isinstance(x, ct._CFuncPtr)) # type: ignore
+
     for _, member in members:
         del member.errcheck
 
-
-from . import debug
-from spyke.application import Application
-from spyke.windowing import WindowSpecs
-from spyke.exceptions import GraphicsException, SpykeException
-
+def _check_python_version_valid() -> None:
+    if sys.version_info.major < _PYTHON_MIN_VER[0] or (sys.version_info.major >= _PYTHON_MIN_VER[0] and sys.version_info.minor < _PYTHON_MIN_VER[1]):
+        raise SpykeException(
+            f'To run spyke you require python version at least {_PYTHON_MIN_VER[0]}.{_PYTHON_MIN_VER[1]} (currently using {sys.version_info.major}.{sys.version_info.minor}).')
 
 def run(app: Application, run_editor: bool = False) -> None:
-    if not __debug__ and run_editor:
-        raise SpykeException(
-            'You cannot run application in spyke editor with optimization enabled.')
+    debug._init()
 
+    logger = logging.getLogger(__name__)
+    logger.info('Engine started.')
+
+    if __debug__:
+        logger.warning('Engine running in non-optimized mode. All graphics operations will be considerably slower.')
+
+    _check_python_version_valid()
+
+    if not __debug__:
+        _disable_openal_error_check()
+
+    events._init()
+    resources._init()
+    
     if run_editor:
+        if not __debug__:
+            raise SpykeException('You cannot run application in spyke editor with optimization enabled.')
+
+        logger.info('Engine running with editor application enabled.')
         # TODO: Implement editor
 
         raise NotImplementedError('Editor is not implemented yet.')
@@ -52,4 +82,5 @@ def run(app: Application, run_editor: bool = False) -> None:
     else:
         app._run()
 
+    logger.info('Engine shut down.')
     sys.exit(0)

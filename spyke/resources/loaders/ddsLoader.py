@@ -107,9 +107,13 @@ class DDSLoader(Loader[_CompressedTextureData, Image]):
 
         self._data = _CompressedTextureData(spec, texture_format, img.format, buffer, block_size)
 
-    def finalize(self) -> Image:
-        if not self._check_data_valid(self._data):
-            return Image.invalid(self.id)
+    def finalize(self) -> None:
+        if self.had_loading_error:
+            with self.resource.lock:
+                self.resource.is_invalid = True
+                self.resource.texture = Texture.invalid()
+            
+            return
 
         specification = self._data.specification
         
@@ -138,7 +142,5 @@ class DDSLoader(Loader[_CompressedTextureData, Image]):
         texture.set_parameter(TextureParameter.MaxLevel, mipmaps - 1)
         texture._check_immutable()
 
-        image = Image(self.id, self.filepath)
-        image.texture = texture
-
-        return image
+        with self.resource.lock:
+            self.resource.texture = texture

@@ -64,16 +64,18 @@ class StandardImageLoader(Loader[_TextureData, Image]):
 
             self._data = _TextureData(spec, texture_format, img.format, data)
         
-    def finalize(self) -> Image:
-        if not self._check_data_valid(self._data):
-            return Image.invalid(self.id)
+    def finalize(self) -> None:
+        if self.had_loading_error:
+            with self.resource.lock:
+                self.resource.is_invalid = True
+                self.resource.texture = Texture.invalid()
+            
+            return
 
         texture = Texture(self._data.specification)
         texture.upload(None, 0, self._data.texture_format, PixelType.UnsignedByte, self._data.pixels)
         texture.generate_mipmap()
         texture._check_immutable()
 
-        image = Image(self.id, self.filepath)
-        image.texture = texture
-
-        return image
+        with self.resource.lock:
+            self.resource.texture = texture

@@ -1,27 +1,25 @@
 from __future__ import annotations
-from spyke import debug, utils
+from spyke import utils, events, paths
 from spyke.exceptions import SpykeException
 from spyke.resources.loaders import Loader
-from spyke.resources.resource import Resource
+from spyke.resources.types.resource import Resource
 from spyke.resources.types import *
 from . import loaders
-from typing import Dict, Type
+from typing import Dict, Type, TypeVar
 from functools import lru_cache
-from os import path
+import os
 import threading
 import uuid
 import weakref
 import inspect
+import logging
 
-# NOTE: All functions from this module are called from main thread.
-# Concurrent calls only occur through ThreadPoolExecutor.
-
-MAX_LOADING_TASKS = 8
+T_Resource = TypeVar('T_Resource', bound=Resource)
 
 _loaders: Dict[str, Type[Loader]] = dict()
 _resources: Dict[uuid.UUID, Resource] = dict()
-_loading_tasks: Dict[uuid.UUID, Loader] = dict()
-_loading_semaphore: threading.BoundedSemaphore = threading.BoundedSemaphore(MAX_LOADING_TASKS)
+
+_LOGGER = logging.getLogger(__name__)
 
 def _register_loaders() -> None:
     def _is_loader(obj) -> bool:
@@ -38,16 +36,14 @@ def _register_loaders() -> None:
     registered_count = 0
     for _class in _classes:
         if not _class.__name__.endswith('Loader'):
-            debug.log_warning('Loader class names should always end with "Loader" suffix.')
+            _LOGGER.warning('Loader class names should always end with "Loader" suffix.')
 
         for extension in _class.__extensions__:
             _loaders[extension] = _class
             registered_count += 1
-            debug.log_info(f'Loader {_class.__name__} registered for file extension: {extension}.')
+            _LOGGER.debug('Loader %s registered for file extension: %s.', _class.__name__, extension)
     
-    debug.log_info(f'Registered {registered_count} loaders.')
-
-_register_loaders()
+    _LOGGER.debug('Registered %d loaders.', registered_count)
 
 def _get_loader(restype: str) -> Type[Loader]:
     # TODO: Don't throw exception here. Better just quit loading resource and use Resource.invalid
@@ -62,28 +58,22 @@ def _is_resource_from_filepath_loaded(filepath: str) -> bool:
 
     return False
 
-##########################################
-# CHUJ
-# _finalize is not guaranteed to be called within the main
-# thread, so we cannot use any OpenGL functions there
-# Find another way to get around this limitation possibly using
-# some kind of finalization token
-##########################################
+def _resource_loaded_callback(event: events.ResourceLoadedEvent) -> None:
+    loader: Loader = event.loader
+    loader.finalize()
 
+def _init() -> None:
+    _register_loaders()
+    events.register(_resource_loaded_callback, events.ResourceLoadedEvent, priority=-1, consume=True)
 
-def _finalize(_id: uuid.UUID) -> None:
-    '''
-    Finalizes loading of resource with given id and registers created object in resources
-    registry.
-
-    @_id: UUID of requested resource loading task.
-    '''
+    if not os.path.exists(paths.SCREENSHOTS_DIRECTORY):
+        os.mkdir(paths.SCREENSHOTS_DIRECTORY)
+        _LOGGER.debug('Missing screenshots directory created.')
     
-    loader = _loading_tasks[_id]
-    loader.wait()
-    res = loader.finalize()
-    _resources[_id] = res
-    get.cache_clear()
+    if not os.path.exists(paths.SHADER_SOURCES_DIRECTORY):
+        raise SpykeException('Could not find shader sources directory. This may indicate problems with installation.')
+    
+    _LOGGER.debug('Resources module initialized.')
 
 def load(filepath: str, **resource_settings) -> uuid.UUID:
     '''
@@ -96,55 +86,53 @@ def load(filepath: str, **resource_settings) -> uuid.UUID:
         - (DEBUG) `AssertionError` if provided filepath does not exist.
     '''
 
-    assert path.exists(filepath), f'Resource file "{filepath}" does not exist.'
+    assert os.path.exists(filepath), f'Resource file "{filepath}" does not exist.'
 
     if _is_resource_from_filepath_loaded(filepath):
-        debug.log_warning(f'Resource from file "{filepath}" is already loaded. Avoid loading the same resource multiple times.')
+        _LOGGER.warning('Resource from file "%s" is already loaded. Avoid loading the same resource multiple times.', filepath)
 
     _id = uuid.uuid4()
-    ext = utils.get_extension_name(filepath)
-    loader = _get_loader(ext)(_id, filepath)
 
-    _loading_semaphore.acquire()
-    _loading_tasks[_id] = loader
+    loader_class = _get_loader(utils.get_extension_name(filepath))
+    resource = loader_class.__restype__(_id, filepath)
+    loader = loader_class(resource)
+
+    _resources[_id] = resource
     loader.start()
 
     return _id
 
 @lru_cache
-def get(_id: uuid.UUID) -> Resource:
+def get(_id: uuid.UUID, resource_type: Type[T_Resource]) -> T_Resource:
     '''
     Gets proxy object to resource with given id and finalizes its loading if neccessary.
 
     @_id: UUID of queried resource.
+    @resource_type: Type of resource we expect to return.
 
     Raises:
         - (DEBUG) `AssertionError` if function is called from a thread different than main.
-        - `SpykeException` if resource is not in registry and is not in loading queue.
+        - (DEBUG) `AssertionError` if resource retrieved from registry does not match requested type.
+        - `SpykeException` if resource is not in registry.
     '''
 
     assert threading.current_thread() is threading.main_thread(), 'resource.get function can only be called from main thread.'
-    
+
     if _id not in _resources:
-        if _id not in _loading_tasks:
-            raise SpykeException(f'Resource with id {_id} not found.')
-        
-        _finalize(_id)
+        raise SpykeException(f'Resource with id {_id} not found.')
     
-    return weakref.proxy(_resources[_id])
+    resource = _resources[_id]
+    assert isinstance(resource, resource_type), f'Retrieved resource\'s type does not match requested type {resource_type.__name__} (got {type(resource).__name__}).'
+
+    return weakref.proxy(resource) #type: ignore
 
 def _unload(_id: uuid.UUID) -> None:
-    if _id in _resources:
-        res = _resources[_id]
-        res.unload()
-        debug.log_info(f'Resource with id {_id} unloaded.')
+    # cannot use dict.pop here as it would change dictionary
+    # size and later cause error while iterating over it
+    res = _resources[_id]
+    res.unload()
 
-    # we have to wait for loading task to finish
-    # as we cannot kill the thread
-    loader = _loading_tasks.pop(_id)
-    loader.wait()
-
-    debug.log_info('Resource loading cancelled.')
+    _LOGGER.info('Resource (%s) unloaded.', res)
 
 def unload(_id: uuid.UUID) -> None:
     '''
@@ -154,15 +142,16 @@ def unload(_id: uuid.UUID) -> None:
     It also automatically removes resource from available resources list.
     '''
 
-    if _id not in _resources and _id not in _loading_tasks:
-        debug.log_warning(f'Resource with id: {_id} not found.')
+    if _id not in _resources:
+        _LOGGER.warning(f'Resource with id %s not found.', _id)
         return
     
     if _id in _resources:
-        if weakref.getweakrefcount(_resources[_id]) != 0:
+        resource = _resources[_id]
+        if weakref.getweakrefcount(resource) != 0:
             # TODO: Create a way to remove resource references from all components
             # possibly use some resource removed event
-            debug.log_warning(f'Resource ({_resources[_id]}) is already in use. Unloading resources that are still being used by components may lead to rendering errors or even crashes.')
+            _LOGGER.warning(f'Resource (%s) is already in use. Unloading resources that are still being used by components may lead to rendering errors or even crashes.', resource)
 
     _unload(_id)
     get.cache_clear()
@@ -173,4 +162,4 @@ def unload_all() -> None:
     
     _resources.clear()
     
-    debug.log_info('All resources unloaded.')
+    _LOGGER.debug('All resources unloaded.')

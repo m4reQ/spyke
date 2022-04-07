@@ -10,3 +10,4 @@ Pillow
 esper
 freetype-py
 pydub
+pyglm-typing

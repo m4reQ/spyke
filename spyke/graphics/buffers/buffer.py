@@ -1,17 +1,15 @@
 from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.enums import GLType
-    from typing import Union
-
-from spyke import debug
+from spyke.enums import GLType
 from spyke.exceptions import GraphicsException
 from spyke.graphics import gl
 from spyke.utils import convert
 from OpenGL import GL
-import numpy as np
+from typing import Union
 from abc import ABC
+import numpy as np
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class Buffer(gl.GLObject, ABC):
     @staticmethod
@@ -42,7 +40,7 @@ class Buffer(gl.GLObject, ABC):
         self._size = size
         self.data_type: GLType = data_type
 
-        debug.log_info(f'{self} created succesfully (data size: {self.size / 1000.0}kB).')
+        _LOGGER.debug('%s created succesfully (data size: %.3fkB).', self, self.size / 1000.0)
 
     def _delete(self) -> None:
         GL.glDeleteBuffers(1, [self.id])

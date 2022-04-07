@@ -3,13 +3,17 @@ from spyke.exceptions import GraphicsException
 from .textureSpec import TextureSpec
 from spyke.enums import _CompressedInternalFormat, MagFilter, MinFilter, PixelType, _TextureFormat, TextureFormat, TextureParameter, TextureTarget, SizedInternalFormat
 from spyke.graphics import gl
-from typing import Any, Tuple, Union
-
+from typing import Any, Optional, Tuple, Union
 from OpenGL import GL
 import numpy as np
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class Texture(gl.GLObject):
+    _white_texture: Optional[Texture] = None
+    _invalid_texture: Optional[Texture] = None
+
     @staticmethod
     def set_pixel_alignment(alignment: int) -> None:
         assert alignment in [
@@ -17,7 +21,15 @@ class Texture(gl.GLObject):
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, alignment)
     
     @classmethod
-    def create_white_texture(cls):
+    def empty(cls):
+        '''
+        Returns empty white texture of size 1x1,
+        creating one if necessary.
+        '''
+
+        if cls._white_texture:
+            return cls._white_texture
+
         data = np.array([255, 255, 255, 255], dtype=np.ubyte)
 
         spec = TextureSpec()
@@ -32,7 +44,39 @@ class Texture(gl.GLObject):
         tex.upload(None, 0, TextureFormat.Rgba, PixelType.UnsignedByte, data)
         tex._check_immutable()
 
-        return tex
+        cls._white_texture = tex
+        return cls._white_texture
+    
+    @classmethod
+    def invalid(cls):
+        '''
+        Returns texture used to indicate that resource loading
+        failed, creating texture if necessary.
+        '''
+
+        if cls._invalid_texture:
+            return cls._invalid_texture
+        
+        data = np.array([
+            255, 0, 255, 255,
+            0, 0, 0, 255,
+            0, 0, 0, 255,
+            255, 0, 255, 255], dtype=np.ubyte)
+
+        spec = TextureSpec()
+        spec.width = 2
+        spec.height = 2
+        spec.internal_format = SizedInternalFormat.Rgba8
+        spec.min_filter = MinFilter.Nearest
+        spec.mag_filter = MagFilter.Nearest
+        spec.mipmaps = 1
+
+        tex = cls(spec)
+        tex.upload(None, 0, TextureFormat.Rgba, PixelType.UnsignedByte, data)
+        tex._check_immutable()
+
+        cls._invalid_texture = tex
+        return cls._invalid_texture
 
     def __init__(self, specification: TextureSpec):
         super().__init__()
@@ -65,8 +109,10 @@ class Texture(gl.GLObject):
 
             GL.glTextureParameteriv(
                 self.id, specification.texture_swizzle, specification.swizzle_mask)
+        
+        _LOGGER.debug('Texture object with id %d initialized succesfully.', self.id)
 
-    def upload(self, size: Union[Tuple[int, int], None], level: int, format: _TextureFormat, pixel_type: PixelType, data: np.ndarray) -> None:
+    def upload(self, size: Optional[Tuple[int, int]], level: int, _format: _TextureFormat, pixel_type: PixelType, data: np.ndarray) -> None:
         assert not self.is_compressed, 'Cannot use Texture.upload on compressed texture. Use Texture.upload_compressed instead.'
 
         # TODO: Add check for weird texture conversion from formats that differ much
@@ -74,17 +120,19 @@ class Texture(gl.GLObject):
         if size is None:
             size = (self.width, self.height)
 
-        GL.glTextureSubImage2D(self.id, level, 0, 0,
-                               size[0], size[1], format, pixel_type, data)
+        GL.glTextureSubImage2D(self.id, level, 0, 0, *size, _format, pixel_type, data)
 
-    def upload_compressed(self, size: Union[Tuple[int, int], None], level: int, format: _TextureFormat, image_size: int, data: np.ndarray) -> None:
+        _LOGGER.debug('Texture data of size (%d, %d) uploaded to texture object %d as level %d.', size[0], size[1], self.id, level)
+
+    def upload_compressed(self, size: Union[Tuple[int, int], None], level: int, _format: _TextureFormat, image_size: int, data: np.ndarray) -> None:
         assert self.is_compressed, 'Cannot use Texture.upload_compressed on non-compressed texture. Use Texture.upload instead.'
 
         if size is None:
             size = (self.width, self.height)
 
-        GL.glCompressedTextureSubImage2D(
-            self.id, level, 0, 0, size[0], size[1], format, image_size, data)
+        GL.glCompressedTextureSubImage2D(self.id, level, 0, 0, size[0], size[1], format, image_size, data)
+        
+        _LOGGER.debug('Compressed texture data of size (%d, %d) uploaded to texture object %d as level %d. Texture format: %s', size[0], size[1], self.id, level, _format.name)
 
     def set_parameter(self, parameter: TextureParameter, value: Any) -> None:
         GL.glTextureParameteri(self.id, parameter, value)

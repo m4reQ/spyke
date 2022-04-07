@@ -1,19 +1,19 @@
 from __future__ import annotations
+from spyke.resources.types.resource import Resource
+from spyke import events
+from abc import ABC, abstractmethod
+from typing import TypeVar, Generic, List, Type
+import logging
 import threading
 import time
-from abc import ABC, abstractmethod
-from typing import Optional, TypeVar, Generic, List, Type
-# TODO: Import TypeGuard from typing when we move to Python 3.10
-from typing_extensions import TypeGuard
-from uuid import UUID
-from ..resource import Resource
-from spyke import debug
 
 class LoadingData(ABC):
     pass
 
 T_Resource = TypeVar('T_Resource', bound=Resource)
 T_LoadingData = TypeVar('T_LoadingData', bound=LoadingData)
+
+_LOGGER = logging.getLogger(__name__)
 
 class Loader(Generic[T_LoadingData, T_Resource], ABC):
     '''
@@ -28,13 +28,12 @@ class Loader(Generic[T_LoadingData, T_Resource], ABC):
     __extensions__: List[str] = list()
     __restype__: Type[T_Resource]
 
-    def __init__(self, _id: UUID, filepath: str):
+    def __init__(self, resource: T_Resource):
         self._thread: threading.Thread = threading.Thread(target=self._target)
-        self._data: Optional[T_LoadingData] = None
-        self._finish_flag: threading.Event = threading.Event()
         self._loading_start: float = 0.0
-        self.filepath: str = filepath
-        self.id: UUID = _id
+        self._had_loading_error: bool = False
+        self._data: T_LoadingData
+        self.resource: T_Resource = resource
     
     @abstractmethod
     def _load(self) -> None:
@@ -45,10 +44,10 @@ class Loader(Generic[T_LoadingData, T_Resource], ABC):
         pass
     
     @abstractmethod
-    def finalize(self) -> T_Resource:
+    def finalize(self) -> None:
         '''
         Creates handles that are required to be initialized in main
-        thread (such as OpenGL textures).
+        thread (such as OpenGL textures) and places them in current resource.
         By default this function only makes sure that loaded data is actually
         present.
 
@@ -63,9 +62,17 @@ class Loader(Generic[T_LoadingData, T_Resource], ABC):
         Loader's thread target.
         '''
 
-        self._load()
-        self._finish_flag.set()
-        debug.log_info(f'Resource from file "{self.filepath}" loaded in {time.perf_counter() - self._loading_start} seconds.')
+        try:
+            self._load()
+        except Exception as e:
+            self._had_loading_error = True
+            _LOGGER.error('An error happened during resource (%s) loading: %s.', self.filepath, e)
+        else:
+            _LOGGER.info('Resource from file "%s" loaded in %f seconds.', self.filepath, time.perf_counter() - self._loading_start)
+
+        # NOTE: There is a possibility that we are not able to invoke any more events
+        # as our queue is becomes full. This leads to a resource that cannot be loaded anymore.
+        events.invoke(events.ResourceLoadedEvent(self))
 
     def start(self) -> None:
         '''
@@ -74,18 +81,13 @@ class Loader(Generic[T_LoadingData, T_Resource], ABC):
 
         self._loading_start = time.perf_counter()
         self._thread.start()
-    
-    def wait(self) -> None:
-        '''
-        Wait for loader to finish its work.
-        '''
 
-        self._finish_flag.wait()
+        _LOGGER.debug('Started loading resource from file "%s".', self.filepath)
     
-    def _check_data_valid(self, data: Optional[T_LoadingData]) -> TypeGuard[T_LoadingData]:
-        '''
-        Checks if data was loaded succesfully.
-        '''
-
-        assert data is not None, 'Loader._load has been called, but data is None.'
-        return True
+    @property
+    def filepath(self) -> str:
+        return self.resource.filepath
+    
+    @property
+    def had_loading_error(self) -> bool:
+        return self._had_loading_error

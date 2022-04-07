@@ -13,19 +13,9 @@ class _SoundData(LoadingData):
     audio_segment: AudioSegment
 
 def _get_format(channels: int, bitwidth: int) -> SoundFormat:
-    # TODO: Use better format detection
-    if channels == 1:
-        if bitwidth == 8:
-            return SoundFormat.Mono8
-        elif bitwidth == 16:
-            return SoundFormat.Mono16
-    elif channels == 2:
-        if bitwidth == 8:
-            return SoundFormat.Stereo8
-        elif bitwidth == 16:
-            return SoundFormat.Stereo16
-    
-    raise ValueError(f'Unknown format for sample width: {bitwidth} and channels count: {channels}')
+    enum_str = ('Mono' if channels == 1 else 'Stereo') + str(bitwidth)
+
+    return getattr(SoundFormat, enum_str)
 
 class SoundLoader(Loader[_SoundData, Sound]):
     __extensions__: List[str] = ['WAV', 'MP3', 'OGG', 'FLV']
@@ -35,16 +25,18 @@ class SoundLoader(Loader[_SoundData, Sound]):
         _format = utils.get_extension_name(self.filepath)
         self._data = _SoundData(AudioSegment.from_file(self.filepath, _format))
 
-    def finalize(self) -> Sound:
-        if not self._check_data_valid(self._data):
-            return Sound.invalid(self.id)
+    def finalize(self) -> None:
+        if self.had_loading_error:
+            with self.resource.lock:
+                self.resource.is_invalid = True
+                self.resource.buffer = ALBuffer.invalid()
+            
+            return
 
         audio_segment = self._data.audio_segment
 
         _format = _get_format(audio_segment.channels, audio_segment.sample_width * 8)
         buffer = ALBuffer(_format, audio_segment.raw_data, audio_segment.frame_rate)
 
-        sound = Sound(self.id, self.filepath)
-        sound.buffer = buffer
-
-        return sound
+        with self.resource.lock:
+            self.resource.buffer = buffer

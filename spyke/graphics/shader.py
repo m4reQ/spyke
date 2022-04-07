@@ -1,16 +1,15 @@
 from __future__ import annotations
-from spyke import debug
 from spyke.enums import ShaderType
 from spyke.exceptions import GraphicsException, SpykeException
 from spyke.graphics import gl
-from spyke import debug
 from typing import List, Union
-
 from OpenGL import GL
+from functools import lru_cache
 import numpy as np
 import glm
-from functools import lru_cache
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class Shader(gl.GLObject):
     def __init__(self):
@@ -25,7 +24,7 @@ class Shader(gl.GLObject):
 
     def add_stage(self, stage: ShaderType, filepath: str) -> None:
         if self._compiled:
-            debug.log_info('Tried to add shader stage to already compiled shader.')
+            _LOGGER.warning('Tried to add shader stage to already compiled shader.')
             return
 
         try:
@@ -48,7 +47,7 @@ class Shader(gl.GLObject):
 
     def compile(self) -> None:
         if self._compiled:
-            debug.log_info('Shader already compiled.')
+            _LOGGER.warning('%s is already compiled.', self)
             return
 
         GL.glLinkProgram(self.id)
@@ -60,11 +59,11 @@ class Shader(gl.GLObject):
         self._stages.clear()
         self._compiled = True
 
-        debug.log_info(f'{self} compiled succesfully.')
+        _LOGGER.debug('%s compiled succesfully.', self)
 
     def validate(self) -> None:
         if not self._compiled:
-            debug.log_info('Cannot validate not compiled shader program.')
+            _LOGGER.error('Cannot validate not compiled shader program.')
             return
 
         GL.glValidateProgram(self.id)
@@ -72,7 +71,7 @@ class Shader(gl.GLObject):
         info_log = GL.glGetProgramInfoLog(self.id)
         assert len(info_log) == 0, f'{self} validation failure:\n{info_log.decode("ansi")}.'
 
-        debug.log_info(f'{self} has been validated succesfully.')
+        _LOGGER.debug('%s has been validated succesfully.', self)
 
     def use(self) -> None:
         GL.glUseProgram(self.id)
@@ -118,8 +117,7 @@ class Shader(gl.GLObject):
             GL.glProgramUniform1iv(self.id, loc, len(
                 value), np.asarray(value, dtype=np.int32))
         else:
-            raise GraphicsException(
-                f'Invalid type of uniform value: {type(value).__name__}')
+            raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
 
     def set_uniform_float(self, name: str, value: Union[float, List[float]]) -> None:
         loc = self.get_uniform_location(name)
@@ -130,8 +128,7 @@ class Shader(gl.GLObject):
             GL.glProgramUniform1fv(self.id, loc, len(
                 value), np.asarray(value, dtype=np.float32))
         else:
-            raise GraphicsException(
-                f'Invalid type of uniform value: {type(value).__name__}')
+            raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
 
     def set_uniform_double(self, name: str, value: Union[float, List[float]]) -> None:
         loc = self.get_uniform_location(name)
@@ -142,8 +139,7 @@ class Shader(gl.GLObject):
             GL.glProgramUniform1dv(self.id, loc, len(
                 value), np.asarray(value, dtype=np.float64))
         else:
-            raise GraphicsException(
-                f'Invalid type of uniform value: {type(value).__name__}')
+            raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
 
     # TODO: Add generic typing for `value` parameter
     # TODO: Add support for matrices which width and height differ

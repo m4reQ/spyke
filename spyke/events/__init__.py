@@ -4,7 +4,7 @@ import inspect
 import sys
 import queue
 import threading
-from spyke import debug
+import logging
 from spyke.exceptions import SpykeException
 from . import types
 from .types import *
@@ -22,6 +22,7 @@ __all__ = [
     'WindowChangeFocusEvent',
     'WindowCloseEvent',
     'ToggleVsyncEvent',
+    'ResourceLoadedEvent',
     'Handler',
     'register_user_event',
     'invoke',
@@ -31,18 +32,10 @@ __all__ = [
 T_Event = TypeVar('T_Event', bound=Event)
 T_Return = TypeVar('T_Return')
 
-_handlers: Dict[Type[Event], List[Handler]] = {}
+_handlers: Dict[Type[Event], List[Handler]] = dict()
 _events: queue.Queue[Event] = queue.Queue(maxsize=128)
 
-MAX_EVENTS_PROCESSED = 8
-
-# get all internal event types and create
-# stores for their handlers
-_types = inspect.getmembers(sys.modules[types.__name__], inspect.isclass)
-for _, _type in _types:
-    if _type != Event and issubclass(_type, Event):
-        _handlers[_type] = list()
-
+_LOGGER = logging.getLogger(__name__)
 
 class Handler(Generic[T_Event, T_Return]):
     '''
@@ -92,15 +85,18 @@ def register(method: Callable[[T_Event], Any], event_type: Type[T_Event], *, pri
     assert not (priority < 0 and not method.__module__.startswith('spyke')), 'Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.'
 
     handler = Handler(method, priority, consume)
+    
+    if event_type not in _handlers:
+        raise SpykeException(f'Unknown event type: {event_type.__name__}. Maybe you forgot to register it using "register_user_event".')
 
-    if handler in _handlers:
-        debug.log_info(f'Handler {handler} already registered for event type: {event_type.__name__}.')
+    if handler in _handlers[event_type]:
+        _LOGGER.warning('Handler %s already registered for event type: %s.', handler, event_type.__name__)
         return
-
+    
     _handlers[event_type].append(handler)
     _handlers[event_type].sort(key=lambda x: x.priority)
 
-    debug.log_info(f'Function {method.__qualname__} registered for {event_type.__name__} (priority: {priority}, consume: {consume}).')
+    _LOGGER.debug('Function %s registered for %s (priority: %d, consume: %s).', method.__qualname__, event_type.__name__, priority, consume)
 
 def invoke(event: Event) -> None:
     '''
@@ -116,12 +112,21 @@ def invoke(event: Event) -> None:
         - (DEBUG) `AssertionError` if event type was not previously registered with `events.register_user_event`.
     '''
 
-    assert type(event) in _handlers, f'Unknown event type: {type(event)}. Maybe you forgot to register it using "register_user_event".'
+    assert type(event) in _handlers, f'Unknown event type: {type(event).__name__}. Maybe you forgot to register it using "register_user_event".'
 
     try:
         _events.put_nowait(event)
+        _LOGGER.debug('Event invocation for %s', event)
     except queue.Full:
-        pass
+        _LOGGER.warning('Cannot enqueue event of type %s. Event queue full.', type(event).__name__)
+
+def _init() -> None:
+    _types = inspect.getmembers(sys.modules[types.__name__], inspect.isclass)
+    for _, _type in _types:
+        if _type != Event and issubclass(_type, Event):
+            _handlers[_type] = list()
+    
+    _LOGGER.debug('Events module initialized.')
 
 def _process_events() -> None:
     '''
@@ -144,14 +149,11 @@ def _process_events() -> None:
 
     assert threading.current_thread() is threading.main_thread(), 'events._process_events has to be called from main thread.'
 
-    processed = 0
-    while processed < MAX_EVENTS_PROCESSED:
+    while True:
         try:
             event = _events.get_nowait()
         except queue.Empty:
             return
-
-        processed += 1
 
         for handler in _handlers[type(event)]:
             if event.consumed:
@@ -171,11 +173,12 @@ def register_user_event(event_type: Type[Event]) -> None:
     '''
 
     if not issubclass(event_type, Event):
-        raise RuntimeError(
-            'User-defined events have to be subclasses of the Event class.')
+        raise RuntimeError('User-defined events have to be subclasses of the Event class.')
 
     if event_type in _handlers:
-        debug.log_info(f'User-defined event type "{event_type.__name__}" already registered.')
+        _LOGGER.warning('User-defined event type %s already registered.', event_type.__name__)
         return
 
     _handlers[event_type] = list()
+
+    _LOGGER.debug('Registered new user event %s', event_type.__name__)

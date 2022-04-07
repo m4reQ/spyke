@@ -1,5 +1,4 @@
 from __future__ import annotations
-from uuid import UUID
 from spyke import utils
 from spyke.enums import MagFilter, _TextureFormat, MinFilter, PixelType, SizedInternalFormat, SwizzleMask, SwizzleTarget, TextureFormat, WrapMode
 from spyke.graphics import Glyph, Rectangle, TextureSpec, Texture
@@ -11,7 +10,6 @@ import math
 import glm
 import numpy as np
 import freetype as ft
-import time
 
 @dataclass
 class _CharPrototype:
@@ -180,13 +178,18 @@ class FontLoader(Loader[_FontData, Font]):
         texture_spec.mag_filter = MagFilter.Linear
         texture_spec.wrap_mode = WrapMode.ClampToEdge
         texture_spec.texture_swizzle = SwizzleTarget.TextureSwizzleRgba
-        texture_spec.swizzle_mask = [SwizzleMask.One, SwizzleMask.One, SwizzleMask.One, SwizzleMask.Red]
+        texture_spec.swizzle_mask = [SwizzleMask.One, SwizzleMask.One, SwizzleMask.One, SwizzleMask.Red] #type: ignore
 
         self._data = _FontData(texture_spec, TextureFormat.Red, atlas, name, glyphs)
 
-    def finalize(self) -> Font:
-        if not self._check_data_valid(self._data):
-            return Font.invalid(self.id)
+    def finalize(self) -> None:
+        if self.had_loading_error:
+            with self.resource.lock:
+                self.resource.texture = Texture.invalid()
+                self.resource.glyphs = dict()
+                self.resource.name = ''
+            
+            return
 
         texture = Texture(self._data.texture_specification)
         Texture.set_pixel_alignment(1)
@@ -194,10 +197,7 @@ class FontLoader(Loader[_FontData, Font]):
         Texture.set_pixel_alignment(4)
         texture._check_immutable()
 
-        font = Font(self.id, self.filepath)
-
-        font.texture = texture
-        font.glyphs = self._data.glyphs
-        font.name = self._data.font_name
-
-        return font
+        with self.resource.lock:
+            self.resource.texture = texture
+            self.resource.glyphs = self._data.glyphs
+            self.resource.name = self._data.font_name
