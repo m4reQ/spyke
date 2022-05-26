@@ -7,7 +7,7 @@ from spyke.utils import convert, Iterator
 from spyke.resources.types import Image, Model, Font
 from ..texturing import Texture
 from ..vertex_array import VertexArray
-from ..shader import Shader
+from ..shader import Shader, ShaderSpec
 from ..buffers import *
 from .renderCommand import RenderCommand
 from .rendererInfo import RendererInfo
@@ -149,13 +149,19 @@ class Renderer:
         GL.glClearColor(0.0, 0.0, 0.0, 1.0)
 
         # create all components (buffers, vaos, etc.)
+        shader_spec = ShaderSpec(
+            os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert'),
+            os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag'))
+        self.basic_shader = Shader(shader_spec)
         self.pos_data_buffer = DynamicBuffer(MAX_RENDER_COMMANDS_COUNT * 1024, GLType.Float)
         self.instance_data_buffer = DynamicBuffer(
-            BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT, GLType.Float)
-        self.vertex_data_buffer = TextureBuffer(BASIC_VERTEX_DATA_VERTEX_SIZE *
-                                                MAX_QUADS_COUNT * VERTICES_PER_QUAD, GLType.Float, TextureBufferSizedInternalFormat.Rg32f)
+            BASIC_INSTANCE_DATA_VERTEX_SIZE * MAX_QUADS_COUNT,
+            GLType.Float)
+        self.vertex_data_buffer = TextureBuffer(
+            BASIC_VERTEX_DATA_VERTEX_SIZE * MAX_QUADS_COUNT * VERTICES_PER_QUAD,
+            GLType.Float,
+            TextureBufferSizedInternalFormat.Rg32f)
         self.ibo = DynamicBuffer(MAX_RENDER_COMMANDS_COUNT * 128, GLType.UnsignedInt)
-        self.basic_shader = Shader()
         self.ubo = DynamicBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
         self.vao = VertexArray()
 
@@ -165,8 +171,7 @@ class Renderer:
         entity_id_attachment_spec.min_filter = MinFilter.Nearest
         entity_id_attachment_spec.mag_filter = MagFilter.Nearest
 
-        depth_attachment_spec = AttachmentSpec(
-            SizedInternalFormat.Depth24Stencil8)
+        depth_attachment_spec = AttachmentSpec(SizedInternalFormat.Depth24Stencil8)
         depth_attachment_spec.min_filter = MinFilter.Nearest
         depth_attachment_spec.mag_filter = MagFilter.Nearest
 
@@ -183,17 +188,11 @@ class Renderer:
         framebuffer_spec.is_resizable = True
         framebuffer_spec.attachments_specs = attachments_specs
         # TODO: Get samples count from some kind of settings file
-        framebuffer_spec.samples = 1 if self.info.extension_present(
-            'GL_INTEL_framebuffer_CMAA') else 2
+        framebuffer_spec.samples = 1 if self.info.extension_present('GL_INTEL_framebuffer_CMAA') else 2
 
         self.framebuffer = Framebuffer(framebuffer_spec)
         self.info.framebuffer_width = self.framebuffer.width
         self.info.framebuffer_height = self.framebuffer.height
-
-        # set up all renderer's components
-        self.basic_shader.add_stage(ShaderType.VertexShader, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert'))
-        self.basic_shader.add_stage(ShaderType.FragmentShader, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag'))
-        self.basic_shader.compile()
 
         samplers = list(range(MAX_TEXTURES_COUNT))
         self.basic_shader.set_uniform_int(

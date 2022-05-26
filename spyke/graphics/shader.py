@@ -1,6 +1,8 @@
+import dataclasses
 import logging
 import typing as t
 import functools
+from os import path
 
 import numpy as np
 import glm
@@ -12,65 +14,99 @@ from spyke.graphics import gl
 
 _logger = logging.getLogger(__name__)
 
+@dataclasses.dataclass
+class ShaderSpec:
+    vertex_filepath: str
+    fragment_filepath: str
+    geometry_filepath: t.Optional[str] = None
+    compute_filepath: t.Optional[str] = None
+    tess_eval_filepath: t.Optional[str] = None
+    tess_control_filepath: t.Optional[str] = None
+
 class Shader(gl.GLObject):
-    def __init__(self):
+    def __init__(self, shader_spec: ShaderSpec, auto_compile: bool=True):
         super().__init__()
 
-        self._id = gl.create_program()
-
-        self.uniforms = {}
-        self._stages = []
-
-        self._compiled = False
-
-    def add_stage(self, stage: ShaderType, filepath: str) -> None:
-        if self._compiled:
-            _logger.warning('Tried to add shader stage to already compiled shader.')
-            return
-
-        try:
-            with open(filepath, "r") as f:
-                source = f.read()
-        except FileNotFoundError as e:
-            raise SpykeException(
-                f'Cannot find shader file named "{e.filename}"')
-
-        shader = GL.glCreateShader(stage)
-        self._stages.append(shader)
-
-        GL.glShaderSource(shader, source)
-        GL.glCompileShader(shader)
-
-        info_log = GL.glGetShaderInfoLog(shader)
-        assert len(info_log) == 0, f'{self} compilation error:\n{info_log.decode("ansi")}.'
-
-        GL.glAttachShader(self.id, shader)
+        self._id: int = 0
+        self._stages: t.List[int] = []
+        self._uniforms: t.Dict[str, int] = {}
+        self._is_compiled = False
+        self._spec = shader_spec
+        
+        if auto_compile:
+            self.compile()
 
     def compile(self) -> None:
-        if self._compiled:
-            _logger.warning('%s is already compiled.', self)
+        if self._is_compiled:
+            _logger.warning('Shader program is already compiled.')
             return
-
+            
+        self._id = gl.create_program()
+        assert self._id != 0, 'Could not create shader program'
+        
+        self._create_stage_and_attach(self._spec.vertex_filepath, ShaderType.VertexShader)
+        self._create_stage_and_attach(self._spec.fragment_filepath, ShaderType.FragmentShader)
+        
+        if self._spec.geometry_filepath is not None:
+            self._create_stage_and_attach(self._spec.geometry_filepath, ShaderType.GeometryShader)
+        
+        if self._spec.compute_filepath is not None:
+            self._create_stage_and_attach(self._spec.compute_filepath, ShaderType.ComputeShader)
+        
+        if self._spec.tess_eval_filepath is not None:
+            self._create_stage_and_attach(self._spec.tess_eval_filepath, ShaderType.TessEvaluationShader)
+        
+        if self._spec.tess_control_filepath is not None:
+            self._create_stage_and_attach(self._spec.tess_control_filepath, ShaderType.TessControlShader)
+        
         GL.glLinkProgram(self.id)
-
-        for stage in self._stages:
-            GL.glDetachShader(self.id, stage)
-            GL.glDeleteShader(stage)
-
+        info_log = GL.glGetProgramInfoLog(self.id)
+        if info_log != '':
+            raise SpykeException(f'Shader program {self.id} link failure:\n{info_log}')
+        
+        self._cleanup_stages()
+        self._is_compiled = True
+        
+        _logger.info('Shader program %d compiled succesfully.', self.id)
+    
+    def _cleanup_stages(self) -> None:
+        for shader in self._stages:
+            GL.glDetachShader(self.id, shader)
+            GL.glDeleteShader(shader)
+        
         self._stages.clear()
-        self._compiled = True
-
-        _logger.debug('%s compiled succesfully.', self)
+    
+    def _create_stage_and_attach(self, filepath: str, _type: ShaderType) -> None:
+        if self._is_compiled:
+            _logger.error('Cannot attach shader to already compiled program.')
+            return
+        
+        if not path.exists(filepath):
+            raise SpykeException(f'Shader file {filepath} not found.')
+        
+        with open(filepath, 'r') as f:
+            source = f.read()
+        
+        shader = GL.glCreateShader(_type)
+        GL.glShaderSource(shader, source)
+        GL.glCompileShader(shader)
+        info_log = GL.glGetShaderInfoLog(shader)
+        if info_log != '':
+            raise SpykeException(f'Shader {shader} of type {_type.name} compilation failure:\n{info_log}')
+        
+        GL.glAttachShader(self.id, shader)
+        self._stages.append(shader)
 
     def validate(self) -> None:
-        if not self._compiled:
+        if not self._is_compiled:
             _logger.error('Cannot validate not compiled shader program.')
             return
 
         GL.glValidateProgram(self.id)
 
         info_log = GL.glGetProgramInfoLog(self.id)
-        assert len(info_log) == 0, f'{self} validation failure:\n{info_log.decode("ansi")}.'
+        if info_log != '':
+            raise SpykeException(f'Shader program {self.id} validation failure:\n{info_log}')
 
         _logger.debug('%s has been validated succesfully.', self)
 
@@ -87,14 +123,15 @@ class Shader(gl.GLObject):
 
         return loc
 
+    @functools.lru_cache
     def get_uniform_location(self, name: str) -> int:
-        if name in self.uniforms:
-            return self.uniforms[name]
+        if name in self._uniforms:
+            return self._uniforms[name]
 
         loc = GL.glGetUniformLocation(self.id, name)
         assert loc != -1, f'Cannot find uniform named "{name}".'
 
-        self.uniforms[name] = loc
+        self._uniforms[name] = loc
 
         return loc
 

@@ -380,7 +380,7 @@ class ShaderType(enum.IntEnum):
     ComputeShader = GL.GL_COMPUTE_SHADER
     VertexShader = GL.GL_VERTEX_SHADER
     TessControlShader = GL.GL_TESS_CONTROL_SHADER
-    TexxEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
+    TessEvaluationShader = GL.GL_TESS_EVALUATION_SHADER
     GeometryShader = GL.GL_GEOMETRY_SHADER
     FragmentShader = GL.GL_FRAGMENT_SHADER
 
