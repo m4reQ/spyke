@@ -1,25 +1,25 @@
-from __future__ import annotations
-from spyke.enums import SourceState
-from spyke import resources
-from spyke.resources import Sound
-from spyke.audio import SoundSource
-from typing import Optional
-from uuid import UUID
 import logging
+import typing as t
+from uuid import UUID
 
-_LOGGER = logging.getLogger(__name__)
+from spyke import resources
+from spyke.enums import SourceState
+from spyke.resources.types import Sound
+from spyke.audio import SoundSource
+
+_logger = logging.getLogger(__name__)
 
 class AudioComponent:
-    def __init__(self, sound_id: Optional[UUID]=None):
+    def __init__(self, sound_id: t.Optional[UUID]=None):
         self.source: SoundSource = SoundSource()
-        self.current_sound: Optional[Sound]
+        self.current_sound: t.Optional[Sound]
 
         if sound_id:
             self.set_sound(sound_id)
     
     def _check_sound_set(self) -> bool:
         if self.current_sound is None:
-            _LOGGER.warning('Audio component has no sound set. To play a sound first associate it with AudioComponent using set_sound method.')
+            _logger.warning('Audio component has no sound set. To play a sound first associate it with AudioComponent using set_sound method.')
             return False
         
         return True

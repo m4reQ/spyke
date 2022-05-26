@@ -1,13 +1,18 @@
 PyGLM
 PyOgg
 PyOpenAL
-numpy
 PyOpenGL
 PyOpenGL-accelerate
+numpy
 colorama
 glfw
 Pillow
 esper
-freetype-py
 pydub
+freetype-py
+
+# dev dependencies
 pyglm-typing
+types-Pillow
+mypy
+pylint

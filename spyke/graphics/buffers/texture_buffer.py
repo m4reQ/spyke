@@ -1,14 +1,11 @@
-from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.enums import GLType, TextureBufferSizedInternalFormat
-
-from spyke.graphics import gl
-from spyke.enums import TextureTarget
-from .buffer import DynamicBuffer
-
 from OpenGL import GL
 
+from .buffer import DynamicBuffer
+from spyke.graphics import gl
+from spyke.enums import (
+    TextureTarget,
+    GLType,
+    TextureBufferSizedInternalFormat)
 
 class TextureBuffer(DynamicBuffer):
     def __init__(self, size: int, data_type: GLType, internal_format: TextureBufferSizedInternalFormat):

@@ -1,9 +1,9 @@
-from .buffer import Buffer, StaticBuffer, DynamicBuffer
-from .textureBuffer import TextureBuffer
-from .frameBuffer import Framebuffer, FramebufferSpec, AttachmentSpec
+from .buffer import BufferBase, StaticBuffer, DynamicBuffer
+from .texture_buffer import TextureBuffer
+from .framebuffer import Framebuffer, FramebufferSpec, AttachmentSpec
 
 __all__ = [
-    'Buffer',
+    'BufferBase',
     'StaticBuffer',
     'DynamicBuffer',
     'TextureBuffer',

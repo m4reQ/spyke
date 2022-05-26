@@ -1,13 +1,10 @@
-from __future__ import annotations
-import typing
-if typing.TYPE_CHECKING:
-    from spyke.graphics.rectangle import Rectangle
-    import glm
+import dataclasses
 
-from dataclasses import dataclass
+import glm
 
+from spyke.graphics.rectangle import Rectangle
 
-@dataclass
+@dataclasses.dataclass
 class Glyph:
     __slots__ = (
         '__weakref__',

@@ -1,9 +1,12 @@
 from dataclasses import dataclass
 from typing import Optional
 
-
 @dataclass
 class WindowSpecs:
+    '''
+    A structure used to configure window.
+    '''
+
     width: int
     height: int
     title: str

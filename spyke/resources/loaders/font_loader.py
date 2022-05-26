@@ -1,15 +1,25 @@
-from __future__ import annotations
-from spyke import utils
-from spyke.enums import MagFilter, _TextureFormat, MinFilter, PixelType, SizedInternalFormat, SwizzleMask, SwizzleTarget, TextureFormat, WrapMode
-from spyke.graphics import Glyph, Rectangle, TextureSpec, Texture
-from .loader import Loader, LoadingData
-from spyke.resources.types import Font
-from typing import Dict, List, Iterable, Tuple, Type
-from dataclasses import dataclass
 import math
+import typing as t
+from dataclasses import dataclass
+
 import glm
 import numpy as np
 import freetype as ft
+
+from .loader import LoaderBase
+from spyke import utils
+from spyke.graphics import Glyph, Rectangle, TextureSpec, Texture
+from spyke.resources.types import Font
+from spyke.enums import (
+    MagFilter,
+    _TextureFormat,
+    MinFilter,
+    PixelType,
+    SizedInternalFormat,
+    SwizzleMask,
+    SwizzleTarget,
+    TextureFormat,
+    WrapMode)
 
 @dataclass
 class _CharPrototype:
@@ -21,20 +31,13 @@ class _CharPrototype:
     top: int
     advance: int
 
-@dataclass
-class _FontData(LoadingData):
-    texture_specification: TextureSpec
-    texture_format: _TextureFormat
-    atlas: np.ndarray
-    font_name: str
-    glyphs: Dict[str, Glyph]
-
-def _get_all_characters(face: ft.Face) -> List[str]:
+def _get_all_characters(face: ft.Face) -> t.List[str]:
     return [chr(idx) for _, idx, in face.get_chars() if chr(idx).isprintable()] + ['\n', ]
 
 def _load_char_data(char: str, face: ft.Face, stroker: ft.Stroker) -> _CharPrototype:
-    face.load_char(char, ft.FT_LOAD_TARGET_NORMAL |
-                    ft.FT_LOAD_NO_BITMAP | ft.FT_LOAD_FORCE_AUTOHINT)
+    face.load_char(
+        char,
+        ft.FT_LOAD_TARGET_NORMAL | ft.FT_LOAD_NO_BITMAP | ft.FT_LOAD_FORCE_AUTOHINT)
 
     stroke_glyph = face.glyph.get_glyph()
     stroke_glyph.stroke(stroker, True)
@@ -79,10 +82,18 @@ def _load_char_data(char: str, face: ft.Face, stroker: ft.Stroker) -> _CharProto
 
     return prototype
 
+@dataclass
+class _FontData:
+    texture_specification: TextureSpec
+    texture_format: _TextureFormat
+    atlas: np.ndarray
+    font_name: str
+    glyphs: t.Dict[str, Glyph]
 
-def _determine_atlas_size(chars_data: Iterable[_CharPrototype], cols: int) -> Tuple[int, int, List[int]]:
+def _determine_atlas_size(chars_data: t.Iterable[_CharPrototype],
+                          cols: int) -> t.Tuple[int, int, t.List[int]]:
     atlas_width = 0
-    rows_heights: List[int] = list()
+    rows_heights: t.List[int] = list()
 
     current_width = 0
     current_height = 0
@@ -106,30 +117,29 @@ def _determine_atlas_size(chars_data: Iterable[_CharPrototype], cols: int) -> Tu
 
     return (atlas_width, atlas_height, rows_heights)
 
-
 # TODO: Unhardcode font size
-font_size = 96
+FONT_SIZE = 96
 
+class FontLoader(LoaderBase[Font]):
+    @staticmethod
+    def get_suitable_extensions() -> t.List[str]:
+        return ['.ttf', '.otf']
 
-class FontLoader(Loader[_FontData, Font]):
-    __extensions__: List[str] = ['TTF',]
-    __restype__: Type[Font] = Font
-
-    def _load(self) -> None:
-        face = ft.Face(self.filepath)
+    def load(self, filepath: str) -> t.Any:
+        face = ft.Face(filepath)
         assert face.is_scalable, 'Cannot load non scalable fonts'
-        face.set_pixel_sizes(0, font_size)
+        face.set_pixel_sizes(0, FONT_SIZE)
 
         name = face.family_name.decode('utf-8')
 
         stroker = ft.Stroker()
-        stroker.set(font_size, ft.FT_STROKER_LINECAP_ROUND,
-                    ft.FT_STROKER_LINEJOIN_ROUND, 0)
+        stroker.set(FONT_SIZE,
+                    ft.FT_STROKER_LINECAP_ROUND,
+                    ft.FT_STROKER_LINEJOIN_ROUND,
+                    0)
 
         chars = _get_all_characters(face)
-        to_combine = {}
-        for char in chars:
-            to_combine[char] = _load_char_data(char, face, stroker)
+        to_combine = {char: _load_char_data(char, face, stroker) for char in chars}
 
         cols = max(utils.get_closest_factors(len(chars)))
 
@@ -138,8 +148,7 @@ class FontLoader(Loader[_FontData, Font]):
         atlas_width += cols
         atlas_height += len(rows_heights)
 
-        atlas = np.zeros(
-            (atlas_height, atlas_width), dtype=np.ubyte)
+        atlas = np.zeros((atlas_height, atlas_width), dtype=np.ubyte)
 
         glyphs = {}
 
@@ -180,24 +189,17 @@ class FontLoader(Loader[_FontData, Font]):
         texture_spec.texture_swizzle = SwizzleTarget.TextureSwizzleRgba
         texture_spec.swizzle_mask = [SwizzleMask.One, SwizzleMask.One, SwizzleMask.One, SwizzleMask.Red] #type: ignore
 
-        self._data = _FontData(texture_spec, TextureFormat.Red, atlas, name, glyphs)
+        return _FontData(texture_spec, TextureFormat.Red, atlas, name, glyphs)
 
-    def finalize(self) -> None:
-        if self.had_loading_error:
-            with self.resource.lock:
-                self.resource.texture = Texture.invalid()
-                self.resource.glyphs = dict()
-                self.resource.name = ''
-            
-            return
+    def finish_loading(self) -> None:
+        data: _FontData = self.loading_data
 
-        texture = Texture(self._data.texture_specification)
+        texture = Texture(data.texture_specification)
         Texture.set_pixel_alignment(1)
-        texture.upload(None, 0, self._data.texture_format, PixelType.UnsignedByte, self._data.atlas)
+        texture.upload(None, 0, data.texture_format, PixelType.UnsignedByte, data.atlas)
         Texture.set_pixel_alignment(4)
-        texture._check_immutable()
+        texture.check_immutable()
 
-        with self.resource.lock:
-            self.resource.texture = texture
-            self.resource.glyphs = self._data.glyphs
-            self.resource.name = self._data.font_name
+        self.resource.texture = texture
+        self.resource.glyphs = data.glyphs
+        self.resource.name = data.font_name

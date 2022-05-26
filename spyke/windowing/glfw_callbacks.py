@@ -1,9 +1,11 @@
-from spyke import events
-from spyke.exceptions import GraphicsException
-import glfw
 import logging
 
-_LOGGER = logging.getLogger(__name__)
+import glfw
+
+from spyke import events
+from spyke.exceptions import GraphicsException
+
+_logger = logging.getLogger(__name__)
 
 def register(window: glfw._GLFWwindow):
     glfw.set_error_callback(_error_callback)
@@ -17,14 +19,14 @@ def register(window: glfw._GLFWwindow):
     glfw.set_window_pos_callback(window, _window_pos_callback)
     glfw.set_window_focus_callback(window, _window_focus_callback)
 
-    _LOGGER.debug('GLFW window callbacks registered.')
+    _logger.debug('GLFW window callbacks registered.')
 
 def _error_callback(code: int, message: str) -> None:
     raise GraphicsException(f'GLFW error: {message} ({code}).')
 
 def _resize_cb(_, width: int, height: int) -> None:
     events.invoke(events.ResizeEvent(width, height))
-    _LOGGER.info('Window resized to (%d, %d)', width, height)
+    _logger.info('Window resized to (%d, %d)', width, height)
 
 def _window_focus_callback(_, value: int) -> None:
     events.invoke(events.WindowChangeFocusEvent(bool(value)))
@@ -44,8 +46,8 @@ def _mouse_callback(_, button: int, action: int, mods: int) -> None:
     elif action == glfw.RELEASE:
         events.invoke(events.MouseButtonUpEvent(button, mods))
 
-def _mouse_scroll_callback(_, xOffset: float, yOffset: float) -> None:
-    events.invoke(events.MouseScrollEvent(xOffset, yOffset))
+def _mouse_scroll_callback(_, x_offset: float, y_offset: float) -> None:
+    events.invoke(events.MouseScrollEvent(x_offset, y_offset))
 
 def _key_callback(_, key, scancode: int, action: int, mods: int) -> None:
     if action == glfw.PRESS:

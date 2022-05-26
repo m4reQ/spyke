@@ -2,7 +2,6 @@ import esper
 from .components import *
 from spyke.utils import lerp_float, lerp_vector
 
-
 class TransformProcessor(esper.Processor):
     def process(self, *args, **kwargs):
         for _, transform in self.world.get_component(TransformComponent):
@@ -12,7 +11,6 @@ class TransformProcessor(esper.Processor):
         for _, (camera, transform) in self.world.get_components(CameraComponent, TransformComponent):
             if camera.should_recalculate:
                 camera.recalculate(transform.matrix)
-
 
 class AudioProcessor(esper.Processor):
     def process(self, *args, **kwargs):

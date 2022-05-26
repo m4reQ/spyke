@@ -1,15 +1,16 @@
-from __future__ import annotations
+import logging
+import typing as t
+import functools
+
+import numpy as np
+import glm
+from OpenGL import GL
+
 from spyke.enums import ShaderType
 from spyke.exceptions import GraphicsException, SpykeException
 from spyke.graphics import gl
-from typing import List, Union
-from OpenGL import GL
-from functools import lru_cache
-import numpy as np
-import glm
-import logging
 
-_LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 class Shader(gl.GLObject):
     def __init__(self):
@@ -24,7 +25,7 @@ class Shader(gl.GLObject):
 
     def add_stage(self, stage: ShaderType, filepath: str) -> None:
         if self._compiled:
-            _LOGGER.warning('Tried to add shader stage to already compiled shader.')
+            _logger.warning('Tried to add shader stage to already compiled shader.')
             return
 
         try:
@@ -42,12 +43,12 @@ class Shader(gl.GLObject):
 
         info_log = GL.glGetShaderInfoLog(shader)
         assert len(info_log) == 0, f'{self} compilation error:\n{info_log.decode("ansi")}.'
-        
+
         GL.glAttachShader(self.id, shader)
 
     def compile(self) -> None:
         if self._compiled:
-            _LOGGER.warning('%s is already compiled.', self)
+            _logger.warning('%s is already compiled.', self)
             return
 
         GL.glLinkProgram(self.id)
@@ -59,11 +60,11 @@ class Shader(gl.GLObject):
         self._stages.clear()
         self._compiled = True
 
-        _LOGGER.debug('%s compiled succesfully.', self)
+        _logger.debug('%s compiled succesfully.', self)
 
     def validate(self) -> None:
         if not self._compiled:
-            _LOGGER.error('Cannot validate not compiled shader program.')
+            _logger.error('Cannot validate not compiled shader program.')
             return
 
         GL.glValidateProgram(self.id)
@@ -71,7 +72,7 @@ class Shader(gl.GLObject):
         info_log = GL.glGetProgramInfoLog(self.id)
         assert len(info_log) == 0, f'{self} validation failure:\n{info_log.decode("ansi")}.'
 
-        _LOGGER.debug('%s has been validated succesfully.', self)
+        _logger.debug('%s has been validated succesfully.', self)
 
     def use(self) -> None:
         GL.glUseProgram(self.id)
@@ -79,7 +80,7 @@ class Shader(gl.GLObject):
     def _delete(self) -> None:
         GL.glDeleteProgram(self.id)
 
-    @lru_cache
+    @functools.lru_cache
     def get_attrib_location(self, name: str) -> int:
         loc = GL.glGetAttribLocation(self.id, name)
         assert loc != -1, f'Cannot find attribute named "{name}".'
@@ -97,7 +98,7 @@ class Shader(gl.GLObject):
 
         return loc
 
-    @lru_cache
+    @functools.lru_cache
     def get_uniform_block_location(self, name: str) -> int:
         loc = GL.glGetUniformBlockIndex(self.id, name)
         assert loc != -1, f'Cannot find uniform block named "{name}".'
@@ -108,7 +109,7 @@ class Shader(gl.GLObject):
         loc = self.get_uniform_block_location(name)
         GL.glUniformBlockBinding(self.id, loc, index)
 
-    def set_uniform_int(self, name: str, value: Union[int, List[int]]) -> None:
+    def set_uniform_int(self, name: str, value: t.Union[int, t.List[int]]) -> None:
         loc = self.get_uniform_location(name)
 
         if isinstance(value, int):
@@ -119,7 +120,7 @@ class Shader(gl.GLObject):
         else:
             raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
 
-    def set_uniform_float(self, name: str, value: Union[float, List[float]]) -> None:
+    def set_uniform_float(self, name: str, value: t.Union[float, t.List[float]]) -> None:
         loc = self.get_uniform_location(name)
 
         if isinstance(value, int):
@@ -130,7 +131,7 @@ class Shader(gl.GLObject):
         else:
             raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
 
-    def set_uniform_double(self, name: str, value: Union[float, List[float]]) -> None:
+    def set_uniform_double(self, name: str, value: t.Union[float, t.List[float]]) -> None:
         loc = self.get_uniform_location(name)
 
         if isinstance(value, int):

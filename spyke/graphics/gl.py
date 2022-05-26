@@ -1,13 +1,12 @@
-from __future__ import annotations
+import abc
+
+from OpenGL import GL
+
 from spyke.enums import TextureTarget
 from spyke.utils import Deletable
-from OpenGL import GL
-from abc import ABC
-
 
 def create_program() -> GL.GLint:
     return GL.GLint(GL.glCreateProgram())
-
 
 def create_texture(target: TextureTarget) -> GL.GLint:
     _id = GL.GLint()
@@ -15,13 +14,11 @@ def create_texture(target: TextureTarget) -> GL.GLint:
 
     return _id
 
-
 def create_vertex_array() -> GL.GLint:
     _id = GL.GLint()
     GL.glCreateVertexArrays(1, _id)
 
     return _id
-
 
 def create_buffer() -> GL.GLint:
     _id = GL.GLint()
@@ -29,15 +26,13 @@ def create_buffer() -> GL.GLint:
 
     return _id
 
-
 def create_framebuffer() -> GL.GLint:
     _id = GL.GLint()
     GL.glCreateFramebuffers(1, _id)
 
     return _id
 
-
-class GLObject(Deletable, ABC):
+class GLObject(Deletable, abc.ABC):
     def __init__(self):
         super().__init__()
         self._id: GL.GLint = GL.GLint(0)

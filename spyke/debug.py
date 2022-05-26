@@ -1,16 +1,21 @@
-from __future__ import annotations
+import logging
+import os
+
+from OpenGL import GL
+import glfw
+import colorama
+
+from spyke import paths
 from spyke.enums import DebugSeverity, DebugSource, DebugType
 from spyke.exceptions import GraphicsException
 from spyke.utils import debug_only
-from OpenGL import GL
-import glfw
-import logging
-import colorama
-import os
+
+__all__ = [
+    'get_gl_error',
+    'check_context'
+]
 
 LOG_LEVEL: int = logging.DEBUG if __debug__ else logging.WARNING
-LOG_FILE: str = os.path.join('.', 'spyke_log.log')
-_DEBUG_PROC = None
 
 class _ConsoleFormatter(logging.Formatter):
     _color_map = {
@@ -35,7 +40,7 @@ class _SpykeLogger(logging.Logger):
     def __init__(self, name: str):
         super().__init__(name, LOG_LEVEL)
 
-        _file_handler = logging.FileHandler(LOG_FILE)
+        _file_handler = logging.FileHandler(paths.LOG_FILE)
         _file_handler.setLevel(LOG_LEVEL)
         _file_handler.setFormatter(logging.Formatter(
             fmt=self._log_format,
@@ -45,10 +50,10 @@ class _SpykeLogger(logging.Logger):
 
         _con_handler = logging.StreamHandler()
         _con_handler.setLevel(LOG_LEVEL)
-        _con_handler.setFormatter(_ConsoleFormatter(
-            fmt=self._log_format,
-            datefmt=self._log_time_format
-            ))
+        _con_handler.setFormatter(
+            _ConsoleFormatter(
+                fmt=self._log_format,
+                datefmt=self._log_time_format))
         self.addHandler(_con_handler)
 
         self.addFilter(_SpykeLogFilter(name))
@@ -80,29 +85,24 @@ def get_gl_error() -> None:
 @debug_only
 def check_context() -> None:
     '''
-    Checks if OpenGL context has been set. If not raises
-    `GraphicsException`.
+    Checks if OpenGL context has been set.
+    If not raises `AssertionError`.
     '''
 
     assert glfw.get_current_context() is not None, 'Required OpenGL context but no context is set current.'
 
-@debug_only
-def _init() -> None:
-    if os.path.exists(LOG_FILE):
-        os.remove(LOG_FILE)
+def init():
+    if os.path.exists(paths.LOG_FILE):
+        os.remove(paths.LOG_FILE)
 
     colorama.init()
     logging.basicConfig(level=LOG_LEVEL, handlers=[])
     logging.setLoggerClass(_SpykeLogger)
 
-    global _DEBUG_PROC
-    if _DEBUG_PROC is not None:
-        return
-
-    _DEBUG_PROC = GL.GLDEBUGPROC(_opengl_debug_callback)    
+    _debug_proc = GL.GLDEBUGPROC(_opengl_debug_callback)
     GL.glEnable(GL.GL_DEBUG_OUTPUT)
     GL.glEnable(GL.GL_DEBUG_OUTPUT_SYNCHRONOUS)
-    GL.glDebugMessageCallback(_DEBUG_PROC, None)
+    GL.glDebugMessageCallback(_debug_proc, None)
 
     logger = logging.getLogger(__name__)
     logger.debug('Debug module initialized.')

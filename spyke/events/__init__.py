@@ -1,13 +1,12 @@
-from __future__ import annotations
-from typing import Generic, TypeVar, Callable, Type, Dict, List, Any
+import typing as t
 import inspect
-import sys
 import queue
 import threading
 import logging
-from spyke.exceptions import SpykeException
+
 from . import types
 from .types import *
+from .handler import Handler, T_Event
 
 __all__ = [
     'Event',
@@ -29,46 +28,12 @@ __all__ = [
     'register',
 ]
 
-T_Event = TypeVar('T_Event', bound=Event)
-T_Return = TypeVar('T_Return')
-
-_handlers: Dict[Type[Event], List[Handler]] = dict()
+_handlers: t.Dict[t.Type[Event], t.List[Handler]] = dict()
 _events: queue.Queue[Event] = queue.Queue(maxsize=128)
 
-_LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
-class Handler(Generic[T_Event, T_Return]):
-    '''
-    Represents a callable handler, which calls specific function
-    to handle events of certain type.
-    '''
-
-    def __init__(self, function: Callable[[T_Event], T_Return], priority: int, consume: bool):
-        self.func = function
-        self.priority = priority
-        self.consume = consume
-
-    def __call__(self, event: T_Event) -> T_Return:
-        try:
-            res = self.func(event)
-        except Exception as e:
-            raise SpykeException(f'An error occured in handler "{self.func.__name__}": {e}.') from None
-
-        if self.consume:
-            event.consumed = True
-
-        return res
-
-    def __str__(self) -> str:
-        return f'Handler from function: {self.func.__qualname__}'
-
-    def __repr__(self) -> str:
-        return str(self)
-    
-    def __hash__(self) -> int:
-        return self.func.__hash__()
-
-def register(method: Callable[[T_Event], Any], event_type: Type[T_Event], *, priority: int, consume: bool = False) -> None:
+def register(method: t.Callable[[T_Event], Any], event_type: t.Type[T_Event], *, priority: int, consume: bool = False) -> None:
     '''
     Registers method as a handler for events of given type.
 
@@ -82,21 +47,25 @@ def register(method: Callable[[T_Event], Any], event_type: Type[T_Event], *, pri
         priority, that is not a part of spyke engine.
     '''
 
-    assert not (priority < 0 and not method.__module__.startswith('spyke')), 'Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.'
+    if priority < 0 and not _is_function_from_engine(method):
+        _logger.error('Negative priority is reserved for internal engine handlers and cannot be used to register user-defined functions.')
+        return
 
     handler = Handler(method, priority, consume)
+    event_name = event_type.__name__
     
     if event_type not in _handlers:
-        raise SpykeException(f'Unknown event type: {event_type.__name__}. Maybe you forgot to register it using "register_user_event".')
+        _logger.error('Unknown event type: %s. Maybe you forgot to register it using "register_user_event".', event_name)
+        return
 
     if handler in _handlers[event_type]:
-        _LOGGER.warning('Handler %s already registered for event type: %s.', handler, event_type.__name__)
+        _logger.warning('Handler %s already registered for event type: %s.', handler, event_name)
         return
     
     _handlers[event_type].append(handler)
     _handlers[event_type].sort(key=lambda x: x.priority)
 
-    _LOGGER.debug('Function %s registered for %s (priority: %d, consume: %s).', method.__qualname__, event_type.__name__, priority, consume)
+    _logger.debug('Function %s registered for %s (priority: %d, consume: %s).', method.__qualname__, event_name, priority, consume)
 
 def invoke(event: Event) -> None:
     '''
@@ -116,17 +85,9 @@ def invoke(event: Event) -> None:
 
     try:
         _events.put_nowait(event)
-        _LOGGER.debug('Event invocation for %s', event)
+        _logger.debug('Event invocation for %s', event)
     except queue.Full:
-        _LOGGER.warning('Cannot enqueue event of type %s. Event queue full.', type(event).__name__)
-
-def _init() -> None:
-    _types = inspect.getmembers(sys.modules[types.__name__], inspect.isclass)
-    for _, _type in _types:
-        if _type != Event and issubclass(_type, Event):
-            _handlers[_type] = list()
-    
-    _LOGGER.debug('Events module initialized.')
+        _logger.warning('Cannot enqueue event of type %s. Event queue full.', type(event).__name__)
 
 def _process_events() -> None:
     '''
@@ -161,7 +122,7 @@ def _process_events() -> None:
             
             handler(event)
 
-def register_user_event(event_type: Type[Event]) -> None:
+def register_user_event(event_type: t.Type[Event]) -> None:
     '''
     Registers new user-defined event type. User-defined event types
     have to be subclasses of Event class.
@@ -173,12 +134,28 @@ def register_user_event(event_type: Type[Event]) -> None:
     '''
 
     if not issubclass(event_type, Event):
-        raise RuntimeError('User-defined events have to be subclasses of the Event class.')
+        _logger.error('User-defined events have to be subclasses of the Event class.')
+        return
 
     if event_type in _handlers:
-        _LOGGER.warning('User-defined event type %s already registered.', event_type.__name__)
+        _logger.warning('User-defined event type %s already registered.', event_type.__name__)
         return
 
     _handlers[event_type] = list()
 
-    _LOGGER.debug('Registered new user event %s', event_type.__name__)
+    _logger.debug('Registered new user event %s', event_type.__name__)
+
+def _register_events() -> None:
+    classes = inspect.getmembers(types, predicate=lambda x: inspect.isclass(x) and not inspect.isabstract(x) and issubclass(x, Event))
+    for name, _class in classes:
+        if name in _handlers:
+            _logger.warning('Event %s already registered.', name)
+        
+        _handlers[_class] = []
+        _logger.debug('Event %s registered succesfully.', name)
+
+def _is_function_from_engine(func: t.Callable) -> bool:
+    return func.__module__.startswith('spyke')
+
+_register_events()
+_logger.debug('Events module initialized.')

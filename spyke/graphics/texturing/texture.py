@@ -1,25 +1,61 @@
 from __future__ import annotations
-from spyke.exceptions import GraphicsException
-from .textureSpec import TextureSpec
-from spyke.enums import _CompressedInternalFormat, MagFilter, MinFilter, PixelType, _TextureFormat, TextureFormat, TextureParameter, TextureTarget, SizedInternalFormat
-from spyke.graphics import gl
-from typing import Any, Optional, Tuple, Union
-from OpenGL import GL
-import numpy as np
-import logging
 
-_LOGGER = logging.getLogger(__name__)
+import logging
+import dataclasses
+import typing as t
+
+import numpy as np
+from OpenGL import GL
+
+from spyke.exceptions import GraphicsException
+from spyke.graphics import gl
+from spyke.enums import (
+    _SizedInternalFormat,
+    _CompressedInternalFormat,
+    _TextureFormat,
+    MinFilter,
+    MagFilter,
+    WrapMode,
+    SizedInternalFormat,
+    SwizzleTarget,
+    SwizzleMask,
+    PixelType,
+    TextureFormat,
+    TextureParameter,
+    TextureTarget,)
+
+_logger = logging.getLogger(__name__)
+
+@dataclasses.dataclass
+class TextureSpec:
+    width: int = 0
+    height: int = 0
+    mipmaps: int = 3
+    min_filter: MinFilter = MinFilter.LinearMipmapLinear
+    mag_filter: MagFilter = MagFilter.Linear
+    wrap_mode: WrapMode = WrapMode.Repeat
+    texture_swizzle: t.Optional[SwizzleTarget] = None
+    internal_format: _SizedInternalFormat = SizedInternalFormat.Rgba8
+    _swizzle_mask: t.Optional[np.ndarray] = None
+
+    @property
+    def swizzle_mask(self) -> np.ndarray:
+        return self._swizzle_mask or np.zeros((4,), dtype=np.int32)
+
+    @swizzle_mask.setter
+    def swizzle_mask(self, value: t.Sequence[SwizzleMask]) -> None:
+        self._swizzle_mask = np.array(value, dtype=np.int32)
 
 class Texture(gl.GLObject):
-    _white_texture: Optional[Texture] = None
-    _invalid_texture: Optional[Texture] = None
+    _white_texture: t.Optional[Texture] = None
+    _invalid_texture: t.Optional[Texture] = None
 
     @staticmethod
     def set_pixel_alignment(alignment: int) -> None:
         assert alignment in [
             1, 2, 4, 8], f'Invalid pixel alignment: {alignment}'
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, alignment)
-    
+
     @classmethod
     def empty(cls):
         '''
@@ -42,11 +78,11 @@ class Texture(gl.GLObject):
 
         tex = cls(spec)
         tex.upload(None, 0, TextureFormat.Rgba, PixelType.UnsignedByte, data)
-        tex._check_immutable()
+        tex.check_immutable()
 
         cls._white_texture = tex
         return cls._white_texture
-    
+
     @classmethod
     def invalid(cls):
         '''
@@ -56,7 +92,7 @@ class Texture(gl.GLObject):
 
         if cls._invalid_texture:
             return cls._invalid_texture
-        
+
         data = np.array([
             255, 0, 255, 255,
             0, 0, 0, 255,
@@ -73,7 +109,7 @@ class Texture(gl.GLObject):
 
         tex = cls(spec)
         tex.upload(None, 0, TextureFormat.Rgba, PixelType.UnsignedByte, data)
-        tex._check_immutable()
+        tex.check_immutable()
 
         cls._invalid_texture = tex
         return cls._invalid_texture
@@ -109,10 +145,15 @@ class Texture(gl.GLObject):
 
             GL.glTextureParameteriv(
                 self.id, specification.texture_swizzle, specification.swizzle_mask)
-        
-        _LOGGER.debug('Texture object with id %d initialized succesfully.', self.id)
 
-    def upload(self, size: Optional[Tuple[int, int]], level: int, _format: _TextureFormat, pixel_type: PixelType, data: np.ndarray) -> None:
+        _logger.debug('Texture object with id %d initialized succesfully.', self.id)
+
+    def upload(self,
+               size: t.Optional[t.Tuple[int, int]],
+               level: int,
+               _format: _TextureFormat,
+               pixel_type: PixelType,
+               data: np.ndarray) -> None:
         assert not self.is_compressed, 'Cannot use Texture.upload on compressed texture. Use Texture.upload_compressed instead.'
 
         # TODO: Add check for weird texture conversion from formats that differ much
@@ -122,19 +163,24 @@ class Texture(gl.GLObject):
 
         GL.glTextureSubImage2D(self.id, level, 0, 0, *size, _format, pixel_type, data)
 
-        _LOGGER.debug('Texture data of size (%d, %d) uploaded to texture object %d as level %d.', size[0], size[1], self.id, level)
+        _logger.debug('Texture data of size (%d, %d) uploaded to texture object %d as level %d.', size[0], size[1], self.id, level)
 
-    def upload_compressed(self, size: Union[Tuple[int, int], None], level: int, _format: _TextureFormat, image_size: int, data: np.ndarray) -> None:
+    def upload_compressed(self,
+                          size: t.Optional[t.Tuple[int, int]],
+                          level: int,
+                          _format: _TextureFormat,
+                          image_size: int,
+                          data: np.ndarray) -> None:
         assert self.is_compressed, 'Cannot use Texture.upload_compressed on non-compressed texture. Use Texture.upload instead.'
 
         if size is None:
             size = (self.width, self.height)
 
-        GL.glCompressedTextureSubImage2D(self.id, level, 0, 0, size[0], size[1], format, image_size, data)
-        
-        _LOGGER.debug('Compressed texture data of size (%d, %d) uploaded to texture object %d as level %d. Texture format: %s', size[0], size[1], self.id, level, _format.name)
+        GL.glCompressedTextureSubImage2D(self.id, level, 0, 0, size[0], size[1], _format, image_size, data)
 
-    def set_parameter(self, parameter: TextureParameter, value: Any) -> None:
+        _logger.debug('Compressed texture data of size (%d, %d) uploaded to texture object %d as level %d. Texture format: %s', size[0], size[1], self.id, level, _format.name)
+
+    def set_parameter(self, parameter: TextureParameter, value: t.Any) -> None:
         GL.glTextureParameteri(self.id, parameter, value)
 
     def generate_mipmap(self) -> None:
@@ -146,7 +192,7 @@ class Texture(gl.GLObject):
     def _delete(self) -> None:
         GL.glDeleteTextures(1, [self.id])
 
-    def _check_immutable(self) -> None:
+    def check_immutable(self) -> None:
         success = GL.GLint()
         GL.glGetTextureParameteriv(
             self.id, GL.GL_TEXTURE_IMMUTABLE_FORMAT, success)

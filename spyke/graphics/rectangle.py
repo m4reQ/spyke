@@ -1,22 +1,29 @@
-from __future__ import annotations
+import dataclasses
+
 import glm
-from dataclasses import dataclass
+import numpy as np
 
-
-@dataclass
+@dataclasses.dataclass
 class Rectangle:
-    __slots__ = (
-        '__weakref__',
-        'x',
-        'y',
-        'width',
-        'height'
-    )
-
     x: float
     y: float
     width: float
     height: float
+    
+    def to_coordinates(self) -> np.ndarray:
+        #0.0, 1.0,
+            # 1.0, 1.0,
+            # 1.0, 0.0,
+            # 1.0, 0.0,
+            # 0.0, 0.0,
+            # 0.0, 1.0
+        return np.array([
+            self.left, self.top,
+            self.right, self.top,
+            self.right, self.bottom,
+            self.right, self.bottom,
+            self.left, self.bottom,
+            self.left, self.top], dtype=np.float32)
 
     @property
     def left(self) -> float:
@@ -43,5 +50,5 @@ class Rectangle:
         return glm.vec2(self.x, self.y)
 
     @classmethod
-    def one(cls) -> Rectangle:
+    def one(cls):
         return Rectangle(0.0, 0.0, 1.0, 1.0)

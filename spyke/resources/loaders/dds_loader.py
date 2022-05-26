@@ -1,20 +1,25 @@
-from __future__ import annotations
-from .loader import Loader, LoadingData
-from spyke.resources.types import Image
-from spyke.enums import _TextureFormat, TextureParameter, MinFilter, MagFilter, S3tcCompressedInternalFormat
-from spyke.graphics.texturing import TextureSpec, Texture
-from PIL import Image as _Image
-from dataclasses import dataclass
-from typing import List, Tuple, Type
-import ctypes as ct
 import io
+import typing as t
+import ctypes as ct
+from dataclasses import dataclass
+
 import numpy as np
+from PIL import Image as PILImage
+
+from .loader import LoaderBase
+from spyke.resources.types import Image
+from spyke.graphics import TextureSpec, Texture
+from spyke.enums import (
+    _TextureFormat,
+    TextureParameter,
+    MinFilter,
+    MagFilter,
+    S3tcCompressedInternalFormat)
 
 @dataclass
-class _CompressedTextureData(LoadingData):
+class _CompressedTextureData:
     specification: TextureSpec
     texture_format: _TextureFormat
-    image_format: str
     pixels: np.ndarray
     block_size: int
 
@@ -43,7 +48,7 @@ class _DDSHeader(ct.Structure):
     ]
 
 
-def _determine_texture_format(img_mode: str, fourcc: str) -> Tuple[S3tcCompressedInternalFormat, int]:
+def _determine_texture_format(img_mode: str, fourcc: str) -> t.Tuple[S3tcCompressedInternalFormat, int]:
     if fourcc.endswith('1') and img_mode == 'RGB':
         texture_format = S3tcCompressedInternalFormat.CompressedRgbS3tcDxt1
         block_size = 8
@@ -64,18 +69,18 @@ def _determine_texture_format(img_mode: str, fourcc: str) -> Tuple[S3tcCompresse
 
     return (texture_format, block_size)
 
-
-class DDSLoader(Loader[_CompressedTextureData, Image]):
+class DDSLoader(LoaderBase[Image]):
     '''
     Loader used to load images from compressed image files.
     '''
 
-    __extensions__: List[str] = ['DDS',]
-    __restype__: Type[Image] = Image
+    @staticmethod
+    def get_suitable_extensions() -> t.List[str]:
+        return ['.dds']
 
-    def _load(self) -> None:
-        with _Image.open(self.filepath, 'r') as img:
-            f = img.fp
+    def load(self, filepath: str) -> t.Any:
+        with PILImage.open(filepath, 'r') as img:
+            f = img.fp # type: ignore
             f.seek(0, io.SEEK_END)
             file_size = f.tell()
             f.seek(0, io.SEEK_SET)
@@ -105,18 +110,12 @@ class DDSLoader(Loader[_CompressedTextureData, Image]):
         spec.internal_format = texture_format
         spec.mipmaps = mipmap_count
 
-        self._data = _CompressedTextureData(spec, texture_format, img.format, buffer, block_size)
+        return _CompressedTextureData(spec, texture_format, buffer, block_size)
+    
+    def finish_loading(self) -> None:
+        data: _CompressedTextureData = self.loading_data
+        specification = data.specification
 
-    def finalize(self) -> None:
-        if self.had_loading_error:
-            with self.resource.lock:
-                self.resource.is_invalid = True
-                self.resource.texture = Texture.invalid()
-            
-            return
-
-        specification = self._data.specification
-        
         texture = Texture(specification)
         texture.set_parameter(TextureParameter.MinFilter, MinFilter.LinearMipmapLinear)
         texture.set_parameter(TextureParameter.MagFilter, MagFilter.Linear)
@@ -130,17 +129,16 @@ class DDSLoader(Loader[_CompressedTextureData, Image]):
                 mipmaps -= 1
                 continue
 
-            size = ((w + 3) // 4) * ((h + 3) // 4) * self._data.block_size
+            size = ((w + 3) // 4) * ((h + 3) // 4) * data.block_size
 
             texture.upload_compressed(
-                (w, h), i, self._data.texture_format, size, self._data.pixels[offset:offset + size])
+                (w, h), i, data.texture_format, size, data.pixels[offset:offset + size])
 
             offset += size
             w //= 2
             h //= 2
 
         texture.set_parameter(TextureParameter.MaxLevel, mipmaps - 1)
-        texture._check_immutable()
+        texture.check_immutable()
 
-        with self.resource.lock:
-            self.resource.texture = texture
+        self.resource.texture = texture

@@ -1,23 +1,26 @@
 from __future__ import annotations
+
+import typing as t
+import logging
+import abc
+
+from OpenGL import GL
+import numpy as np
+
 from spyke.enums import GLType
 from spyke.exceptions import GraphicsException
 from spyke.graphics import gl
 from spyke.utils import convert
-from OpenGL import GL
-from typing import Union
-from abc import ABC
-import numpy as np
-import logging
 
-_LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
-class Buffer(gl.GLObject, ABC):
+class BufferBase(gl.GLObject, abc.ABC):
     @staticmethod
-    def bind_pbo_load(pbo: Buffer) -> None:
+    def bind_pbo_load(pbo: BufferBase) -> None:
         GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, pbo.id)
 
     @staticmethod
-    def bind_pbo_read(pbo: Buffer) -> None:
+    def bind_pbo_read(pbo: BufferBase) -> None:
         GL.glBindBuffer(GL.GL_PIXEL_PACK_BUFFER, pbo.id)
 
     @staticmethod
@@ -26,11 +29,11 @@ class Buffer(gl.GLObject, ABC):
         GL.glBindBuffer(GL.GL_PIXEL_UNPACK_BUFFER, 0)
 
     @staticmethod
-    def bind_ubo(ubo: Buffer) -> None:
+    def bind_ubo(ubo: BufferBase) -> None:
         GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, ubo.id)
 
     @staticmethod
-    def bind_to_uniform(ubo: Buffer, index: int) -> None:
+    def bind_to_uniform(ubo: BufferBase, index: int) -> None:
         GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, index, ubo.id)
 
     def __init__(self, size: int, data_type: GLType):
@@ -40,7 +43,7 @@ class Buffer(gl.GLObject, ABC):
         self._size = size
         self.data_type: GLType = data_type
 
-        _LOGGER.debug('%s created succesfully (data size: %.3fkB).', self, self.size / 1000.0)
+        _logger.debug('%s created succesfully (data size: %.3fkB).', self, self.size / 1000.0)
 
     def _delete(self) -> None:
         GL.glDeleteBuffers(1, [self.id])
@@ -49,9 +52,8 @@ class Buffer(gl.GLObject, ABC):
     def size(self) -> int:
         return self._size
 
-
-class StaticBuffer(Buffer):
-    def __init__(self, data: Union[np.ndarray, list], data_type: GLType):
+class StaticBuffer(BufferBase):
+    def __init__(self, data: t.Union[np.ndarray, list], data_type: GLType):
         size = len(data) * convert.gl_type_to_size(data_type)
         super().__init__(size, data_type)
 
@@ -65,8 +67,7 @@ class StaticBuffer(Buffer):
 
         GL.glNamedBufferStorage(self.id, self.size, np_data, 0)
 
-
-class DynamicBuffer(Buffer):
+class DynamicBuffer(BufferBase):
     def __init__(self, size: int, data_type: GLType):
         super().__init__(size, data_type)
 
@@ -95,8 +96,7 @@ class DynamicBuffer(Buffer):
 
     def add_data_direct(self, data: np.ndarray) -> None:
         if self._would_overflow(data.nbytes):
-            raise GraphicsException(
-                f'Transfer of {data.nbytes} bytes at {self} would cause buffer overflow.')
+            raise GraphicsException(f'Transfer of {data.nbytes} bytes at {self} would cause buffer overflow.')
 
         GL.glNamedBufferSubData(self.id, 0, data.nbytes, data)
 

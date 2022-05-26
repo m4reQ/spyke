@@ -4,9 +4,9 @@ from spyke import events, resources, paths
 from spyke.ecs import Scene, components
 from spyke.enums import GLType, ClearMask, Hint, TextureBufferSizedInternalFormat, MagFilter, MinFilter, NvidiaIntegerName, PolygonMode, ShaderType, Vendor, Key, SizedInternalFormat
 from spyke.utils import convert, Iterator
-from spyke.resources import Image, Model
+from spyke.resources.types import Image, Model, Font
 from ..texturing import Texture
-from ..vertexArray import VertexArray
+from ..vertex_array import VertexArray
 from ..shader import Shader
 from ..buffers import *
 from .renderCommand import RenderCommand
@@ -159,8 +159,6 @@ class Renderer:
         self.ubo = DynamicBuffer(UNIFORM_BLOCK_SIZE, GLType.Float)
         self.vao = VertexArray()
 
-        self.white_texture = Texture.empty()
-
         color_attachment_spec = AttachmentSpec(SizedInternalFormat.Rgba8)
 
         entity_id_attachment_spec = AttachmentSpec(SizedInternalFormat.R8i)
@@ -226,7 +224,7 @@ class Renderer:
         self.vao.add_matrix_layout(self.basic_shader.get_attrib_location(
             'aTransform'), INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float, False, 1)
 
-        Buffer.bind_to_uniform(self.ubo, MATRICES_UNIFORM_BLOCK_INDEX)
+        BufferBase.bind_to_uniform(self.ubo, MATRICES_UNIFORM_BLOCK_INDEX)
 
         _LOGGER.info('Master renderer fully initialized.')
 
@@ -266,10 +264,10 @@ class Renderer:
         else:
             view_projection = primary_camera.view_projection
 
-        self.ubo.add_data_direct(np.asarray(
-            view_projection, dtype=np.float32).T)
+        self.ubo.add_data_direct(
+            np.asarray(view_projection, dtype=np.float32).T)
 
-        Buffer.bind_ubo(self.ubo)
+        BufferBase.bind_ubo(self.ubo)
 
         # self.framebuffer.bind()
 
@@ -279,8 +277,14 @@ class Renderer:
         GL.glEnable(GL.GL_DEPTH_TEST)
 
         for ent, (sprite, transform) in scene.get_components(components.SpriteComponent, components.TransformComponent):
-            pass
-            # self._render_quad(transform.matrix, sprite.color, sprite.tiling_factor, texture=sprite.image.texture, ent_id=int(ent))
+            self._render(
+                RenderCommand(
+                    sprite.image_id,
+                    transform.model_id,
+                    transform.matrix,
+                    sprite.color,
+                    sprite.tiling_factor,
+                    ent))
 
         self._flush()
 
@@ -291,7 +295,7 @@ class Renderer:
         fb_height = self.info.framebuffer_height
 
         for ent, (text, transform) in scene.get_components(components.TextComponent, components.TransformComponent):
-            font = text.font
+            font = resources.get(text.font_id, Font)
             scale = text.size / font.base_size
 
             x = transform.position.x
@@ -302,8 +306,7 @@ class Renderer:
 
                 # TODO: Normalize all values here
                 pos_x = x + ((glyph.bearing.x / fb_height) * scale)
-                pos_y = y - \
-                    (((glyph.size.y - glyph.bearing.y) / fb_height) * scale)
+                pos_y = y - (((glyph.size.y - glyph.bearing.y) / fb_height) * scale)
 
                 width = glyph.size.x / fb_width * scale
                 height = glyph.size.y / fb_height * scale
@@ -316,7 +319,14 @@ class Renderer:
                 text_transform[0, 0] = width
                 text_transform[1, 1] = height
 
-                # self._render_quad(text_transform, text.color, glm.vec2(1.0, 1.0), texture=font.texture, tex_rect=glyph.tex_rect, ent_id=int(ent))
+                self._render(RenderCommand(
+                    font.image_id,
+                    Model.quad,
+                    text_transform,
+                    text.color,
+                    glm.vec2(1.0),
+                    ent,
+                    glyph.tex_rect.to_coordinates()))
 
         self._flush()
 
@@ -346,10 +356,8 @@ class Renderer:
         self.info.drawtime = time.perf_counter() - start
     
     def _flush(self) -> None:
-        # TODO: Add docs
         self.render_lock.acquire()
 
-        # preallocate list to save some time
         textures: List[int] = [0] * MAX_TEXTURES_COUNT
 
         for model_id, commands in self.render_commands.items():
@@ -360,10 +368,13 @@ class Renderer:
             model: Model = resources.get(model_id, Model) #type: ignore
 
             self.pos_data_buffer.add_data_direct(model.position_data)
-            self.ibo.add_data_direct(model.index_data)
 
             for command in commands:
-                image: Image = resources.get(command.image_id, Image) #type: ignore
+                image: Image
+                if command.image_id:
+                    image = resources.get(command.image_id, Image) #type: ignore
+                else:
+                    image = resources.get(Image.empty, Image) #type: ignore
                 texture = image.texture
                 
                 # TODO: Handle case of not enough texture slots
@@ -372,41 +383,34 @@ class Renderer:
                     last_texture_idx += 1 
                 
                 texture_idx = textures.index(texture.id)
-        
-                vertex_data = model.texture_coords if command.custom_texture_coords is None else command.custom_texture_coords
-                self.vertex_data_buffer.add_data(vertex_data)
 
-                # texture coords in right order
-                # temporarily stored here
-                # vertex_data = [
-                #     tex_rect.left, tex_rect.top,
-                #     tex_rect.right, tex_rect.top,
-                #     tex_rect.right, tex_rect.bottom,
-                #     tex_rect.left, tex_rect.bottom,
-                # ]
-
+                tex_coords: np.ndarray
+                if command.texture_coords_override is not None:
+                    tex_coords = command.texture_coords_override
+                else:
+                    tex_coords = model.texture_coords
+                    
+                self.vertex_data_buffer.add_data(tex_coords)
+                
                 color = command.color
                 # TODO: Decide if we really want to have ability
                 # to change tiling factor, as it will not work well
                 # with complex models anyway
                 tiling_factor = command.tiling_factor
 
-                instance_data = np.concatenate(
+                instance_data = np.concatenate((
                     np.array([
-                    color.x,
-                    color.y,
-                    color.z,
-                    color.w,
-                    tiling_factor.x,
-                    tiling_factor.y,
-                    texture_idx,
-                    command.entity_id
-                ], dtype=np.float32),
-                np.asarray(glm.transpose(command.transform), dtype=np.float32).flatten())
+                        color.x,
+                        color.y,
+                        color.z,
+                        color.w,
+                        tiling_factor.x,
+                        tiling_factor.y,
+                        texture_idx,
+                        command.entity_id], dtype=np.float32),
+                np.asarray(glm.transpose(command.transform), dtype=np.float32).flatten()))
 
                 self.instance_data_buffer.add_data(instance_data)
-
-                instance_count += 1
             
             self._draw(model, instance_count, textures[:last_texture_idx])
         
@@ -429,14 +433,12 @@ class Renderer:
         self.basic_shader.set_uniform_int('uVerticesPerInstance', model.vertices_per_instance)
 
         accumulated_vertex_count = instance_count * model.vertices_per_instance
-        GL.glDrawElementsInstanced(GL.GL_TRIANGLES, accumulated_vertex_count, self.ibo.data_type, None, instance_count)
+        GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, accumulated_vertex_count, instance_count)
 
         self.info.draw_calls += 1
         self.info.accumulated_vertex_count += accumulated_vertex_count
     
     def _render(self, render_command: RenderCommand) -> None:
-        # TODO: Add docs
-        
         self.render_lock.acquire()
 
         if self.render_commands_count >= MAX_RENDER_COMMANDS_COUNT:
@@ -444,7 +446,7 @@ class Renderer:
         
         model_id = render_command.model_id
         if model_id not in self.render_commands:
-            self.render_commands[model_id] = list()
+            self.render_commands[model_id] = []
 
         self.render_commands[model_id].append(render_command)
 

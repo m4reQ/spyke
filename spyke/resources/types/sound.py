@@ -1,13 +1,18 @@
-from __future__ import annotations
-from spyke.audio import ALBuffer
-from .resource import Resource
-from uuid import UUID
+import typing as t
+import uuid
 
-class Sound(Resource):
-    def __init__(self, _id: UUID, filepath: str=''):
+from spyke.audio import ALBuffer
+from .resource import ResourceBase
+
+class Sound(ResourceBase):
+    @staticmethod
+    def get_suitable_extensions() -> t.List[str]:
+        return ['.mp3', '.ogg', '.wav']
+    
+    def __init__(self, _id: uuid.UUID, filepath: str):
         super().__init__(_id, filepath)
 
-        self.buffer: ALBuffer = ALBuffer.empty()
+        self.buffer = ALBuffer.empty()
 
     def _unload(self) -> None:
         self.buffer.delete()

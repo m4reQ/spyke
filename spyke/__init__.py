@@ -1,10 +1,10 @@
-from __future__ import annotations
 import ctypes as ct
 import inspect
-import OpenGL
-import openal
 import sys
 import logging
+
+import OpenGL
+import openal
 
 __all__ = [
     'debug',
@@ -19,8 +19,6 @@ __all__ = [
     'GraphicsException',
     'run'
 ]
-
-_PYTHON_MIN_VER = (3, 7)
 
 OpenGL.USE_ACCELERATE = True
 OpenGL.FORWARD_COMPATIBLE_ONLY = True
@@ -39,6 +37,8 @@ from .application import *
 from .windowing import *
 from .exceptions import *
 
+_PYTHON_MIN_VER = (3, 7)
+
 def _disable_openal_error_check() -> None:
     # NOTE: We are loading openal in this messy way to remove unnecessary and expensive error checking.
     members = inspect.getmembers(openal.al, lambda x: isinstance(x, ct._CFuncPtr)) #type: ignore
@@ -53,7 +53,8 @@ def _check_python_version_valid() -> None:
             f'To run spyke you require python version at least {_PYTHON_MIN_VER[0]}.{_PYTHON_MIN_VER[1]} (currently using {sys.version_info.major}.{sys.version_info.minor}).')
 
 def run(app: Application, run_editor: bool = False) -> None:
-    debug._init()
+    debug.init()
+    resources.init()
 
     logger = logging.getLogger(__name__)
     logger.info('Engine started.')
@@ -66,9 +67,6 @@ def run(app: Application, run_editor: bool = False) -> None:
     if not __debug__:
         _disable_openal_error_check()
 
-    events._init()
-    resources._init()
-    
     if run_editor:
         if not __debug__:
             raise SpykeException('You cannot run application in spyke editor with optimization enabled.')

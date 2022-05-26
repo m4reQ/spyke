@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
 
-_LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 class Deletable(ABC):
     '''
@@ -24,4 +24,4 @@ class Deletable(ABC):
         self._delete()
         self._deleted = True
 
-        _LOGGER.debug('%s deleted succesfully.', self)
+        _logger.debug('%s deleted succesfully.', self)

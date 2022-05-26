@@ -1,48 +1,35 @@
-from __future__ import annotations
-from .deletable import Deletable
-from .math import *
-from .windows import *
-from spyke import debug
-from typing import Callable, Sequence, List, TypeVar, Iterator as _Iterator
-from types import ModuleType
-from os import path
+import typing as t
 import time
 import gc
 import ctypes as ct
 import inspect
 import logging
+from os import path
+from types import ModuleType
+
+from .deletable import Deletable
+from .math import *
+
+from . import math
 
 __all__ = [
-    'lerp_float',
-    'lerp_vector',
-    'create_translation',
-    'create_scale',
-    'create_rotation_x',
-    'create_rotation_y',
-    'create_rotation_z',
-    'create_transform_3d',
     'garbage_collect',
     'pointer',
-    'get_closest_factors',
-    'get_known_folder_path',
     'get_extension_name',
     'get_submodules',
     'debug_only',
     'Iterator',
     'Delayer',
-    'Vector2',
-    'Vector3',
-    'Vector4',
-    'Matrix4',
     'Deletable'
 ]
+__all__ += math.__all__
 
 pointer = ct.pointer
 
-_LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
-def get_submodules(module: ModuleType) -> List[ModuleType]:
-    return [x[1] for x in inspect.getmembers(module, lambda x: inspect.ismodule(x))]
+def get_submodules(module: ModuleType) -> t.List[ModuleType]:
+    return [x[1] for x in inspect.getmembers(module, inspect.ismodule)]
 
 def get_extension_name(filepath: str) -> str:
     '''
@@ -56,9 +43,9 @@ def garbage_collect():
     prev = gc.get_count()[0]
     gc.collect()
 
-    _LOGGER.debug('Garbage collection freed %d objects', prev - gc.get_count()[0])
+    _logger.debug('Garbage collection freed %d objects', prev - gc.get_count()[0])
 
-def debug_only(func: Callable[..., None]) -> Callable[..., None]:
+def debug_only(func: t.Callable[..., None]) -> t.Callable[..., None]:
     '''
     Decorator function that allows a function to only be called
     while running with `__debug__ == True`. Else function call
@@ -68,19 +55,19 @@ def debug_only(func: Callable[..., None]) -> Callable[..., None]:
 
     @func: A function to be decorated.
     '''
-    
+
     def inner(*args, **kwargs) -> None:
         if __debug__:
             func(*args, **kwargs)
-    
+
     return inner
 
-def create_quad_indices(quadsCount: int) -> List[int]:
+def create_quad_indices(quads_count: int) -> t.List[int]:
     data = []
 
     offset = 0
     i = 0
-    while i < quadsCount:
+    while i < quads_count:
         data.extend([
             0 + offset,
             1 + offset,
@@ -94,8 +81,8 @@ def create_quad_indices(quadsCount: int) -> List[int]:
 
     return data
 
-Iterable_T = TypeVar('Iterable_T')
-class Iterator(_Iterator[Iterable_T]):
+T_Iterable = t.TypeVar('T_Iterable')
+class Iterator(t.Iterator[T_Iterable]):
     __slots__ = (
         '__weakref__',
         '_iterable',
@@ -104,13 +91,13 @@ class Iterator(_Iterator[Iterable_T]):
         'looping'
     )
 
-    def __init__(self, iterable: Sequence[Iterable_T], *, looping: bool = False):
+    def __init__(self, iterable: t.Sequence[T_Iterable], *, looping: bool = False):
         self._iterable = iterable
         self._last_pos = 0
         self._current = self._iterable[0]
         self.looping = looping
 
-    def __next__(self) -> Iterable_T:
+    def __next__(self) -> T_Iterable:
         pos = self._last_pos
         self._last_pos += 1
 
@@ -125,7 +112,7 @@ class Iterator(_Iterator[Iterable_T]):
         return self._current
 
     @property
-    def current(self) -> Iterable_T:
+    def current(self) -> T_Iterable:
         return self._current
 
 class Delayer:
@@ -152,9 +139,9 @@ class Delayer:
             self._to_wait = self._wait_time
             return False
 
-        curTime = time.perf_counter()
+        cur_time = time.perf_counter()
 
-        self._to_wait -= curTime - self._last_time
-        self._last_time = curTime
+        self._to_wait -= cur_time - self._last_time
+        self._last_time = cur_time
 
         return True

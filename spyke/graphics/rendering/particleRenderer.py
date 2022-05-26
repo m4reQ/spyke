@@ -2,7 +2,7 @@
 from .rendererInfo import RenderStats
 from ..shader import Shader
 from ..buffers import VertexBuffer
-from ..vertexArray import VertexArray
+from ..vertex_array import VertexArray
 from .rendererSettings import RendererSettings
 from ...constants import _GL_FLOAT_SIZE
 from ...debugging import Debug, LogLevel

@@ -1,22 +1,23 @@
-from __future__ import annotations
-from spyke.windowing.windowSpecs import WindowSpecs
-from spyke.windowing.window import Window
-from spyke.graphics.rendering import Renderer
-from spyke.audio import AudioDevice
-from spyke.ecs import scene
-from spyke import events, utils, resources
-from abc import ABC, abstractmethod
+import abc
 import atexit
 import time
 import logging
+
+from spyke import events, utils, resources
+from spyke.resources import loading_queue
+from spyke.audio import AudioDevice
+from spyke.ecs import scene
+from spyke.windowing.window_specs import WindowSpecs
+from spyke.windowing.window import Window
+from spyke.graphics.rendering import Renderer
 
 __all__ = [
     'Application',
 ]
 
-_LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
-class Application(ABC):
+class Application(abc.ABC):
     def __init__(self, window_specification: WindowSpecs):
         self._loading_start: float = time.perf_counter()
 
@@ -28,15 +29,15 @@ class Application(ABC):
         # enginePreview.RenderPreview()
         # glfw.swap_buffers(self._handle)
 
-    @abstractmethod
+    @abc.abstractmethod
     def on_frame(self) -> None:
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def on_close(self) -> None:
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def on_load(self) -> None:
         pass
 
@@ -47,42 +48,43 @@ class Application(ABC):
         self._window.close()
         self._audio_device.close()
 
-        _LOGGER.info('Application closed.')
+        _logger.info('Application closed.')
 
     def _run(self) -> None:
-        events.register(lambda e: self.window.set_vsync(e.state), events.ToggleVsyncEvent, priority=-1)
+        events.register(lambda e: self._window.set_vsync(e.state), events.ToggleVsyncEvent, priority=-1)
         atexit.register(self._close)
 
-        self.renderer.initialize(self.window.handle)
+        self._renderer.initialize(self._window.handle)
         self.on_load()
         utils.garbage_collect()
-        
-        _LOGGER.info('Application loaded in %f seconds.', time.perf_counter() - self._loading_start)
+
+        _logger.info('Application loaded in %f seconds.', time.perf_counter() - self._loading_start)
 
         # enginePreview.CleanupPreview()
         # glfw.swap_buffers(self._handle)
 
         is_running = True
         while is_running:
-            start = self.window.get_time()
+            start = self._window.get_time()
 
-            if self.window.should_close:
+            if self._window.should_close:
                 events.invoke(events.WindowCloseEvent())
                 is_running = False
-            
+
             events._process_events()
+            loading_queue.process()
 
             _scene = scene.get_current()
             _scene.process(dt=self.frametime)
 
-            if self.renderer.info.window_active:
-                self.renderer.render_scene(_scene)
+            if self._renderer.info.window_active:
+                self._renderer.render_scene(_scene)
                 self.on_frame()
-                self.window.swap_buffers()
+                self._window.swap_buffers()
 
-            self.window.process_events()
+            self._window.process_events()
 
-            self.renderer.info.frametime = self.window.get_time() - start
+            self._renderer.info.frametime = self._window.get_time() - start
 
         self.on_close()
         self._close()

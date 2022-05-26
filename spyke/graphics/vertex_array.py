@@ -1,28 +1,28 @@
-from __future__ import annotations
-from spyke.graphics.buffers import Buffer
-from spyke.graphics import gl
-from spyke.enums import GLType
-from spyke.utils import convert
-from OpenGL import GL
 import logging
 
-_LOGGER = logging.getLogger(__name__)
+from OpenGL import GL
+
+from spyke.enums import GLType
+from spyke.utils import convert
+from spyke.graphics import gl
+from spyke.graphics.buffers import BufferBase
+
+_logger = logging.getLogger(__name__)
 
 class VertexArray(gl.GLObject):
     def __init__(self):
         super().__init__()
 
         self._id = gl.create_vertex_array()
-
         self._offsets = {}
 
-        _LOGGER.debug('%s created succesfully.', self)
+        _logger.debug('%s created succesfully.', self)
 
-    def bind_vertex_buffer(self, binding_index: int, buffer: Buffer, offset: int, stride: int) -> None:
+    def bind_vertex_buffer(self, binding_index: int, buffer: BufferBase, offset: int, stride: int) -> None:
         GL.glVertexArrayVertexBuffer(
             self.id, binding_index, buffer.id, offset, stride)
 
-    def bind_element_buffer(self, buffer: Buffer) -> None:
+    def bind_element_buffer(self, buffer: BufferBase) -> None:
         GL.glVertexArrayElementBuffer(self.id, buffer.id)
 
     def add_layout(self, attrib_index: int, binding_index: int, count: int, _type: GLType, is_normalized: bool, divisor: int = 0) -> None:
