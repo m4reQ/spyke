@@ -89,6 +89,7 @@ class _FontData:
     atlas: np.ndarray
     font_name: str
     glyphs: t.Dict[str, Glyph]
+    base_size: int
 
 def _determine_atlas_size(chars_data: t.Iterable[_CharPrototype],
                           cols: int) -> t.Tuple[int, int, t.List[int]]:
@@ -189,7 +190,7 @@ class FontLoader(LoaderBase[Font]):
         texture_spec.texture_swizzle = SwizzleTarget.TextureSwizzleRgba
         texture_spec.swizzle_mask = [SwizzleMask.One, SwizzleMask.One, SwizzleMask.One, SwizzleMask.Red] #type: ignore
 
-        return _FontData(texture_spec, TextureFormat.Red, atlas, name, glyphs)
+        return _FontData(texture_spec, TextureFormat.Red, atlas, name, glyphs, face.size.x_ppem)
 
     def finish_loading(self) -> None:
         data: _FontData = self.loading_data
@@ -203,3 +204,4 @@ class FontLoader(LoaderBase[Font]):
         self.resource.texture = texture
         self.resource.glyphs = data.glyphs
         self.resource.name = data.font_name
+        self.resource.base_size = data.base_size

@@ -7,7 +7,7 @@ import numpy as np
 
 @dataclass
 class RenderCommand:
-    image_id: t.Optional[UUID]
+    texture_id: int
     model_id: UUID
     transform: glm.mat4
     color: glm.vec4

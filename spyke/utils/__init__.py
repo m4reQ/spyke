@@ -17,7 +17,6 @@ __all__ = [
     'pointer',
     'get_extension_name',
     'get_submodules',
-    'debug_only',
     'Iterator',
     'Delayer',
     'Deletable'
@@ -44,23 +43,6 @@ def garbage_collect():
     gc.collect()
 
     _logger.debug('Garbage collection freed %d objects', prev - gc.get_count()[0])
-
-def debug_only(func: t.Callable[..., None]) -> t.Callable[..., None]:
-    '''
-    Decorator function that allows a function to only be called
-    while running with `__debug__ == True`. Else function call
-    is simply omitted.
-    To make sure there are no further complications with values not being returned
-    if debug mode is on, it only accepts functions that does not return any value.
-
-    @func: A function to be decorated.
-    '''
-
-    def inner(*args, **kwargs) -> None:
-        if __debug__:
-            func(*args, **kwargs)
-
-    return inner
 
 def create_quad_indices(quads_count: int) -> t.List[int]:
     data = []

@@ -10,6 +10,7 @@ Pillow
 esper
 pydub
 freetype-py
+stdlib_list
 
 # dev dependencies
 pyglm-typing

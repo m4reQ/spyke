@@ -42,7 +42,6 @@ class Application(abc.ABC):
         pass
 
     def _close(self) -> None:
-        scene.cleanup()
         resources.unload_all()
         self._renderer.shutdown()
         self._window.close()

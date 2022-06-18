@@ -276,9 +276,13 @@ class Renderer:
         GL.glEnable(GL.GL_DEPTH_TEST)
 
         for ent, (sprite, transform) in scene.get_components(components.SpriteComponent, components.TransformComponent):
+            image = resources.get(sprite.image_id, Image) # type: ignore
+            if not image.is_loaded:
+                continue
+            
             self._render(
                 RenderCommand(
-                    sprite.image_id,
+                    image.texture.id,
                     transform.model_id,
                     transform.matrix,
                     sprite.color,
@@ -295,6 +299,9 @@ class Renderer:
 
         for ent, (text, transform) in scene.get_components(components.TextComponent, components.TransformComponent):
             font = resources.get(text.font_id, Font)
+            if not font.is_loaded:
+                continue
+            
             scale = text.size / font.base_size
 
             x = transform.position.x
@@ -319,7 +326,7 @@ class Renderer:
                 text_transform[1, 1] = height
 
                 self._render(RenderCommand(
-                    font.image_id,
+                    font.texture.id,
                     Model.quad,
                     text_transform,
                     text.color,
@@ -369,19 +376,13 @@ class Renderer:
             self.pos_data_buffer.add_data_direct(model.position_data)
 
             for command in commands:
-                image: Image
-                if command.image_id:
-                    image = resources.get(command.image_id, Image) #type: ignore
-                else:
-                    image = resources.get(Image.empty, Image) #type: ignore
-                texture = image.texture
-                
+                t_id = command.texture_id
                 # TODO: Handle case of not enough texture slots
-                if texture.id not in textures:
-                    textures[last_texture_idx] = texture.id
+                if t_id not in textures:
+                    textures[last_texture_idx] = t_id
                     last_texture_idx += 1 
                 
-                texture_idx = textures.index(texture.id)
+                texture_idx = textures.index(t_id)
 
                 tex_coords: np.ndarray
                 if command.texture_coords_override is not None:
@@ -397,19 +398,18 @@ class Renderer:
                 # with complex models anyway
                 tiling_factor = command.tiling_factor
 
-                instance_data = np.concatenate((
-                    np.array([
-                        color.x,
-                        color.y,
-                        color.z,
-                        color.w,
-                        tiling_factor.x,
-                        tiling_factor.y,
-                        texture_idx,
-                        command.entity_id], dtype=np.float32),
-                np.asarray(glm.transpose(command.transform), dtype=np.float32).flatten()))
-
+                instance_data = np.array([
+                    color.x,
+                    color.y,
+                    color.z,
+                    color.w,
+                    tiling_factor.x,
+                    tiling_factor.y,
+                    texture_idx,
+                    command.entity_id], dtype=np.float32)
+                
                 self.instance_data_buffer.add_data(instance_data)
+                self.instance_data_buffer.add_data(np.asarray(glm.transpose(command.transform), dtype=np.float32).flatten())
             
             self._draw(model, instance_count, textures[:last_texture_idx])
         

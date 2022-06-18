@@ -11,12 +11,6 @@ class Rectangle:
     height: float
     
     def to_coordinates(self) -> np.ndarray:
-        #0.0, 1.0,
-            # 1.0, 1.0,
-            # 1.0, 0.0,
-            # 1.0, 0.0,
-            # 0.0, 0.0,
-            # 0.0, 1.0
         return np.array([
             self.left, self.top,
             self.right, self.top,

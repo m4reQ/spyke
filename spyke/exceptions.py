@@ -1,8 +1,4 @@
-import sys
-import logging
-import traceback
 import typing as t
-import ctypes as ct
 
 from spyke.enums import ErrorCode
 
@@ -12,9 +8,22 @@ __all__ = [
 ]
 
 class GraphicsException(Exception):
+    '''
+    Represents graphics related exceptions.
+    '''
+    
     __module__ = ''
 
-    def __init__(self, error: t.Union[str, ErrorCode, int]):
+    @t.overload
+    def __init__(self, error: str) -> None: ...
+    
+    @t.overload
+    def __init__(self, error: ErrorCode) -> None: ...
+    
+    @t.overload
+    def __init__(self, error: int) -> None: ...
+        
+    def __init__(self, error: t.Union[str, ErrorCode, int]) -> None:
         error_str = ''
 
         if isinstance(error, ErrorCode):
@@ -30,21 +39,11 @@ class GraphicsException(Exception):
         super().__init__(error_str)
 
 class SpykeException(Exception):
+    '''
+    Represents exceptions that come from spyke library.
+    '''
+    
     __module__ = ''
 
     def __init__(self, message: str):
         super().__init__(message)
-
-def _exception_handler(_type, _, _traceback) -> None:
-    logger = logging.getLogger(__name__)
-    exc_formatted = ''.join([_type.__name__, '\n', 'Traceback (most recent call last):\n'] + traceback.format_tb(_traceback))
-    logger.error(exc_formatted)
-    ct.windll.user32.MessageBoxW(
-        None,
-        f'A fatal error occured.\n{exc_formatted}',
-        'Spyke error',
-        0x10)
-    sys.exit(1)
-
-if not __debug__:
-    sys.excepthook = _exception_handler

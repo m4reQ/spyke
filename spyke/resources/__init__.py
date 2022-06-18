@@ -7,12 +7,13 @@ import logging
 import functools
 import typing as t
 
-from spyke import utils, paths
+from spyke import paths
 from spyke.exceptions import SpykeException
 from spyke.resources.loaders import LoaderBase
 from spyke.resources.types import ResourceBase
 from spyke.resources import types
 from spyke.resources import loaders
+from spyke.utils import class_registrant
 
 from spyke.resources.types import *
 
@@ -24,9 +25,15 @@ __all__ = [
 
 T_Resource = t.TypeVar('T_Resource', bound=ResourceBase)
 
-_loaders: t.Dict[str, t.Type[LoaderBase]] = {}
-_resources: t.Dict[uuid.UUID, ResourceBase] = {}
-_resource_types: t.Dict[str, t.Type[ResourceBase]] = {}
+_loaders: dict[str, type[LoaderBase]] = class_registrant.build_class_dict(
+    loaders,
+    lambda x: inspect.isclass(x) and not inspect.isabstract(x) and issubclass(x, LoaderBase),
+    lambda x: x.get_suitable_extensions()) # type: ignore
+_resource_types: dict[str, type[ResourceBase]] = class_registrant.build_class_dict(
+    types,
+    lambda x: inspect.isclass(x) and not inspect.isabstract(x) and issubclass(x, ResourceBase),
+    lambda x: x.get_suitable_extensions()) # type: ignore
+_resources: dict[uuid.UUID, ResourceBase] = {}
 
 _logger = logging.getLogger(__name__)
 
@@ -68,7 +75,7 @@ def load(filepath: str) -> uuid.UUID:
     return _id
 
 @functools.lru_cache
-def get(_id: uuid.UUID, resource_type: t.Type[T_Resource]) -> T_Resource:
+def get(_id: uuid.UUID, resource_type: type[T_Resource]) -> T_Resource:
     '''
     Gets proxy object to resource with given id and finalizes its loading if neccessary.
 
@@ -117,44 +124,18 @@ def unload(_id: uuid.UUID) -> None:
     _logger.debug('Resource with id %s unloaded.', _id)
 
 def unload_all() -> None:
+    '''
+    Unloads all resources currently present in resource registry.
+    '''
+    
     resources = _resources.copy().values()
     for resource in resources:
         resource.unload()
 
-def _register_resource_types() -> None:
-    def _is_resource_type(obj: object) -> bool:
-        return inspect.isclass(obj) \
-            and not inspect.isabstract(obj) \
-            and issubclass(obj, ResourceBase) # type: ignore
-
-    modules = utils.get_submodules(types)
-
-    for module in modules:
-        classes = [x[1] for x in inspect.getmembers(module, _is_resource_type)]
-        for _class in classes:
-            for ext in _class.get_suitable_extensions():
-                _resource_types[ext] = _class
-                _logger.debug('Resource type %s registered for file extension: %s.', _class.__name__, ext)
-
-def _register_loaders() -> None:
-    def _is_loader(obj) -> bool:
-        return inspect.isclass(obj) \
-            and not inspect.isabstract(obj) \
-            and issubclass(obj, LoaderBase) # type: ignore
-
-    modules = utils.get_submodules(loaders)
-
-    for module in modules:
-        classes = [x[1] for x in inspect.getmembers(module, _is_loader)]
-        for _class in classes:
-            for ext in _class.get_suitable_extensions():
-                _loaders[ext] = _class
-                _logger.debug('Loader %s registered for file extension: %s.', _class.__name__, ext)
-
-def _get_loader_for_extension(extension: str) -> t.Optional[t.Type[LoaderBase]]:
+def _get_loader_for_extension(extension: str) -> t.Optional[type[LoaderBase]]:
     return _loaders[extension]
 
-def _get_resource_type_for_extension(extension: str) -> t.Optional[t.Type[ResourceBase]]:
+def _get_resource_type_for_extension(extension: str) -> t.Optional[type[ResourceBase]]:
     return _resource_types[extension]
 
 def _add_resource(resource: ResourceBase) -> uuid.UUID:
@@ -169,9 +150,6 @@ def _add_resource(resource: ResourceBase) -> uuid.UUID:
     return _id
 
 def init():
-    _register_loaders()
-    _register_resource_types()
-
     if not os.path.exists(paths.SCREENSHOTS_DIRECTORY):
         os.mkdir(paths.SCREENSHOTS_DIRECTORY)
         _logger.debug('Missing screenshots directory created.')

@@ -8,7 +8,7 @@ if t.TYPE_CHECKING:
     from spyke.resources.loaders import LoaderBase
 
 _logger = logging.getLogger(__name__)
-_queue: queue.Queue[LoaderBase] = queue.Queue(32)
+_queue: queue.Queue[LoaderBase] = queue.Queue()
 
 def put_loader(loader: LoaderBase) -> None:
     _queue.put_nowait(loader)

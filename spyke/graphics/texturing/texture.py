@@ -40,7 +40,10 @@ class TextureSpec:
 
     @property
     def swizzle_mask(self) -> np.ndarray:
-        return self._swizzle_mask or np.zeros((4,), dtype=np.int32)
+        if self._swizzle_mask is not None:
+            return self._swizzle_mask
+        
+        return np.zeros((4,), dtype=np.int32)
 
     @swizzle_mask.setter
     def swizzle_mask(self, value: t.Sequence[SwizzleMask]) -> None:

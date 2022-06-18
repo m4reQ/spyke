@@ -2,8 +2,8 @@ import uuid
 import typing as t
 
 from spyke.graphics import Glyph
+from spyke.graphics.texturing.texture import Texture
 from .resource import ResourceBase
-from .image import Image
 
 class Font(ResourceBase):
     @staticmethod
@@ -13,7 +13,7 @@ class Font(ResourceBase):
     def __init__(self, _id: uuid.UUID, filepath: str):
         super().__init__(_id, filepath)
 
-        self.image_id: uuid.UUID = Image.empty
+        self.texture: Texture
         self.glyphs: t.Dict[str, Glyph] = {}
         self.base_size = 1
         self.name = ''
