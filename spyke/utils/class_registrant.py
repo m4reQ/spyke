@@ -7,10 +7,13 @@ from spyke import debug
 
 _KT = t.TypeVar('_KT')
 
+def _is_std_module(module: types.ModuleType) -> bool:
+    return module.__name__ in stdlib_list()
+
 def _get_submodules(module: types.ModuleType, scan_stdlib: bool) -> list[types.ModuleType]:
     def _predicate(x: object):
         if inspect.ismodule(x) and not scan_stdlib:
-            return x.__name__ not in stdlib_list() # type: ignore
+            return _is_std_module(x) # type: ignore
     
     return [x[1] for x in inspect.getmembers(module, _predicate)]
 
@@ -31,6 +34,9 @@ def build_class_dict(module: types.ModuleType,
     @scan_submodules: Tells if function should also lookup modules imported in target module.
     @scan_stdlib: Tells if function should query standard library modules while looking for desired types.
     '''
+    
+    if _is_std_module(module) and not scan_stdlib:
+        return {}
     
     to_scan: list[types.ModuleType]
     if scan_submodules:
