@@ -4,6 +4,8 @@ import logging
 import queue
 import typing as t
 
+from spyke import debug
+
 if t.TYPE_CHECKING:
     from spyke.resources.loaders import LoaderBase
 
@@ -13,7 +15,8 @@ _queue: queue.Queue[LoaderBase] = queue.Queue()
 def put_loader(loader: LoaderBase) -> None:
     _queue.put_nowait(loader)
 
-def process() -> None:
+@debug.profiled('loading')
+def process_loading_queue() -> None:
     while not _queue.empty():
         loader = _queue.get_nowait()
         if loader.has_loading_error:

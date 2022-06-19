@@ -17,12 +17,14 @@ from uuid import UUID
 from OpenGL import GL
 from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
 from PIL import Image as PILImage
+import esper
 import threading
 import glm
 import time
 import numpy as np
 import os
 import logging
+from spyke import debug
 
 PolygonModeGenerator = Generator[PolygonMode, None, None]
 # TODO: Restore particle rendering
@@ -92,6 +94,7 @@ class Renderer:
     def render_commands_count(self) -> int:
         return sum(len(x) for x in self.render_commands.values())
     
+    @debug.profiled('graphics', 'rendering')
     def shutdown(self) -> None:
         if not self.is_initialized:
             return
@@ -113,6 +116,7 @@ class Renderer:
         self.is_initialized = False
         _LOGGER.debug('Renderer shutdown completed.')
 
+    @debug.profiled('graphics', 'rendering')
     def initialize(self, window_handle: _GLFWwindow) -> None:
         if self.is_initialized:
             _LOGGER.warning('Renderer already initialized.')
@@ -195,12 +199,9 @@ class Renderer:
         self.info.framebuffer_height = self.framebuffer.height
 
         samplers = list(range(MAX_TEXTURES_COUNT))
-        self.basic_shader.set_uniform_int(
-            'uTextures', samplers)
-        self.basic_shader.set_uniform_int(
-            'uTextureCoordsBuffer', BUFFER_TEXTURE_SAMPLER)
-        self.basic_shader.set_uniform_block_binding(
-            'uMatrices', MATRICES_UNIFORM_BLOCK_INDEX)
+        self.basic_shader.set_uniform_array('uTextures', samplers)
+        self.basic_shader.set_uniform('uTextureCoordsBuffer', BUFFER_TEXTURE_SAMPLER)
+        self.basic_shader.set_uniform_block_binding('uMatrices', MATRICES_UNIFORM_BLOCK_INDEX)
         self.basic_shader.validate()
 
         self.vao.bind_element_buffer(self.ibo)
@@ -229,12 +230,14 @@ class Renderer:
 
         self.is_initialized = True
 
+    @debug.profiled('graphics', 'rendering')
     def clear_screen(self) -> None:
         GL.glClear(ClearMask.ColorBufferBit | ClearMask.DepthBufferBit)
 
-    def set_clear_color(self, r: float, g: float, b: float, a: float) -> None:
+    def set_clear_color(self, r: float, g: float, b: float, a: float=1.0) -> None:
         GL.glClearColor(r, g, b, a)
 
+    @debug.profiled('graphics', 'rendering')
     def capture_frame(self) -> None:
         width, height = self.info.framebuffer_size
         pixels = GL.glReadPixels(0, 0, width, height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
@@ -247,6 +250,7 @@ class Renderer:
         img.save(filename, 'JPEG')
         _LOGGER.info('Screenshot was saved as "%s".', filename)
 
+    @debug.profiled('graphics', 'rendering')
     def render_scene(self, scene: Scene) -> None:
         self.info.reset_frame_stats()
 
@@ -263,8 +267,7 @@ class Renderer:
         else:
             view_projection = primary_camera.view_projection
 
-        self.ubo.add_data_direct(
-            np.asarray(view_projection, dtype=np.float32).T)
+        self.ubo.store_direct(view_projection)
 
         BufferBase.bind_ubo(self.ubo)
 
@@ -275,30 +278,47 @@ class Renderer:
         GL.glPolygonMode(GL.GL_FRONT_AND_BACK, self.polygon_mode_iterator.current)
         GL.glEnable(GL.GL_DEPTH_TEST)
 
-        for ent, (sprite, transform) in scene.get_components(components.SpriteComponent, components.TransformComponent):
-            image = resources.get(sprite.image_id, Image) # type: ignore
-            if not image.is_loaded:
-                continue
-            
-            self._render(
-                RenderCommand(
-                    image.texture.id,
-                    transform.model_id,
-                    transform.matrix,
-                    sprite.color,
-                    sprite.tiling_factor,
-                    ent))
-
+        self._render_objects(scene)
         self._flush()
 
         GL.glDisable(GL.GL_DEPTH_TEST)
 
+        self._render_text(scene)
+        self._flush()
+
+        # TODO: Reimplement particle renderer
+        # for _, system in scene.GetComponent(components.ParticleSystemComponent):
+        # 	for particle in system.particlePool:
+        # 		if particle.isAlive:
+        # 			Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
+
+        # TODO: Implement rendering of multisampled framebuffer
+        # if self.info.extension_present('GL_INTEL_framebuffer_CMAA'):
+        # self.framebuffer.unbind()
+
+        # GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+        # GL.glViewport(0, 0, self.info.window_width, self.info.window_height)
+
+        # self.clear_screen()
+
+        # self._render_quad(glm.mat4(1.0), glm.vec4(1.0), glm.vec2(
+        #     1.0), self.framebuffer.get_color_attachment(0))
+        # self._flush()
+
+        if self.info.vendor == Vendor.Nvidia:
+            self.info.video_memory_used = self.info.video_memory_available - \
+                GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
+
+        self.info.drawtime = time.perf_counter() - start
+
+    @debug.profiled('graphics', 'rendering')
+    def _render_text(self, scene: esper.World) -> None:
         text_transform = glm.mat4(1.0)
         fb_width = self.info.framebuffer_width
         fb_height = self.info.framebuffer_height
 
         for ent, (text, transform) in scene.get_components(components.TextComponent, components.TransformComponent):
-            font = resources.get(text.font_id, Font)
+            font: Font = resources.get(text.font_id, Font) # type: ignore
             if not font.is_loaded:
                 continue
             
@@ -334,33 +354,23 @@ class Renderer:
                     ent,
                     glyph.tex_rect.to_coordinates()))
 
-        self._flush()
-
-        # TODO: Reimplement particle renderer
-        # for _, system in scene.GetComponent(components.ParticleSystemComponent):
-        # 	for particle in system.particlePool:
-        # 		if particle.isAlive:
-        # 			Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
-
-        # TODO: Implement rendering of multisampled framebuffer
-        # if self.info.extension_present('GL_INTEL_framebuffer_CMAA'):
-        # self.framebuffer.unbind()
-
-        # GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-        # GL.glViewport(0, 0, self.info.window_width, self.info.window_height)
-
-        # self.clear_screen()
-
-        # self._render_quad(glm.mat4(1.0), glm.vec4(1.0), glm.vec2(
-        #     1.0), self.framebuffer.get_color_attachment(0))
-        # self._flush()
-
-        if self.info.vendor == Vendor.Nvidia:
-            self.info.video_memory_used = self.info.video_memory_available - \
-                GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
-
-        self.info.drawtime = time.perf_counter() - start
+    @debug.profiled('graphics', 'rendering')
+    def _render_objects(self, scene: esper.World) -> None:
+        for ent, (sprite, transform) in scene.get_components(components.SpriteComponent, components.TransformComponent):
+            image: Image = resources.get(sprite.image_id, Image) # type: ignore
+            if not image.is_loaded:
+                continue
+            
+            self._render(
+                RenderCommand(
+                    image.texture.id,
+                    transform.model_id,
+                    transform.matrix,
+                    sprite.color,
+                    sprite.tiling_factor,
+                    ent))
     
+    @debug.profiled('graphics', 'rendering')
     def _flush(self) -> None:
         self.render_lock.acquire()
 
@@ -373,7 +383,7 @@ class Renderer:
             # disabling type checks here as mypy doesn't work well with lru_cache
             model: Model = resources.get(model_id, Model) #type: ignore
 
-            self.pos_data_buffer.add_data_direct(model.position_data)
+            self.pos_data_buffer.store_direct(model.position_data)
 
             for command in commands:
                 t_id = command.texture_id
@@ -390,7 +400,7 @@ class Renderer:
                 else:
                     tex_coords = model.texture_coords
                     
-                self.vertex_data_buffer.add_data(tex_coords)
+                self.vertex_data_buffer.store(tex_coords)
                 
                 color = command.color
                 # TODO: Decide if we really want to have ability
@@ -399,37 +409,38 @@ class Renderer:
                 tiling_factor = command.tiling_factor
 
                 instance_data = np.array([
-                    color.x,
-                    color.y,
-                    color.z,
-                    color.w,
-                    tiling_factor.x,
-                    tiling_factor.y,
+                    *color,
+                    *tiling_factor,
                     texture_idx,
                     command.entity_id], dtype=np.float32)
                 
-                self.instance_data_buffer.add_data(instance_data)
-                self.instance_data_buffer.add_data(np.asarray(glm.transpose(command.transform), dtype=np.float32).flatten())
+                self.instance_data_buffer.store(instance_data)
+                self.instance_data_buffer.store(command.transform)
             
             self._draw(model, instance_count, textures[:last_texture_idx])
         
         self.render_commands.clear()
         self.render_lock.release()
     
-    def _draw(self, model: Model, instance_count: int, textures: List[int]) -> None:
+    @debug.profiled('graphics', 'rendering')
+    def _bind_textures(self, textures: list[int]) -> None:
+        GL.glBindTextureUnit(15, self.vertex_data_buffer.texture_id)
+        
+        for i, texture in enumerate(textures):
+            GL.glBindTextureUnit(i, texture)
+    
+    @debug.profiled('graphics', 'rendering')
+    def _draw(self, model: Model, instance_count: int, textures: list[int]) -> None:
         # TODO: Add docs
         self.vertex_data_buffer.flip()
         self.instance_data_buffer.flip()
-
-        for i, texture in enumerate(textures):
-            GL.glBindTextureUnit(i, texture)
-
-        GL.glBindTextureUnit(15, self.vertex_data_buffer.texture_id)
+        
+        self._bind_textures(textures)
 
         self.vao.bind()
         self.basic_shader.use()
 
-        self.basic_shader.set_uniform_int('uVerticesPerInstance', model.vertices_per_instance)
+        self.basic_shader.set_uniform('uVerticesPerInstance', model.vertices_per_instance)
 
         accumulated_vertex_count = instance_count * model.vertices_per_instance
         GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, accumulated_vertex_count, instance_count)

@@ -14,10 +14,10 @@ from spyke.exceptions import GraphicsException
 
 __all__ = [
     'get_gl_error',
-    'check_context',
+    'require_context',
     'timed',
     'debug_only',
-    'check_context'
+    'require_context'
 ]
 
 

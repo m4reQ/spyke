@@ -4,7 +4,7 @@ import typing as t
 
 from OpenGL import GL
 
-from spyke import events
+from spyke import events, debug
 from spyke.graphics import gl
 from spyke.graphics.texturing.texture_proxy import TextureProxy
 from spyke.exceptions import GraphicsException
@@ -52,7 +52,7 @@ class FramebufferSpec:
     height: int
     samples: int = 1
     is_resizable: bool = False
-    attachments_specs: t.List[AttachmentSpec] = dataclasses.field(default_factory=list)
+    attachments_specs: list[AttachmentSpec] = dataclasses.field(default_factory=list)
 
 # TODO: Maybe its worth creating separate class `FramebufferAttachment` which will store all
 # informations about attachment as well as the created texture id together
@@ -60,6 +60,7 @@ class FramebufferSpec:
 # TODO: Add support for attachments of various sizes
 
 class Framebuffer(gl.GLObject):
+    @debug.profiled('graphics')
     def __init__(self, specification: FramebufferSpec):
         super().__init__()
 
@@ -70,12 +71,12 @@ class Framebuffer(gl.GLObject):
 
         self.specification: FramebufferSpec = specification
 
-        self.color_attachment_specs: t.List[AttachmentSpec] = []
+        self.color_attachment_specs: list[AttachmentSpec] = []
         self.depth_attachment_spec: t.Optional[AttachmentSpec] = None
 
         self._get_attachments_specs(specification)
 
-        self.color_attachments: t.List[int] = []
+        self.color_attachments: list[int] = []
         self.depth_attachment: int = 0
 
         self._invalidate(True)
@@ -88,6 +89,7 @@ class Framebuffer(gl.GLObject):
 
         _logger.debug('%s created succesfully.', self)
 
+    @debug.profiled('graphics')
     def bind(self) -> None:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.id)
         GL.glViewport(0, 0, self.width, self.height)
@@ -95,6 +97,7 @@ class Framebuffer(gl.GLObject):
     def unbind(self) -> None:
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
+    @debug.profiled('graphics')
     def resize(self, width: int, height: int) -> None:
         if not self.specification.is_resizable:
             raise GraphicsException(
@@ -107,6 +110,7 @@ class Framebuffer(gl.GLObject):
 
         _logger.debug('%s resized to (%d, %d).', self, width, height)
 
+    @debug.profiled('graphics')
     def _delete(self) -> None:
         GL.glDeleteFramebuffers(1, [self.id])
         GL.glDeleteTextures(
@@ -152,6 +156,7 @@ class Framebuffer(gl.GLObject):
             self.depth_attachment = self._create_attachment(
                 self.depth_attachment_spec)
 
+    @debug.profiled('graphics')
     def _create_attachment(self, attachment_spec: AttachmentSpec) -> int:
         multisample = self.specification.samples > 1
 
@@ -204,6 +209,7 @@ class Framebuffer(gl.GLObject):
 
         GL.glNamedFramebufferTexture(self.id, attachment, _id, 0)
 
+    @debug.profiled('graphics')
     def _invalidate(self, check_complete: bool) -> None:
         if self.id:
             self._delete()

@@ -7,7 +7,7 @@ import numpy as np
 import freetype as ft
 
 from .loader import LoaderBase
-from spyke import utils
+from spyke import utils, debug
 from spyke.graphics import Glyph, Rectangle, TextureSpec, Texture
 from spyke.resources.types import Font
 from spyke.enums import (
@@ -126,6 +126,7 @@ class FontLoader(LoaderBase[Font]):
     def get_suitable_extensions() -> t.List[str]:
         return ['.ttf', '.otf']
 
+    @debug.profiled('resources')
     def load(self, filepath: str) -> t.Any:
         face = ft.Face(filepath)
         assert face.is_scalable, 'Cannot load non scalable fonts'
@@ -192,6 +193,7 @@ class FontLoader(LoaderBase[Font]):
 
         return _FontData(texture_spec, TextureFormat.Red, atlas, name, glyphs, face.size.x_ppem)
 
+    @debug.profiled('resources')
     def finish_loading(self) -> None:
         data: _FontData = self.loading_data
 

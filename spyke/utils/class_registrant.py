@@ -1,6 +1,7 @@
 import types
 import inspect
 import typing as t
+
 from stdlib_list import stdlib_list
 
 from spyke import debug
@@ -13,10 +14,11 @@ def _is_std_module(module: types.ModuleType) -> bool:
 def _get_submodules(module: types.ModuleType, scan_stdlib: bool) -> list[types.ModuleType]:
     def _predicate(x: object):
         if inspect.ismodule(x) and not scan_stdlib:
-            return _is_std_module(x) # type: ignore
+            return not _is_std_module(x) # type: ignore
     
     return [x[1] for x in inspect.getmembers(module, _predicate)]
 
+@debug.profiled('initialization')
 def build_class_dict(module: types.ModuleType,
                      predicate: t.Callable[[type], bool],
                      key_builder: t.Callable[[type], list[_KT]],

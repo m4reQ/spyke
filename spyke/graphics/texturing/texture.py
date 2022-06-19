@@ -6,6 +6,7 @@ import typing as t
 
 import numpy as np
 from OpenGL import GL
+from spyke import debug
 
 from spyke.exceptions import GraphicsException
 from spyke.graphics import gl
@@ -55,8 +56,7 @@ class Texture(gl.GLObject):
 
     @staticmethod
     def set_pixel_alignment(alignment: int) -> None:
-        assert alignment in [
-            1, 2, 4, 8], f'Invalid pixel alignment: {alignment}'
+        assert alignment in [1, 2, 4, 8], f'Invalid pixel alignment: {alignment}'
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, alignment)
 
     @classmethod
@@ -117,14 +117,14 @@ class Texture(gl.GLObject):
         cls._invalid_texture = tex
         return cls._invalid_texture
 
+    @debug.profiled('graphics', 'textures')
     def __init__(self, specification: TextureSpec):
         super().__init__()
 
         self.width: int = specification.width
         self.height: int = specification.height
         self.mipmaps: int = specification.mipmaps
-        self.is_compressed: bool = isinstance(
-            specification.internal_format, _CompressedInternalFormat)
+        self.is_compressed: bool = isinstance(specification.internal_format, _CompressedInternalFormat)
 
         # TODO: Check if texture width and height are less than GL_MAX_TEXTURE_SIZE
 
@@ -151,8 +151,9 @@ class Texture(gl.GLObject):
 
         _logger.debug('Texture object with id %d initialized succesfully.', self.id)
 
+    @debug.profiled('graphics', 'textures')
     def upload(self,
-               size: t.Optional[t.Tuple[int, int]],
+               size: t.Optional[tuple[int, int]],
                level: int,
                _format: _TextureFormat,
                pixel_type: PixelType,
@@ -168,8 +169,9 @@ class Texture(gl.GLObject):
 
         _logger.debug('Texture data of size (%d, %d) uploaded to texture object %d as level %d.', size[0], size[1], self.id, level)
 
+    @debug.profiled('graphics', 'textures')
     def upload_compressed(self,
-                          size: t.Optional[t.Tuple[int, int]],
+                          size: t.Optional[tuple[int, int]],
                           level: int,
                           _format: _TextureFormat,
                           image_size: int,
@@ -179,26 +181,27 @@ class Texture(gl.GLObject):
         if size is None:
             size = (self.width, self.height)
 
-        GL.glCompressedTextureSubImage2D(self.id, level, 0, 0, size[0], size[1], _format, image_size, data)
+        GL.glCompressedTextureSubImage2D(self.id, level, 0, 0, *size, _format, image_size, data)
 
         _logger.debug('Compressed texture data of size (%d, %d) uploaded to texture object %d as level %d. Texture format: %s', size[0], size[1], self.id, level, _format.name)
 
     def set_parameter(self, parameter: TextureParameter, value: t.Any) -> None:
         GL.glTextureParameteri(self.id, parameter, value)
 
+    @debug.profiled('graphics', 'textures')
     def generate_mipmap(self) -> None:
         GL.glGenerateTextureMipmap(self.id)
 
     def bind_to_unit(self, slot) -> None:
         GL.glBindTextureUnit(slot, self.id)
 
+    @debug.profiled('graphics', 'textures')
     def _delete(self) -> None:
         GL.glDeleteTextures(1, [self.id])
 
     def check_immutable(self) -> None:
         success = GL.GLint()
-        GL.glGetTextureParameteriv(
-            self.id, GL.GL_TEXTURE_IMMUTABLE_FORMAT, success)
+        GL.glGetTextureParameteriv(self.id, GL.GL_TEXTURE_IMMUTABLE_FORMAT, success)
 
         if success.value != 1:
             raise GraphicsException('Cannot create immutable texture.')

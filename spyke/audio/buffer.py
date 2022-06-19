@@ -1,16 +1,20 @@
 from __future__ import annotations
-from typing import Optional
-from spyke.enums import SoundFormat
-from spyke.audio import ALObject
+
+import typing as t
+
 from openal import al
 import numpy as np
 import logging
 
-_LOGGER = logging.getLogger(__name__)
+from spyke.enums import SoundFormat
+from spyke.audio import ALObject
+from spyke import debug
+
+_logger = logging.getLogger(__name__)
 
 class ALBuffer(ALObject):
-    _invalid_buffer: Optional[ALBuffer] = None
-    _empty_buffer: Optional[ALBuffer] = None
+    _invalid_buffer: t.Optional[ALBuffer] = None
+    _empty_buffer: t.Optional[ALBuffer] = None
 
     @classmethod
     def invalid(cls):
@@ -31,6 +35,7 @@ class ALBuffer(ALObject):
         cls._invalid_buffer = cls(SoundFormat.Mono8, b'', 21000)
         return cls._invalid_buffer
 
+    @debug.profiled('audio')
     def __init__(self, _format: SoundFormat, data: bytes, sample_rate: int):
         super().__init__()
 
@@ -39,7 +44,8 @@ class ALBuffer(ALObject):
         al.alGenBuffers(1, self._id)
         al.alBufferData(self._id, _format, data, self.size, sample_rate)
 
-        _LOGGER.debug('%s created succesfully (data size: %.3fkB).', self, self.size / 1000.0)
+        _logger.debug('%s created succesfully (data size: %.3fkB).', self, self.size / 1000.0)
 
+    @debug.profiled('audio')
     def _delete(self) -> None:
         al.alDeleteBuffers(1, self._id)

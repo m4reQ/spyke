@@ -1,10 +1,14 @@
-from .buffer import ALBuffer
-from openal import alc as ALC
 import logging
+
+from openal import alc as ALC
+
+from .buffer import ALBuffer
+from spyke import debug
 
 _LOGGER = logging.getLogger(__name__)
 
 class AudioDevice:
+    @debug.profiled('audio', 'initialization')
     def __init__(self):
         super().__init__()
         self._handle: int = ALC.alcOpenDevice(None)
@@ -21,6 +25,7 @@ class AudioDevice:
 
         _LOGGER.debug('Audio device "%s" opened.', self.name)
     
+    @debug.profiled('audio', 'initialization')
     def close(self) -> None:
         if ALBuffer._empty_buffer:
             ALBuffer._empty_buffer.delete()

@@ -4,6 +4,7 @@ import queue
 import threading
 import logging
 
+from spyke import debug
 from . import types
 from .types import *
 from .handler import Handler, T_Event
@@ -89,7 +90,8 @@ def invoke(event: Event) -> None:
     except queue.Full:
         _logger.warning('Cannot enqueue event of type %s. Event queue full.', type(event).__name__)
 
-def _process_events() -> None:
+@debug.profiled('events')
+def process_events() -> None:
     '''
     Processes events that are present in event queue
     by calling appropriate handlers.
@@ -110,12 +112,9 @@ def _process_events() -> None:
 
     assert threading.current_thread() is threading.main_thread(), 'events._process_events has to be called from main thread.'
 
-    while True:
-        try:
-            event = _events.get_nowait()
-        except queue.Empty:
-            return
-
+    while not _events.empty():
+        event = _events.get_nowait()
+        
         for handler in _handlers[type(event)]:
             if event.consumed:
                 break

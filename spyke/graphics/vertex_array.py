@@ -6,10 +6,12 @@ from spyke.enums import GLType
 from spyke.utils import convert
 from spyke.graphics import gl
 from spyke.graphics.buffers import BufferBase
+from spyke import debug
 
 _logger = logging.getLogger(__name__)
 
 class VertexArray(gl.GLObject):
+    @debug.profiled('graphics')
     def __init__(self):
         super().__init__()
 

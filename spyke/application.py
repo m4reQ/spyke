@@ -3,7 +3,7 @@ import atexit
 import time
 import logging
 
-from spyke import events, utils, resources
+from spyke import events, utils, resources, debug, paths
 from spyke.resources import loading_queue
 from spyke.audio import AudioDevice
 from spyke.ecs import scene
@@ -42,11 +42,16 @@ class Application(abc.ABC):
         pass
 
     def _close(self) -> None:
+        atexit.unregister(self._close)
+        
+        profiler = debug.get_profiler()
+        profiler.save_profile(paths.PROFILE_FILE)
+        
         resources.unload_all()
         self._renderer.shutdown()
         self._window.close()
         self._audio_device.close()
-
+        
         _logger.info('Application closed.')
 
     def _run(self) -> None:
@@ -70,8 +75,8 @@ class Application(abc.ABC):
                 events.invoke(events.WindowCloseEvent())
                 is_running = False
 
-            events._process_events()
-            loading_queue.process()
+            events.process_events()
+            loading_queue.process_loading_queue()
 
             _scene = scene.get_current()
             _scene.process(dt=self.frametime)
@@ -87,7 +92,6 @@ class Application(abc.ABC):
 
         self.on_close()
         self._close()
-        atexit.unregister(self._close)
 
     @property
     def frametime(self) -> float:

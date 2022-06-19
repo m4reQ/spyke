@@ -8,11 +8,20 @@ from OpenGL import GL
 
 from spyke import paths
 from .logging import SpykeLogger, LOG_LEVEL
-from .opengl import opengl_debug_callback
+from .decorators import timed, debug_only, require_context, profiled
+from .opengl import opengl_debug_callback, get_gl_error
+from .profiling import get_profiler, ChromeProfiler
 
 __all__ = [
     'SpykeLogger',
-    'LOG_LEVEL'
+    'LOG_LEVEL',
+    'debug_only',
+    'timed',
+    'profiled',
+    'require_context',
+    'get_gl_error',
+    'get_profiler',
+    'ChromeProfiler'
 ]
 
 def _exception_handler(_type, _, _traceback) -> None:

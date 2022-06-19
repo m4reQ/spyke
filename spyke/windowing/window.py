@@ -3,7 +3,7 @@ import logging
 import glfw
 from PIL import Image
 
-from spyke import paths
+from spyke import paths, debug
 from spyke.exceptions import GraphicsException
 from spyke.windowing import WindowSpecs
 from spyke.windowing import glfw_callbacks
@@ -12,6 +12,7 @@ _OPENGL_REQUIRED_VERSION = (4, 5)
 _logger = logging.getLogger(__name__)
 
 class Window:
+    @debug.profiled('graphics', 'initialization')
     def __init__(self, specification: WindowSpecs):
         super().__init__()
 
@@ -52,6 +53,7 @@ class Window:
     def swap_buffers(self) -> None:
         glfw.swap_buffers(self._handle)
 
+    @debug.profiled('graphics', 'window')
     def process_events(self) -> None:
         glfw.poll_events()
 

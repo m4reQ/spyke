@@ -8,8 +8,10 @@ from spyke.enums import _TextureFormat, PixelType
 from spyke.graphics.texturing import TextureSpec, Texture
 from spyke.resources.types import Image
 from spyke.utils import convert
+from spyke import debug
 from .loader import LoaderBase
 
+@debug.profiled('resources')
 def _load_image_data(img: PILImage.Image) -> np.ndarray:
     img.load()
 
@@ -45,6 +47,7 @@ class StandardImageLoader(LoaderBase[Image]):
     def get_suitable_extensions() -> t.List[str]:
         return ['.png', '.jpg', '.jpeg']
 
+    @debug.profiled('resources')
     def load(self, filepath: str) -> t.Any:
         spec = TextureSpec()
 
@@ -65,6 +68,7 @@ class StandardImageLoader(LoaderBase[Image]):
 
         return _TextureData(spec, texture_format, data)
 
+    @debug.profiled('resources')
     def finish_loading(self) -> None:
         data: _TextureData = self.loading_data
 

@@ -5,12 +5,14 @@ import functools
 from os import path
 
 import numpy as np
+import numpy.typing as npt
 import glm
 from OpenGL import GL
 
 from spyke.enums import ShaderType
-from spyke.exceptions import GraphicsException, SpykeException
+from spyke.exceptions import SpykeException
 from spyke.graphics import gl
+from spyke import debug
 
 _logger = logging.getLogger(__name__)
 
@@ -24,18 +26,25 @@ class ShaderSpec:
     tess_control_filepath: t.Optional[str] = None
 
 class Shader(gl.GLObject):
+    @debug.profiled('graphics', 'shaders')
     def __init__(self, shader_spec: ShaderSpec, auto_compile: bool=True):
         super().__init__()
 
         self._id: int = 0
-        self._stages: t.List[int] = []
+        self._stages: list[int] = []
         self._is_compiled = False
         self._spec = shader_spec
 
         if auto_compile:
             self.compile()
 
+    @debug.profiled('graphics', 'shaders')
     def compile(self) -> None:
+        '''
+        Compiles all shaders and links program from given
+        shader specification.
+        '''
+        
         if self._is_compiled:
             _logger.warning('Shader program is already compiled.')
             return
@@ -68,7 +77,12 @@ class Shader(gl.GLObject):
 
         _logger.info('Shader program %d compiled succesfully.', self.id)
 
+    @debug.profiled('graphics', 'shaders')
     def validate(self) -> None:
+        '''
+        Validates shader against current OpenGL state.
+        '''
+        
         if not self._is_compiled:
             _logger.error('Cannot validate not compiled shader program.')
             return
@@ -81,24 +95,25 @@ class Shader(gl.GLObject):
 
         _logger.debug('%s has been validated succesfully.', self)
 
+    @debug.profiled('graphics', 'shaders')
     def use(self) -> None:
         GL.glUseProgram(self.id)
 
-    @functools.lru_cache
+    @functools.cache
     def get_attrib_location(self, name: str) -> int:
         loc = GL.glGetAttribLocation(self.id, name)
         assert loc != -1, f'Cannot find attribute named "{name}".'
 
         return loc
 
-    @functools.lru_cache
+    @functools.cache
     def get_uniform_location(self, name: str) -> int:
         loc = GL.glGetUniformLocation(self.id, name)
         assert loc != -1, f'Cannot find uniform named "{name}".'
 
         return loc
 
-    @functools.lru_cache
+    @functools.cache
     def get_uniform_block_location(self, name: str) -> int:
         loc = GL.glGetUniformBlockIndex(self.id, name)
         assert loc != -1, f'Cannot find uniform block named "{name}".'
@@ -109,47 +124,78 @@ class Shader(gl.GLObject):
         loc = self.get_uniform_block_location(name)
         GL.glUniformBlockBinding(self.id, loc, index)
 
-    def set_uniform_int(self, name: str, value: t.Union[int, t.List[int]]) -> None:
+    @t.overload
+    def set_uniform(self, name: str, value: int) -> None: ...
+    
+    @t.overload
+    def set_uniform(self, name: str, value: float) -> None: ...
+    
+    def set_uniform(self, name: str, value: t.Union[int, float]) -> None:
         loc = self.get_uniform_location(name)
-
+        
         if isinstance(value, int):
             GL.glProgramUniform1i(self.id, loc, value)
-        elif isinstance(value, list):
-            GL.glProgramUniform1iv(self.id, loc, len(
-                value), np.asarray(value, dtype=np.int32))
-        else:
-            raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
-
-    def set_uniform_float(self, name: str, value: t.Union[float, t.List[float]]) -> None:
-        loc = self.get_uniform_location(name)
-
-        if isinstance(value, int):
+        elif isinstance(value, float):
             GL.glProgramUniform1f(self.id, loc, value)
-        elif isinstance(value, list):
-            GL.glProgramUniform1fv(self.id, loc, len(
-                value), np.asarray(value, dtype=np.float32))
         else:
-            raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
-
-    def set_uniform_double(self, name: str, value: t.Union[float, t.List[float]]) -> None:
+            raise TypeError(f'Invalid type of uniform value: {type(value).__name__}')
+    
+    @t.overload
+    def set_uniform_array(self, name: str, value: list[int]) -> None: ...
+    
+    @t.overload
+    def set_uniform_array(self, name: str, value: list[float]) -> None: ...
+    
+    @t.overload
+    def set_uniform_array(self, name: str, value: npt.NDArray[np.float32]) -> None: ...
+    
+    @t.overload
+    def set_uniform_array(self, name: str, value: npt.NDArray[np.int32]) -> None: ...
+    
+    @t.overload
+    def set_uniform_array(self, name: str, value: npt.NDArray[np.uint32]) -> None: ...
+    
+    def set_uniform_array(self, name: str, value: t.Union[list[int], list[float], npt.NDArray[np.int32], npt.NDArray[np.float32], npt.NDArray[np.uint32]]) -> None:
         loc = self.get_uniform_location(name)
-
-        if isinstance(value, int):
-            GL.glProgramUniform1d(self.id, loc, value)
-        elif isinstance(value, list):
-            GL.glProgramUniform1dv(self.id, loc, len(
-                value), np.asarray(value, dtype=np.float64))
+        
+        _len = len(value)
+        if _len == 0:
+            return
+        
+        # only check the first element for performance
+        if isinstance(value[0], int):
+            GL.glProgramUniform1iv(self.id, loc, _len, np.asarray(value, dtype=np.int32))
+        elif isinstance(value[0], float):
+            GL.glProgramUniform1fv(self.id, loc, _len, np.asarray(value, dtype=np.float32))
+        elif isinstance(value, np.ndarray):
+            if value.dtype == np.int32:
+                GL.glProgramUniform1iv(self.id, _len, value)
+            if value.dtype == np.uint32:
+                GL.glProgramUniform1uiv(self.id, _len, value)
+            if value.dtype == np.float32:
+                GL.glProgramUniform1fv(self.id, _len, value)
         else:
-            raise GraphicsException(f'Invalid type of uniform value: {type(value).__name__}')
-
-    # TODO: Add generic typing for `value` parameter
+            raise TypeError(f'Invalid type of uniform value: {type(value).__name__}')
+    
+    @t.overload
+    def set_uniform_matrix(self, name: str, value: glm.mat2, transpose: bool) -> None: ...
+    
+    @t.overload
+    def set_uniform_matrix(self, name: str, value: glm.mat3, transpose: bool) -> None: ...
+    
+    @t.overload
+    def set_uniform_matrix(self, name: str, value: glm.mat4, transpose: bool) -> None: ...
+    
     # TODO: Add support for matrices which width and height differ
-    def set_uniform_matrix(self, name: str, value, transpose: bool) -> None:
-        # TODO: Implement faster way of getting appropreriate function (maybe caching?)
-        fn = getattr(GL, f'glProgramUniformMatrix{value.length}fv')
-
-        fn(self.id, self.get_uniform_location(name),
-           1, transpose, glm.value_ptr(value))
+    def set_uniform_matrix(self, name: str, value: t.Union[glm.mat2, glm.mat3, glm.mat4], transpose: bool) -> None:
+        loc = self.get_uniform_location(name)
+        
+        if value.length() == 2:
+            GL.glProgramUniformMatrix2fv(self.id, loc, 1, transpose, glm.value_ptr(value))
+        elif value.length() == 3:
+            GL.glProgramUniformMatrix3fv(self.id, loc, 1, transpose, glm.value_ptr(value))
+        elif value.length() == 4:
+            GL.glProgramUniformMatrix4fv(self.id, loc, 1, transpose, glm.value_ptr(value))
 
     def _cleanup_stages(self) -> None:
         for shader in self._stages:

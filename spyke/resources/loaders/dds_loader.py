@@ -9,6 +9,7 @@ from PIL import Image as PILImage
 from .loader import LoaderBase
 from spyke.resources.types import Image
 from spyke.graphics import TextureSpec, Texture
+from spyke import debug
 from spyke.enums import (
     _TextureFormat,
     TextureParameter,
@@ -78,6 +79,7 @@ class DDSLoader(LoaderBase[Image]):
     def get_suitable_extensions() -> t.List[str]:
         return ['.dds']
 
+    @debug.profiled('resources')
     def load(self, filepath: str) -> t.Any:
         with PILImage.open(filepath, 'r') as img:
             f = img.fp # type: ignore
@@ -112,6 +114,7 @@ class DDSLoader(LoaderBase[Image]):
 
         return _CompressedTextureData(spec, texture_format, buffer, block_size)
     
+    @debug.profiled('resources')
     def finish_loading(self) -> None:
         data: _CompressedTextureData = self.loading_data
         specification = data.specification
