@@ -1,28 +1,15 @@
-import io
-import typing as t
 import ctypes as ct
-from dataclasses import dataclass
 
 import numpy as np
 from PIL import Image as PILImage
-
-from .loader import LoaderBase
-from spyke.resources.types import Image
-from spyke.graphics import TextureSpec, Texture
 from spyke import debug
-from spyke.enums import (
-    _TextureFormat,
-    TextureParameter,
-    MinFilter,
-    MagFilter,
-    S3tcCompressedInternalFormat)
+from spyke.enums import S3tcCompressedInternalFormat
+from spyke.graphics.textures import Texture2D, TextureSpec, TextureUploadData
+from spyke.resources.types import Image
 
-@dataclass
-class _CompressedTextureData:
-    specification: TextureSpec
-    texture_format: _TextureFormat
-    pixels: np.ndarray
-    block_size: int
+from .image_loading_data import ImageLoadingData
+from .loader import LoaderBase
+
 
 class _DDSHeader(ct.Structure):
     _fields_ = [
@@ -45,103 +32,113 @@ class _DDSHeader(ct.Structure):
         ('alpha_mask', ct.c_uint),
         ('caps1', ct.c_uint),
         ('caps2', ct.c_uint),
-        ('reserved2', ct.c_uint * 3),
-    ]
+        ('reserved2', ct.c_uint * 3)]
 
-
-def _determine_texture_format(img_mode: str, fourcc: str) -> t.Tuple[S3tcCompressedInternalFormat, int]:
-    if fourcc.endswith('1') and img_mode == 'RGB':
-        texture_format = S3tcCompressedInternalFormat.CompressedRgbS3tcDxt1
-        block_size = 8
-    elif fourcc.endswith('1') and img_mode == 'RGBA':
-        texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt1
-        block_size = 8
-    elif fourcc.endswith('3'):
-        texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt3
-        block_size = 16
-    elif fourcc.endswith('5'):
-        texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt5
-        block_size = 16
-    elif fourcc.endswith('0'):
-        raise RuntimeError('Loader does not support DXT10 format')
-    else:
-        raise RuntimeError(
-            f'Unsupported compressed file format: {fourcc}')
-
-    return (texture_format, block_size)
-
-class DDSLoader(LoaderBase[Image]):
+class DDSLoader(LoaderBase[Image, ImageLoadingData]):
     '''
     Loader used to load images from compressed image files.
     '''
 
-    @staticmethod
-    def get_suitable_extensions() -> t.List[str]:
-        return ['.dds']
+    __supported_extensions__ = ['.dds']
 
-    @debug.profiled('resources')
-    def load(self, filepath: str) -> t.Any:
+    @staticmethod
+    @debug.profiled('resources', 'io')
+    def load_from_file(filepath: str) -> ImageLoadingData:
         with PILImage.open(filepath, 'r') as img:
             f = img.fp # type: ignore
-            f.seek(0, io.SEEK_END)
-            file_size = f.tell()
-            f.seek(0, io.SEEK_SET)
 
             header = _DDSHeader()
             f.readinto(header)
 
             assert header.signature == b'DDS ', 'Provided file is not a DDS file'
 
-            width = header.width
-            height = header.height
-            mipmap_count = header.mipmap_count
             fourcc = header.fourcc.decode('utf-8')
             assert fourcc.startswith('DXT'), 'Loader only supports DXT(1|3|5) formats'
 
-            texture_format, block_size = _determine_texture_format(img.mode, fourcc)
+            internal_format, block_size = _determine_internal_format(img.mode, fourcc)
 
-            buffer_size = file_size - ct.sizeof(_DDSHeader)
-            buffer = np.empty((buffer_size, ), dtype=np.ubyte)
-            read = f.readinto(buffer)
+            buf = np.frombuffer(f.read(), dtype=np.ubyte)
 
-            assert read == buffer_size, 'Number of bytes read does not match the destination buffer size'
+        # TODO: Fix inheritance being fucked up in enums related to texture internal format
 
-        spec = TextureSpec()
-        spec.width = width
-        spec.height = height
-        spec.internal_format = texture_format
-        spec.mipmaps = mipmap_count
+        spec = TextureSpec(
+            header.width,
+            header.height,
+            internal_format, # type: ignore
+            mipmaps=header.mipmap_count)
 
-        return _CompressedTextureData(spec, texture_format, buffer, block_size)
-    
-    @debug.profiled('resources')
-    def finish_loading(self) -> None:
-        data: _CompressedTextureData = self.loading_data
-        specification = data.specification
+        upload_data = _create_upload_data(
+            header.width,
+            header.height,
+            header.mipmap_count,
+            block_size,
+            buf,
+            internal_format)
 
-        texture = Texture(specification)
-        texture.set_parameter(TextureParameter.MinFilter, MinFilter.LinearMipmapLinear)
-        texture.set_parameter(TextureParameter.MagFilter, MagFilter.Linear)
+        return ImageLoadingData(spec, upload_data)
 
-        offset = 0
-        w = specification.width
-        h = specification.height
-        mipmaps = specification.mipmaps
-        for i in range(specification.mipmaps):
-            if w == 0 or h == 0:
-                mipmaps -= 1
-                continue
+    @staticmethod
+    @debug.profiled('resources', 'initialization')
+    def finalize_loading(resource: Image, loading_data: ImageLoadingData) -> None:
+        tex = Texture2D(loading_data.specification)
+        for data in loading_data.upload_data:
+            tex.upload_compressed(data, False)
 
-            size = ((w + 3) // 4) * ((h + 3) // 4) * data.block_size
+        with resource.lock:
+            resource.texture = tex
+            resource.is_loaded = True
 
-            texture.upload_compressed(
-                (w, h), i, data.texture_format, size, data.pixels[offset:offset + size])
+def _determine_internal_format(img_mode: str, fourcc: str) -> tuple[S3tcCompressedInternalFormat, int]:
+    texture_format: S3tcCompressedInternalFormat
+    block_size: int
+    match img_mode, fourcc[-1]:
+        case 'RGB', '1':
+            texture_format = S3tcCompressedInternalFormat.CompressedRgbS3tcDxt1
+            block_size = 8
+        case 'RGBA', '1':
+            texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt1
+            block_size = 8
+        case 'RGBA', '3':
+            texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt3
+            block_size = 16
+        case 'RGBA', '5':
+            texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt5
+            block_size = 16
+        case _, '0':
+            raise RuntimeError('Loader does not support DXT10 format')
+        case _:
+            raise TypeError(f'Unsupported compressed file format: {fourcc}')
 
-            offset += size
-            w //= 2
-            h //= 2
+    return (texture_format, block_size)
 
-        texture.set_parameter(TextureParameter.MaxLevel, mipmaps - 1)
-        texture.check_immutable()
+def _create_upload_data(width: int,
+                        height: int,
+                        mipmaps: int,
+                        block_size: int,
+                        buffer: np.ndarray,
+                        internal_format: S3tcCompressedInternalFormat) -> list[TextureUploadData]:
+    data: list[TextureUploadData] = []
+    offset = 0
+    w = width
+    h = height
+    for i in range(mipmaps - 1, -1, -1):
+        if w == 0 or h == 0:
+            break
 
-        self.resource.texture = texture
+        size = ((w + 3) // 4) * ((h + 3) // 4) * block_size
+
+        _data = TextureUploadData(
+            w,
+            h,
+            buffer[offset:offset + size],
+            internal_format, # type: ignore
+            i,
+            image_size=size)
+
+        offset += size
+        w //= 2
+        h //= 2
+
+        data.append(_data)
+
+    return data

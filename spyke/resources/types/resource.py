@@ -1,14 +1,11 @@
 import abc
 import threading
 import uuid
-import typing as t
+
 
 class ResourceBase(abc.ABC):
-    @staticmethod
-    @abc.abstractmethod
-    def get_suitable_extensions() -> t.List[str]:
-        pass
-    
+    __supported_extensions__: list[str] = []
+
     def __init__(self, _id: uuid.UUID, filepath: str):
         self.filepath = filepath
         self.id = _id
@@ -35,12 +32,5 @@ class ResourceBase(abc.ABC):
     def unload(self) -> None:
         if not self.is_loaded:
             return
-
-        with self._lock:
-            self._unload()
-
-    @abc.abstractmethod
-    def _unload(self) -> None:
-        pass
 
 # TODO: Add support for: Video?

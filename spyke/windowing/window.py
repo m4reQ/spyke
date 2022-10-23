@@ -2,31 +2,33 @@ import logging
 
 import glfw
 from PIL import Image
-
-from spyke import paths, debug
+from spyke import debug, events, paths
+from spyke.enums import Key
 from spyke.exceptions import GraphicsException
-from spyke.windowing import WindowSpecs
-from spyke.windowing import glfw_callbacks
+from spyke.runtime import DisposableBase
+from spyke.windowing import WindowSpecs, glfw_callbacks
 
 _OPENGL_REQUIRED_VERSION = (4, 5)
-_logger = logging.getLogger(__name__)
 
-class Window:
+class Window(DisposableBase):
     @debug.profiled('graphics', 'initialization')
     def __init__(self, specification: WindowSpecs):
         super().__init__()
 
-        self._handle: glfw._GLFWwindow
+        self._is_active = True
+        self._is_vsync_on = True
 
         if not glfw.init():
             raise GraphicsException('Cannot initialize GLFW.')
 
-        self._set_default_window_flags(specification)
+        _set_default_window_flags(specification)
 
         if specification.fullscreen:
-            self._create_window_fullscreen(specification)
+            self._handle = _create_window_fullscreen(specification)
         else:
-            self._create_window_normal(specification)
+            self._handle = _create_window_normal(specification)
+
+        self._size = glfw.get_framebuffer_size(self._handle)
 
         glfw.make_context_current(self._handle)
 
@@ -38,6 +40,8 @@ class Window:
             glfw.set_window_icon(self._handle, 1, img)
 
         glfw_callbacks.register(self._handle)
+        events.register(self._change_focus_callback, events.WindowChangeFocusEvent, priority=-1)
+        events.register(self._resize_callback, events.ResizeEvent, priority=-1)
 
         self.set_vsync(specification.vsync)
 
@@ -48,12 +52,14 @@ class Window:
 
     def set_vsync(self, value: bool) -> None:
         glfw.swap_interval(int(value))
+        self._is_vsync_on = value
         _logger.debug('Vsync set to: %s.', value)
 
+    @debug.profiled('graphics', 'window', 'rendering')
     def swap_buffers(self) -> None:
         glfw.swap_buffers(self._handle)
 
-    @debug.profiled('graphics', 'window')
+    @debug.profiled('graphics', 'window', 'events')
     def process_events(self) -> None:
         glfw.poll_events()
 
@@ -68,48 +74,74 @@ class Window:
     def should_close(self) -> bool:
         return glfw.window_should_close(self._handle)
 
-    def close(self) -> None:
+    @property
+    def is_active(self) -> bool:
+        return self._is_active
+
+    @property
+    def size(self) -> tuple[int, int]:
+        return self._size
+
+    @debug.profiled('window')
+    def _dispose(self) -> None:
         glfw.destroy_window(self._handle)
         _logger.debug('Window destroyed.')
 
         glfw.terminate()
         _logger.debug('Glfw terminated.')
 
-    def _create_window_normal(self, specification: WindowSpecs) -> None:
-        glfw.window_hint(glfw.RESIZABLE, specification.resizable)
-        glfw.window_hint(glfw.DECORATED, not specification.borderless)
+    def _change_focus_callback(self, event: events.WindowChangeFocusEvent) -> None:
+        self._is_active = event.value
 
-        self._handle = glfw.create_window(
-            specification.width,
-            specification.height,
-            specification.title,
-            None,
-            None)
+    def _key_down_callback(self, event: events.KeyDownEvent) -> None:
+        if event.repeat:
+            return
 
-    def _create_window_fullscreen(self, specification: WindowSpecs) -> None:
-        mon = glfw.get_primary_monitor()
-        mode = glfw.get_video_mode(mon)
+        if event.key == Key.F2:
+            self.set_vsync(not self._is_vsync_on)
 
-        glfw.window_hint(glfw.RED_BITS, mode.bits.red)
-        glfw.window_hint(glfw.GREEN_BITS, mode.bits.green)
-        glfw.window_hint(glfw.BLUE_BITS, mode.bits.blue)
-        glfw.window_hint(glfw.REFRESH_RATE, mode.refresh_rate)
+    def _resize_callback(self, e: events.ResizeEvent) -> None:
+        self._size = e.size
 
-        self._handle = glfw.create_window(
-            specification.width,
-            specification.height,
-            specification.title,
-            mon,
-            None)
+@debug.profiled('window')
+def _create_window_normal(specification: WindowSpecs) -> glfw._GLFWwindow:
+    glfw.window_hint(glfw.RESIZABLE, specification.resizable)
+    glfw.window_hint(glfw.DECORATED, not specification.borderless)
 
-    def _set_default_window_flags(self, specification: WindowSpecs) -> None:
-        glfw.window_hint(
-            glfw.CONTEXT_VERSION_MAJOR,
-            _OPENGL_REQUIRED_VERSION[0])
-        glfw.window_hint(
-            glfw.CONTEXT_VERSION_MINOR,
-            _OPENGL_REQUIRED_VERSION[1])
-        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
-        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.window_hint(glfw.SAMPLES, specification.samples)
-        glfw.window_hint(glfw.OPENGL_DEBUG_CONTEXT, __debug__)
+    return glfw.create_window(
+        specification.width,
+        specification.height,
+        specification.title,
+        None,
+        None)
+
+@debug.profiled('window')
+def _create_window_fullscreen(specification: WindowSpecs) -> glfw._GLFWwindow:
+    mon = glfw.get_primary_monitor()
+    mode = glfw.get_video_mode(mon)
+
+    glfw.window_hint(glfw.RED_BITS, mode.bits.red)
+    glfw.window_hint(glfw.GREEN_BITS, mode.bits.green)
+    glfw.window_hint(glfw.BLUE_BITS, mode.bits.blue)
+    glfw.window_hint(glfw.REFRESH_RATE, mode.refresh_rate)
+
+    return glfw.create_window(
+        specification.width,
+        specification.height,
+        specification.title,
+        mon,
+        None)
+
+def _set_default_window_flags(specification: WindowSpecs) -> None:
+    glfw.window_hint(
+        glfw.CONTEXT_VERSION_MAJOR,
+        _OPENGL_REQUIRED_VERSION[0])
+    glfw.window_hint(
+        glfw.CONTEXT_VERSION_MINOR,
+        _OPENGL_REQUIRED_VERSION[1])
+    glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
+    glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+    glfw.window_hint(glfw.SAMPLES, specification.samples)
+    glfw.window_hint(glfw.OPENGL_DEBUG_CONTEXT, __debug__)
+
+_logger = logging.getLogger(__name__)

@@ -1,7 +1,6 @@
 import logging
 
 import glfw
-
 from spyke import events
 from spyke.exceptions import GraphicsException
 

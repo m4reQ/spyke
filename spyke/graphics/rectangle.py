@@ -3,13 +3,14 @@ import dataclasses
 import glm
 import numpy as np
 
+
 @dataclasses.dataclass
 class Rectangle:
     x: float
     y: float
     width: float
     height: float
-    
+
     def to_coordinates(self) -> np.ndarray:
         return np.array([
             self.left, self.top,

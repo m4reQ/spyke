@@ -1,7 +1,6 @@
 import logging
 from OpenGL import GL
 
-from spyke.debug.decorators import debug_only
 from spyke.enums import DebugSeverity, DebugSource, DebugType
 from spyke.exceptions import GraphicsException
 
@@ -21,7 +20,6 @@ def opengl_debug_callback(source: int, msg_type: int, _, severity: int, __, raw:
     elif _severity in [DebugSeverity.Low, DebugSeverity.Notification]:
         logger.info(message_formatted)
 
-@debug_only
 def get_gl_error() -> None:
     err = GL.glGetError()
     if err != GL.GL_NO_ERROR:

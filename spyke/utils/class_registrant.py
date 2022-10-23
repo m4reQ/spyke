@@ -4,12 +4,13 @@ import typing as t
 
 from stdlib_list import stdlib_list
 
-from spyke import debug
+from spyke.debug.profiling import profiled
 
 _KT = t.TypeVar('_KT')
 
 def _is_std_module(module: types.ModuleType) -> bool:
-    return module.__name__ in stdlib_list()
+    # TODO: When stdlib_list gets updated to support py 3.10 change this to default
+    return module.__name__ in stdlib_list(version='3.9')
 
 def _get_submodules(module: types.ModuleType, scan_stdlib: bool) -> list[types.ModuleType]:
     def _predicate(x: object):
@@ -18,7 +19,7 @@ def _get_submodules(module: types.ModuleType, scan_stdlib: bool) -> list[types.M
     
     return [x[1] for x in inspect.getmembers(module, _predicate)]
 
-@debug.profiled('initialization')
+@profiled('initialization')
 def build_class_dict(module: types.ModuleType,
                      predicate: t.Callable[[type], bool],
                      key_builder: t.Callable[[type], list[_KT]],

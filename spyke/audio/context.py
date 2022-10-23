@@ -1,13 +1,11 @@
 import logging
 
 from openal import alc as ALC
-
-from .buffer import ALBuffer
 from spyke import debug
+from spyke.runtime import DisposableBase
 
-_LOGGER = logging.getLogger(__name__)
 
-class AudioDevice:
+class AudioDevice(DisposableBase):
     @debug.profiled('audio', 'initialization')
     def __init__(self):
         super().__init__()
@@ -23,19 +21,14 @@ class AudioDevice:
         self.name: str = ALC.alcGetString(
             self._handle, ALC.ALC_DEVICE_SPECIFIER).decode('utf-8')
 
-        _LOGGER.debug('Audio device "%s" opened.', self.name)
-    
-    @debug.profiled('audio', 'initialization')
-    def close(self) -> None:
-        if ALBuffer._empty_buffer:
-            ALBuffer._empty_buffer.delete()
-        if ALBuffer._invalid_buffer:
-            ALBuffer._invalid_buffer.delete()
+        _logger.debug('Audio device "%s" opened.', self.name)
 
+    @debug.profiled('audio', 'cleanup')
+    def _dispose(self) -> None:
         ALC.alcDestroyContext(self._context)
         ALC.alcCloseDevice(self._handle)
 
-        _LOGGER.debug('Audio device "%s" closed.', self.name)
+        _logger.debug('Audio device "%s" closed.', self.name)
 
     @property
     def handle(self) -> int:
@@ -44,3 +37,5 @@ class AudioDevice:
     @property
     def context(self) -> int:
         return self._context
+
+_logger = logging.getLogger(__name__)

@@ -2,18 +2,18 @@ from .types import Event
 from typing import TypeVar, Generic, Callable
 import logging
 
-T_Event = TypeVar('T_Event', bound=Event)
-T_Return = TypeVar('T_Return')
+_ET = TypeVar('_ET', bound=Event)
+_RT = TypeVar('_RT')
 
 _logger = logging.getLogger(__name__)
 
-class Handler(Generic[T_Event, T_Return]):
+class Handler(Generic[_ET, _RT]):
     '''
     Represents a callable handler, which calls specific function
     to handle events of certain type.
     '''
 
-    def __init__(self, function: Callable[[T_Event], T_Return], priority: int, consume: bool):
+    def __init__(self, function: Callable[[_ET], _RT], priority: int, consume: bool):
         self.func = function
         self.priority = priority
         self.consume = consume
@@ -22,7 +22,7 @@ class Handler(Generic[T_Event, T_Return]):
     def name(self) -> str:
         return self.func.__qualname__
 
-    def __call__(self, event: T_Event) -> T_Return:
+    def __call__(self, event: _ET) -> _RT:
         try:
             res = self.func(event)
         except Exception as e:

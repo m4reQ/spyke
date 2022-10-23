@@ -1,54 +1,79 @@
-import logging
+from collections import defaultdict
 
 from OpenGL import GL
-
-from spyke.enums import GLType
-from spyke.utils import convert
-from spyke.graphics import gl
-from spyke.graphics.buffers import BufferBase
 from spyke import debug
+from spyke.enums import GLType
+from spyke.graphics.buffers import BufferBase
+from spyke.graphics.opengl_object import OpenglObjectBase
+from spyke.utils import convert
 
-_logger = logging.getLogger(__name__)
 
-class VertexArray(gl.GLObject):
-    @debug.profiled('graphics')
+class VertexArray(OpenglObjectBase):
     def __init__(self):
         super().__init__()
 
-        self._id = gl.create_vertex_array()
-        self._offsets = {}
+        self._offsets = defaultdict[int, int](lambda: 0)
 
-        _logger.debug('%s created succesfully.', self)
+    @debug.profiled('graphics', 'initialization')
+    def initialize(self) -> None:
+        super().initialize()
 
-    def bind_vertex_buffer(self, binding_index: int, buffer: BufferBase, offset: int, stride: int) -> None:
+        GL.glCreateVertexArrays(1, self._id)
+
+    @debug.profiled('graphics', 'cleanup')
+    def delete(self) -> None:
+        super().delete()
+
+        GL.glDeleteVertexArrays(1, self._id)
+
+    @debug.profiled('graphics', 'setup')
+    def bind_vertex_buffer(self, binding_index: int, buffer: BufferBase, offset: int, stride: int, divisor: int = 0) -> None:
+        self.ensure_initialized()
+        buffer.ensure_initialized()
+
         GL.glVertexArrayVertexBuffer(
-            self.id, binding_index, buffer.id, offset, stride)
+            self.id,
+            binding_index,
+            buffer.id,
+            offset,
+            stride)
+        GL.glVertexArrayBindingDivisor(self.id, binding_index, divisor)
 
+    @debug.profiled('graphics', 'setup')
     def bind_element_buffer(self, buffer: BufferBase) -> None:
+        self.ensure_initialized()
+        buffer.ensure_initialized()
+
         GL.glVertexArrayElementBuffer(self.id, buffer.id)
 
-    def add_layout(self, attrib_index: int, binding_index: int, count: int, _type: GLType, is_normalized: bool, divisor: int = 0) -> None:
-        if binding_index in self._offsets:
-            offset = self._offsets[binding_index]
-        else:
-            offset = 0
-            self._offsets[binding_index] = 0
+    @debug.profiled('graphics', 'setup')
+    def add_layout(self, attrib_index: int, binding_index: int, count: int, _type: GLType, is_normalized: bool = False) -> None:
+        self.ensure_initialized()
 
         GL.glEnableVertexArrayAttrib(self.id, attrib_index)
         GL.glVertexArrayAttribFormat(
-            self.id, attrib_index, count, _type, is_normalized, offset)
-        GL.glVertexArrayBindingDivisor(self.id, binding_index, divisor)
+            self.id,
+            attrib_index,
+            count,
+            _type,
+            is_normalized,
+            self._offsets[binding_index])
+
         GL.glVertexArrayAttribBinding(self.id, attrib_index, binding_index)
 
         self._offsets[binding_index] += convert.gl_type_to_size(_type) * count
 
-    def add_matrix_layout(self, attrib_index: int, binding_index: int, cols: int, rows: int, _type: GLType, is_normalized: bool, divisor: int = 0) -> None:
+    @debug.profiled('graphics', 'setup')
+    def add_matrix_layout(self, attrib_index: int, binding_index: int, cols: int, rows: int, _type: GLType, is_normalized: bool = False) -> None:
         for i in range(rows):
-            self.add_layout(attrib_index + i, binding_index,
-                            cols, _type, is_normalized, divisor)
+            self.add_layout(
+                attrib_index + i,
+                binding_index,
+                cols,
+                _type,
+                is_normalized)
 
+    @debug.profiled('graphics', 'rendering')
     def bind(self) -> None:
+        self.ensure_initialized()
         GL.glBindVertexArray(self.id)
-
-    def _delete(self) -> None:
-        GL.glDeleteVertexArrays(1, [self.id])

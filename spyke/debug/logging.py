@@ -1,6 +1,6 @@
 import logging
-import colorama
 
+import colorama
 from spyke import paths
 
 LOG_LEVEL: int = logging.DEBUG if __debug__ else logging.WARNING

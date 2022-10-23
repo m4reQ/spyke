@@ -1,21 +1,22 @@
-import os
-import threading
-import uuid
-import weakref
+import functools
 import inspect
 import logging
-import functools
+import os
+import queue
+import threading
+import time
 import typing as t
+import uuid
+import weakref
+from concurrent import futures
 
-from spyke import paths
-from spyke.exceptions import SpykeException
+from spyke import exceptions, paths, runtime
+from spyke.debug.profiling import profiled
+from spyke.resources import loaders, types
 from spyke.resources.loaders import LoaderBase
-from spyke.resources.types import ResourceBase
-from spyke.resources import types
-from spyke.resources import loaders
-from spyke.utils import class_registrant
-
 from spyke.resources.types import *
+from spyke.resources.types import ResourceBase
+from spyke.utils import once
 
 __all__ = [
     'load',
@@ -23,21 +24,36 @@ __all__ = [
     'get'
 ] + types.__all__
 
+MAX_PROCESS_WAIT_TIME = 0.16
+
 T_Resource = t.TypeVar('T_Resource', bound=ResourceBase)
 
-_loaders: dict[str, type[LoaderBase]] = class_registrant.build_class_dict(
-    loaders,
-    lambda x: inspect.isclass(x) and not inspect.isabstract(x) and issubclass(x, LoaderBase),
-    lambda x: x.get_suitable_extensions()) # type: ignore
-_resource_types: dict[str, type[ResourceBase]] = class_registrant.build_class_dict(
-    types,
-    lambda x: inspect.isclass(x) and not inspect.isabstract(x) and issubclass(x, ResourceBase),
-    lambda x: x.get_suitable_extensions()) # type: ignore
-_resources: dict[uuid.UUID, ResourceBase] = {}
+@once
+@profiled('resources', 'initialization')
+def initialize():
+    if not os.path.exists(paths.SCREENSHOTS_DIRECTORY):
+        os.mkdir(paths.SCREENSHOTS_DIRECTORY)
+        _logger.debug('Missing screenshots directory created.')
 
-_logger = logging.getLogger(__name__)
+    if not os.path.exists(paths.SHADER_SOURCES_DIRECTORY):
+        raise exceptions.SpykeException('Could not find shader sources directory. This may indicate problems with installation.')
 
-def load(filepath: str) -> uuid.UUID:
+    for _loader in (_type for name, _type in inspect.getmembers(loaders, lambda x: inspect.isclass(x) and issubclass(x, LoaderBase) and not inspect.isabstract(x)) if not name.startswith('__')):
+        _loaders.update({ext: _loader for ext in _loader.__supported_extensions__})
+    _logger.debug('Internal resouce types loaded.')
+
+    for _resource in (_type for name, _type in inspect.getmembers(types, lambda x: inspect.isclass(x) and issubclass(x, ResourceBase) and not inspect.isabstract(x)) if not name.startswith('__')):
+        _resource_types.update({ext: _resource for ext in _resource.__supported_extensions__})
+    _logger.debug('Resource loaders initialied.')
+
+    Model.quad = _add_resource(Model.create_quad_model())
+    # Image.empty = _add_resource(Image.create_empty_image())
+    _logger.debug('Internal resource handles created.')
+
+    _logger.debug('Resources module initialized.')
+
+@profiled('resources')
+def load_from_file(filepath: str) -> uuid.UUID:
     '''
     Submits loading task for resource from given file and returns its UUID.
     It automatically detects the resource type based on file extension.
@@ -52,25 +68,20 @@ def load(filepath: str) -> uuid.UUID:
 
     path = os.path.abspath(filepath)
     if not os.path.exists(path):
-        raise SpykeException(f'Cannot find resource file: {path}.')
+        raise exceptions.SpykeException(f'Cannot find resource file: {path}.')
 
     ext = os.path.splitext(path)[1]
-
-    loader_type = _get_loader_for_extension(ext)
-    if loader_type is None:
-        raise SpykeException(f'Cannot load resource with extension: {ext}')
-
+    loader = _get_loader_for_extension(ext)
     resource_type = _get_resource_type_for_extension(ext)
-    if resource_type is None:
-        raise SpykeException(f'Cannot determine resource type for extension: {ext}')
 
     _id = uuid.uuid4()
     resource = resource_type(_id, filepath)
-    loader = loader_type(resource)
-
     _add_resource(resource)
-    
-    loader.start()
+
+    runtime.submit_future(
+        loader.load_from_file,
+        filepath,
+        callback=lambda data: loader.finalize_loading(resource, data)) # type: ignore
 
     return _id
 
@@ -91,11 +102,11 @@ def get(_id: uuid.UUID, resource_type: type[T_Resource]) -> T_Resource:
     assert threading.current_thread() is threading.main_thread(), 'resource.get function can only be called from main thread.'
 
     if _id not in _resources:
-        raise SpykeException(f'Resource with id {_id} not found.')
+        raise exceptions.SpykeException(f'Resource with id {_id} not found.')
 
     resource = _resources[_id]
     if not isinstance(resource, resource_type):
-        raise SpykeException(f'Retrieved resource\'s type does not match requested type {resource_type.__name__} (got {type(resource).__name__}).')
+        raise exceptions.SpykeException(f'Retrieved resource\'s type does not match requested type {resource_type.__name__} (got {type(resource).__name__}).')
 
     return weakref.proxy(resource)
 
@@ -127,38 +138,37 @@ def unload_all() -> None:
     '''
     Unloads all resources currently present in resource registry.
     '''
-    
+
     resources = _resources.copy().values()
     for resource in resources:
         resource.unload()
 
-def _get_loader_for_extension(extension: str) -> t.Optional[type[LoaderBase]]:
-    return _loaders[extension]
+def _get_loader_for_extension(extension: str) -> type[LoaderBase]:
+    _type = _loaders[extension]
+    if _type is None:
+        raise exceptions.LoaderNotFoundException(extension)
 
-def _get_resource_type_for_extension(extension: str) -> t.Optional[type[ResourceBase]]:
-    return _resource_types[extension]
+    return _type
+
+def _get_resource_type_for_extension(extension: str) -> type[ResourceBase]:
+    _type = _resource_types[extension]
+    if _type is None:
+        raise exceptions.SpykeException(f'Cannot determine resource type for extension: {extension}')
+
+    return _type
 
 def _add_resource(resource: ResourceBase) -> uuid.UUID:
     if resource.id is not None:
         _id = resource.id
     else:
         _id = uuid.uuid4()
-        
+
     resource.id = _id
     _resources[_id] = resource
-    
+
     return _id
 
-def init():
-    if not os.path.exists(paths.SCREENSHOTS_DIRECTORY):
-        os.mkdir(paths.SCREENSHOTS_DIRECTORY)
-        _logger.debug('Missing screenshots directory created.')
-
-    if not os.path.exists(paths.SHADER_SOURCES_DIRECTORY):
-        raise SpykeException('Could not find shader sources directory. This may indicate problems with installation.')
-
-    Model.quad = _add_resource(Model.create_quad_model())
-    Image.empty = _add_resource(Image.create_empty_image())
-    _logger.debug('Internal resource handles created.')
-    
-    _logger.debug('Resources module initialized.')
+_resources: dict[uuid.UUID, ResourceBase] = {}
+_loaders: dict[str, type[LoaderBase]] = {}
+_resource_types: dict[str, type[ResourceBase]] = {}
+_logger = logging.getLogger(__name__)

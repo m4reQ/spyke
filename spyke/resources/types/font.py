@@ -1,19 +1,19 @@
-import uuid
 import typing as t
+import uuid
 
-from spyke.graphics import Glyph
-from spyke.graphics.texturing.texture import Texture
+from spyke.graphics.glyph import Glyph
+from spyke.graphics.textures import Texture2D
+
 from .resource import ResourceBase
 
+
 class Font(ResourceBase):
-    @staticmethod
-    def get_suitable_extensions() -> t.List[str]:
-        return ['.ttf', '.otf']
+    __supported_extensions__ = ['.ttf', '.otf']
 
     def __init__(self, _id: uuid.UUID, filepath: str):
         super().__init__(_id, filepath)
 
-        self.texture: Texture
+        self.texture: Texture2D
         self.glyphs: t.Dict[str, Glyph] = {}
         self.base_size = 1
         self.name = ''

@@ -5,9 +5,10 @@ import threading
 import logging
 
 from spyke import debug
+from spyke.utils import class_registrant
 from . import types
 from .types import *
-from .handler import Handler, T_Event
+from .handler import Handler
 
 __all__ = [
     'Event',
@@ -29,12 +30,14 @@ __all__ = [
     'register',
 ]
 
-_handlers: t.Dict[t.Type[Event], t.List[Handler]] = dict()
+_ET = t.TypeVar('_ET', bound=Event)
+
+_handlers: dict[type[Event], list[Handler]] = {}
 _events: queue.Queue[Event] = queue.Queue(maxsize=128)
 
 _logger = logging.getLogger(__name__)
 
-def register(method: t.Callable[[T_Event], Any], event_type: t.Type[T_Event], *, priority: int, consume: bool = False) -> None:
+def register(method: t.Callable[[_ET], t.Any], event_type: type[_ET], *, priority: int, consume: bool = False) -> None:
     '''
     Registers method as a handler for events of given type.
 
@@ -121,7 +124,7 @@ def process_events() -> None:
             
             handler(event)
 
-def register_user_event(event_type: t.Type[Event]) -> None:
+def register_user_event(event_type: type[Event]) -> None:
     '''
     Registers new user-defined event type. User-defined event types
     have to be subclasses of Event class.
@@ -147,7 +150,7 @@ def register_user_event(event_type: t.Type[Event]) -> None:
 def _register_events() -> None:
     classes = inspect.getmembers(types, predicate=lambda x: inspect.isclass(x) and not inspect.isabstract(x) and issubclass(x, Event))
     for name, _class in classes:
-        if name in _handlers:
+        if _class in _handlers:
             _logger.warning('Event %s already registered.', name)
         
         _handlers[_class] = []

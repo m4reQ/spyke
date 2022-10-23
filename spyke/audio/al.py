@@ -1,10 +1,10 @@
-from __future__ import annotations
-from spyke.utils import Deletable
-from abc import ABC
+import abc
+
 from openal import ALuint
+from spyke.runtime import DisposableBase
 
 
-class ALObject(Deletable, ABC):
+class ALObject(DisposableBase, abc.ABC):
     def __init__(self):
         super().__init__()
 
@@ -19,6 +19,6 @@ class ALObject(Deletable, ABC):
     @property
     def id(self) -> int:
         assert self._id.value != 0, f'Tried to use uninitialized OpenAL object ({self}).'
-        assert not self._deleted, 'Tried to use OpenAL object that is already deleted.'
+        assert not self.is_disposed, 'Tried to use OpenAL object that is already deleted.'
 
         return self._id.value

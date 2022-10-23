@@ -1,13 +1,14 @@
-import glm
+import OpenGL
+
+OpenGL.USE_ACCELERATE = True
+OpenGL.FORWARD_COMPATIBLE_ONLY = True
+OpenGL.ERROR_CHECKING = __debug__
+OpenGL.ERROR_ON_COPY = False
 
 from .rectangle import Rectangle
-from .glyph import Glyph
-from .texturing import Texture, TextureSpec
+from .rendering import renderer
 
 __all__ = [
     'Rectangle',
-    'color'
+    'renderer'
 ]
-
-def color(r: float, g: float, b: float, a: float) -> glm.vec4:
-    return glm.vec4(r, g, b, a)

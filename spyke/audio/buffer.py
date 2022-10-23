@@ -47,5 +47,5 @@ class ALBuffer(ALObject):
         _logger.debug('%s created succesfully (data size: %.3fkB).', self, self.size / 1000.0)
 
     @debug.profiled('audio')
-    def _delete(self) -> None:
+    def _dispose(self) -> None:
         al.alDeleteBuffers(1, self._id)

@@ -67,6 +67,6 @@ class SoundSource(ALObject):
         return SourceState(state.value)
     
     @debug.profiled('audio')
-    def _delete(self) -> None:
+    def _dispose(self) -> None:
         al.alSourcei(self.id, al.AL_BUFFER, 0)
         al.alDeleteSources(1, self._id)

@@ -1,17 +1,24 @@
 import uuid
-import typing as t
 
 import numpy as np
 
 from .resource import ResourceBase
 
+
 class Model(ResourceBase):
+    __supported_extensions__ = ['.obj']
+
+    @classmethod
+    def from_data(cls, uuid: uuid.UUID, data: np.ndarray, vertex_count: int):
+        inst = cls(uuid, '')
+        inst.data = data
+        inst.vertex_count = vertex_count
+        inst.is_loaded = True
+
+        return inst
+
     quad: uuid.UUID
-    
-    @staticmethod
-    def get_suitable_extensions() -> t.List[str]:
-        return ['.obj']
-    
+
     @classmethod
     def create_quad_model(cls):
         model = cls(uuid.uuid4(), '')
@@ -31,16 +38,12 @@ class Model(ResourceBase):
             1.0, 0.0,
             0.0, 0.0,
             0.0, 1.0], dtype=np.float32)
-        
+        model.is_loaded = True
+
         return model
-    
+
     def __init__(self, _id: uuid.UUID, filepath: str):
         super().__init__(_id, filepath)
 
-        self.index_data: t.Optional[np.ndarray] = None
-        self.position_data: np.ndarray
-        self.texture_coords: np.ndarray
-        self.vertices_per_instance: int
-
-    def _unload(self) -> None:
-        pass
+        self.data = np.empty((0,), dtype=np.float32)
+        self.vertex_count = 0
