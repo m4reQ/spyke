@@ -57,5 +57,3 @@ def initialize() -> None:
     _logger = _logging.getLogger(__name__)
     _logger.info('Spyke debug module initialized.')
 
-    # profiling.initialize()
-

@@ -71,5 +71,19 @@ def delete_all() -> None:
 
     _objects.clear()
 
+def delete_object(obj: OpenglObjectBase) -> None:
+    '''
+    Deletes single OpenGL object and removes it's reference from objects
+    registry. Deletion should always be done using this function to prevent
+    further attempts to delete object by automatic cleanup.
+
+    @obj: OpenGL object that is going to be delted.
+    '''
+
+    obj.delete()
+
+    if obj in _objects:
+        _objects.remove(obj)
+
 _objects: list[OpenglObjectBase] = []
 _logger = logging.getLogger(__name__)

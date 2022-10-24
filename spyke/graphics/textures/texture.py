@@ -115,6 +115,10 @@ class TextureBase(OpenglObjectBase, abc.ABC):
     def mipmaps(self) -> int:
         return self._spec.mipmaps
 
+    @property
+    def samples(self) -> int:
+        return self._spec.samples
+
     def _check_is_immutable(self) -> None:
         success = GL.GLint()
         GL.glGetTextureParameteriv(self.id, GL.GL_TEXTURE_IMMUTABLE_FORMAT, success)

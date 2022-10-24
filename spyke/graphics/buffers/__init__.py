@@ -1,6 +1,6 @@
 from .buffer import BufferBase
 from .dynamic_buffer import DynamicBuffer
-from .framebuffer import AttachmentSpec, Framebuffer, FramebufferSpec
+from .framebuffer import AttachmentSpec, Framebuffer
 from .texture_buffer import TextureBuffer
 
 __all__ = [
@@ -8,6 +8,5 @@ __all__ = [
     'DynamicBuffer',
     'TextureBuffer',
     'Framebuffer',
-    'FramebufferSpec',
     'AttachmentSpec'
 ]

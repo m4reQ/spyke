@@ -1,17 +1,19 @@
 import logging
 import os
+import time
 import typing as t
+from concurrent import futures
 
 import glm
 import numpy as np
 from OpenGL import GL
+from PIL import Image
 from spyke import debug, events, exceptions, paths
 from spyke.enums import (ClearMask, DebugSeverity, DebugSource, DebugType,
-                         GLType, MagFilter, MinFilter, ShaderType,
+                         GLType, Key, MagFilter, MinFilter, ShaderType,
                          SizedInternalFormat, TextureFormat)
-from spyke.events import ResizeEvent
-from spyke.graphics.buffers import DynamicBuffer
-from spyke.graphics.shader import Shader  # , ShaderSpec
+from spyke.graphics.buffers import AttachmentSpec, DynamicBuffer, Framebuffer
+from spyke.graphics.shader import Shader
 from spyke.graphics.textures import (Texture2D, TextureBase, TextureSpec,
                                      TextureUploadData)
 from spyke.graphics.vertex_array import VertexArray
@@ -32,20 +34,7 @@ from spyke.resources import Model
 #     MinFilter.Nearest,
 #     MagFilter.Nearest)
 
-# TODO: Handle usage of framebuffer with different size than the window
-# TODO: Unhardcode framebuffer size
-# framebuffer_spec = FramebufferSpec(
-#     1920,
-#     1080,
-#     is_resizable=True,
-#     attachments_specs=[
-#         color_attachment_spec,
-#         entity_id_attachment_spec,
-#         depth_attachment_spec])
-# TODO: Get samples count from some kind of settings file and handle below code
 # framebuffer_spec.samples = 1 if context.has_extension('GL_INTEL_framebuffer_CMAA') else 2
-
-# _framebuffer = Framebuffer(framebuffer_spec)
 
 # @debug.profiled('graphics', 'rendering')
 # def render_scene(scene: Scene) -> None:
@@ -152,33 +141,6 @@ from spyke.resources import Model
 #                 ent,
 #                 glyph.tex_rect.to_coordinates()))
 
-
-
-# @debug.profiled('graphics', 'rendering')
-# def _capture_frame() -> None:
-#     raise NotImplementedError()
-#     _check_initialized()
-#     width, height = _framebuffer.get_size()
-#     pixels = GL.glReadPixels(0, 0, width, height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, outputType=None)
-
-#     img = PILImage.frombytes(
-#         'RGB', (width, height), pixels)
-#     img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
-
-#     filename = os.path.join(paths.SCREENSHOTS_DIRECTORY, f'screenshot_{time.time()}.jpg')
-#     img.save(filename, 'JPEG')
-#     _logger.info('Screenshot was saved as "%s".', filename)
-
-# def _key_down_callback(e: events.KeyDownEvent) -> None:
-#     if e.repeat:
-#         return
-
-#     if e.key == Key.Grave:
-#         next(_polygon_mode_iterator)
-#         _logger.info('Renderer drawing mode set to %s', _polygon_mode_iterator.current)
-#     elif e.key == Key.F1:
-#         _capture_frame()
-
 _SIZEOF_FLOAT = np.dtype(np.float32).itemsize
 
 _BASIC_SHADER_SPEC = {
@@ -207,7 +169,6 @@ class Renderer:
         _setup_opengl_state()
 
         self._basic_shader = Shader.create(_BASIC_SHADER_SPEC)
-        # self._basic_shader = Shader(ShaderSpec(_BASIC_SHADER_SPEC[ShaderType.VertexShader], _BASIC_SHADER_SPEC[ShaderType.FragmentShader]))
         self._model_data_buffer = DynamicBuffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT)
         self._instance_data_buffer = DynamicBuffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT)
         self._uniform_buffer = DynamicBuffer(_UNIFORM_BLOCK_COUNT, generate_storage = False)
@@ -220,6 +181,7 @@ class Renderer:
                 mipmaps = 1,
                 min_filter = MinFilter.Nearest,
                 mag_filter = MagFilter.Nearest))
+        self._framebuffer = Framebuffer([AttachmentSpec(*window_size, SizedInternalFormat.Rgba8, MinFilter.Linear)])
 
         self._current_model: Model | None = None
         self._textures: list[TextureBase] = []
@@ -239,7 +201,9 @@ class Renderer:
                 TextureFormat.Rgba))
 
         self._uniform_buffer.bind_to_uniform(_UNIFORM_BLOCK_BINDING)
-        events.register(self._resize_callback, ResizeEvent, priority=-1)
+
+        events.register(self._resize_callback, events.ResizeEvent, priority=-1)
+        events.register(self._key_down_callback, events.KeyDownEvent, priority=-1)
 
         self._resize(*window_size)
 
@@ -303,6 +267,11 @@ class Renderer:
 
         self._flush()
 
+    @debug.profiled('graphics')
+    def capture_frame(self) -> None:
+        pixels = self._framebuffer.read_color_attachment(0, TextureFormat.Rgb)
+        _screenshot_save_executor.submit(_save_screenshot, pixels, self._framebuffer.size)
+
     def _get_texture_index(self, texture):
         if texture is None:
             return 0
@@ -345,6 +314,17 @@ class Renderer:
     @debug.profiled('graphics', 'events')
     def _resize_callback(self, e: events.ResizeEvent) -> None:
         self._resize(e.width, e.height)
+
+    @debug.profiled('graphics', 'events')
+    def _key_down_callback(self, e: events.KeyDownEvent) -> None:
+        if e.repeat:
+            return
+
+        if e.key == Key.F1:
+            _logger.warning('Taking screenshots is not available yet')
+            return
+
+            self.capture_frame()
 
     def _resize(self, width: int, height: int) -> None:
         GL.glScissor(0, 0, width, height)
@@ -390,4 +370,15 @@ def _setup_opengl_state() -> None:
     GL.glEnable(GL.GL_LINE_SMOOTH)
     GL.glClearColor(0.0, 0.0, 0.0, 1.0)
 
+@debug.profiled('graphics', 'io')
+def _save_screenshot(pixels: np.ndarray, size: tuple[int, int]) -> None:
+    img = Image.frombytes('RGB', size, pixels)
+    img = img.transpose(Image.FLIP_TOP_BOTTOM)
+
+    filename = os.path.join(paths.SCREENSHOTS_DIRECTORY, f'screenshot_{int(time.time())}.jpg')
+    img.save(filename, 'JPEG')
+
+    _logger.info('Screenshot was saved as "%s".', filename)
+
 _logger = logging.getLogger(__name__)
+_screenshot_save_executor = futures.ThreadPoolExecutor(thread_name_prefix='ScreenshotSave')
