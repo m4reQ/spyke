@@ -277,7 +277,7 @@ class Renderer:
         @texture: Texture to apply on the rendered instance. If `None` instance will be rendered with flat color.
         '''
 
-        if self._instance_count >= _MAX_INSTANCES or len(self._textures) >= _MAX_TEXTURES:
+        if self._instance_count >= _MAX_INSTANCES or len(self._textures) >= _MAX_TEXTURES - 1:
             self._flush()
 
         self._instance_data_buffer.store(
@@ -308,10 +308,10 @@ class Renderer:
             return 0
 
         if texture in self._textures:
-            return self._textures.index(texture)
+            return self._textures.index(texture) + 1
 
         self._textures.append(texture)
-        return len(self._textures) - 1
+        return len(self._textures)
 
     @debug.profiled('graphics', 'setup')
     def _setup_vertex_array(self) -> None:

@@ -57,8 +57,7 @@ class Application(abc.ABC):
     def run(self) -> None:
         # debug.initialize()
         # runtime.initialize()
-        # resources.initialize()
-        # events.register(lambda e: self._window.set_vsync(e.state), events.ToggleVsyncEvent, priority=-1)
+        resources.initialize()
         self.on_load()
 
         # utils.garbage_collect()
@@ -78,8 +77,8 @@ class Application(abc.ABC):
                 events.invoke(events.WindowCloseEvent())
                 is_running = False
 
-            # events.process_events()
-            # runtime.process_pending_futures()
+            resources.process_loading_queue()
+            events.process_events()
 
             # TEMPORARY !!!!!!
             # _scene = scene.get_current()

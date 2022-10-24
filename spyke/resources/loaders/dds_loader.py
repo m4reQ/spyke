@@ -46,6 +46,7 @@ class DDSLoader(LoaderBase[Image, ImageLoadingData]):
     def load_from_file(filepath: str) -> ImageLoadingData:
         with PILImage.open(filepath, 'r') as img:
             f = img.fp # type: ignore
+            f.seek(0)
 
             header = _DDSHeader()
             f.readinto(header)
@@ -121,7 +122,7 @@ def _create_upload_data(width: int,
     offset = 0
     w = width
     h = height
-    for i in range(mipmaps - 1, -1, -1):
+    for i in range(0, mipmaps):
         if w == 0 or h == 0:
             break
 

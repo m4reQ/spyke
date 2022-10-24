@@ -78,10 +78,8 @@ def load_from_file(filepath: str) -> uuid.UUID:
     resource = resource_type(_id, filepath)
     _add_resource(resource)
 
-    runtime.submit_future(
-        loader.load_from_file,
-        filepath,
-        callback=lambda data: loader.finalize_loading(resource, data)) # type: ignore
+    fut = _load_executor.submit(loader.load_from_file, filepath)
+    fut.add_done_callback(lambda data: _finalization_queue.put_nowait(lambda: loader.finalize_loading(resource, data.result())))
 
     return _id
 
@@ -143,12 +141,16 @@ def unload_all() -> None:
     for resource in resources:
         resource.unload()
 
+def process_loading_queue() -> None:
+    while not _finalization_queue.empty():
+        task = _finalization_queue.get_nowait()
+        task()
+
 def _get_loader_for_extension(extension: str) -> type[LoaderBase]:
-    _type = _loaders[extension]
-    if _type is None:
+    if extension not in _loaders:
         raise exceptions.LoaderNotFoundException(extension)
 
-    return _type
+    return _loaders[extension]
 
 def _get_resource_type_for_extension(extension: str) -> type[ResourceBase]:
     _type = _resource_types[extension]
@@ -172,3 +174,5 @@ _resources: dict[uuid.UUID, ResourceBase] = {}
 _loaders: dict[str, type[LoaderBase]] = {}
 _resource_types: dict[str, type[ResourceBase]] = {}
 _logger = logging.getLogger(__name__)
+_load_executor = futures.ThreadPoolExecutor(thread_name_prefix='ResourceLoad')
+_finalization_queue = queue.Queue[t.Callable[[], None]]()
