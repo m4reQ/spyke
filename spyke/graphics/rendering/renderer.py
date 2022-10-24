@@ -171,7 +171,7 @@ class Renderer:
         self._basic_shader = Shader.create(_BASIC_SHADER_SPEC)
         self._model_data_buffer = DynamicBuffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT)
         self._instance_data_buffer = DynamicBuffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT)
-        self._uniform_buffer = DynamicBuffer(_UNIFORM_BLOCK_COUNT, generate_storage = False)
+        self._uniform_buffer = DynamicBuffer(_UNIFORM_BLOCK_COUNT)
         self._vertex_array = VertexArray()
         self._white_texture = Texture2D(
             TextureSpec(
@@ -257,7 +257,7 @@ class Renderer:
     def begin_batch(self, model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
         self._current_model = model
 
-        self._uniform_buffer.store_direct(view_projection)
+        self._uniform_buffer.store(view_projection)
         self._uniform_buffer.bind_ubo()
 
     def end_batch(self) -> None:
@@ -298,8 +298,7 @@ class Renderer:
     def _flush(self) -> None:
         assert self._current_model is not None, '_flush called but no model is set.'
 
-        self._model_data_buffer.store_direct(self._current_model.data)
-        self._instance_data_buffer.flip()
+        self._model_data_buffer.store(self._current_model.data)
 
         TextureBase.bind_textures(0, [self._white_texture] + self._textures) # type: ignore
 
@@ -308,6 +307,9 @@ class Renderer:
 
         GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, self._current_model.vertex_count * self._instance_count, self._instance_count)
 
+        self._instance_data_buffer.reset()
+        self._model_data_buffer.reset()
+        self._uniform_buffer.reset()
         self._textures.clear()
         self._instance_count = 0
 

@@ -1,3 +1,4 @@
+import ctypes as ct
 import threading
 import typing as t
 
@@ -16,32 +17,25 @@ _DataType = glm_typing.AnyAnyVecAny | glm_typing.AnyAnyMatrixSquare | glm_typing
 class DynamicBuffer(BufferBase):
     def __init__(self,
                  count: int,
-                 dtype: npt.DTypeLike=np.float32,
-                 generate_storage: bool = True):
+                 dtype: npt.DTypeLike=np.float32):
         self._stride = np.dtype(dtype).itemsize
 
         super().__init__(
             count * self._stride,
-            BufferStorageFlags.DynamicStorageBit)
+            BufferStorageFlags.MapPersistentBit | BufferStorageFlags.MapCoherentBit | BufferStorageFlags.MapWriteBit) # type: ignore
 
         self._lock = threading.Lock()
         self._current_offset = 0
-        self._data: np.ndarray | None = None
-        if generate_storage:
-            self._data = np.empty(
-                (count,),
-                dtype=dtype)
+        self._dtype = dtype
+        self._elements_count = count
+        self._data: np.ndarray
 
-    @debug.profiled('graphics', 'buffers', 'runtime')
-    def flip(self) -> None:
-        '''
-        Transfers data from local storage to GPU buffer memory.
-        '''
+    @debug.profiled('graphics', 'initialization')
+    def initialize(self) -> None:
+        super().initialize()
 
-        self.ensure_initialized()
-
-        GL.glNamedBufferSubData(self.id, 0, self._current_offset * self._stride, self._data)
-        self._current_offset = 0
+        ptr = GL.glMapNamedBufferRange(self.id, 0, self.size, GL.GL_MAP_WRITE_BIT | GL.GL_MAP_PERSISTENT_BIT | GL.GL_MAP_COHERENT_BIT)
+        self._data = _ptr_to_np_array(ptr, self._dtype, self._elements_count)
 
     @t.overload
     def store(self, data: int) -> None: ...
@@ -73,13 +67,12 @@ class DynamicBuffer(BufferBase):
     @debug.profiled('graphics', 'buffers', 'rendering')
     def store(self, data: _DataType) -> None:
         '''
-        Stores data in CPU-side memory to be later transferred to GPU buffer
-        memory using `DynamicBuffer.flip`. This function is thread-safe.
+        Stores data in buffer's memory.
 
         @data: Data to be stored.
         '''
 
-        assert self._data is not None, f'Buffer with id {self.id} has no CPU-side storage'
+        self.ensure_initialized()
 
         _data, elements_count = _convert_data(data)
         with self._lock:
@@ -88,49 +81,8 @@ class DynamicBuffer(BufferBase):
             self._data[self._current_offset:self._current_offset + elements_count] = _data
             self._current_offset += elements_count
 
-    @t.overload
-    def store_direct(self, data: int, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: float, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: np.ndarray, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: glm.mat2, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: glm.mat3, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: glm.mat4, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: glm.vec2, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: glm.vec3, offset: int = 0) -> None: ...
-
-    @t.overload
-    def store_direct(self, data: glm.vec4, offset: int = 0) -> None: ...
-
-    @debug.profiled('graphics', 'buffers', 'rendering')
-    def store_direct(self, data: _DataType, offset: int = 0) -> None:
-        '''
-        Stores data directly in GPU buffer memory, instead of temporarily
-        copying it to CPU-side memory. This function requires OpenGL context
-        to be set while it is called and is not thread-safe.
-
-        @data: Data to be stored.
-        '''
-
-        self.ensure_initialized()
-
-        _data, elements_count = _convert_data(data)
-        self._check_overflow(elements_count)
-
-        GL.glNamedBufferSubData(self.id, offset, elements_count * self._stride, _data)
+    def reset(self) -> None:
+        self._current_offset = 0
 
     def _check_overflow(self, elements_count: int) -> None:
         data_size = elements_count * self._stride
@@ -157,3 +109,8 @@ def _convert_data(data: _DataType) -> tuple[t.Iterable, int]:
         _data = data
 
     return (_data, elements_count)
+
+def _ptr_to_np_array(ptr: int, dtype: npt.DTypeLike, elements_count: int) -> np.ndarray:
+    ptr_type = ct.POINTER(np.ctypeslib.as_ctypes_type(dtype)) # type: ignore
+
+    return np.ctypeslib.as_array(ct.cast(ptr, ptr_type), (elements_count, ))
