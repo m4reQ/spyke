@@ -110,7 +110,6 @@ def profiled(*categories: str) -> t.Callable[[t.Callable[_AT, _RT]], t.Callable[
             end = time.perf_counter()
 
             profile(func, start, end, categories)
-            _logger.debug('Function %s executed in %f seconds.', func.__qualname__, end - start)
 
             return res
 

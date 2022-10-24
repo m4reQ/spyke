@@ -1,3 +1,3 @@
-from .renderer import Renderer
+from . import renderer
 
-__all__ = ['Renderer']
+__all__ = ['renderer']

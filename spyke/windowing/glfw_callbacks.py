@@ -17,6 +17,7 @@ def register(window: glfw._GLFWwindow):
     glfw.set_key_callback(window, _key_callback)
     glfw.set_window_pos_callback(window, _window_pos_callback)
     glfw.set_window_focus_callback(window, _window_focus_callback)
+    glfw.set_window_close_callback(window, _window_close_callback)
 
     _logger.debug('GLFW window callbacks registered.')
 
@@ -26,6 +27,9 @@ def _error_callback(code: int, message: str) -> None:
 def _resize_cb(_, width: int, height: int) -> None:
     events.invoke(events.ResizeEvent(width, height))
     _logger.info('Window resized to (%d, %d)', width, height)
+
+def _window_close_callback(_) -> None:
+    events.invoke(events.WindowCloseEvent())
 
 def _window_focus_callback(_, value: int) -> None:
     events.invoke(events.WindowChangeFocusEvent(bool(value)))

@@ -1,18 +1,21 @@
 import dataclasses
 import logging
-import typing as t
 
+import numpy as np
 from OpenGL import GL
 from spyke import debug, events, exceptions
-from spyke.enums import (AttachmentPoint, FramebufferStatus, MagFilter,
-                         MinFilter, SizedInternalFormat,
-                         SizedInternalFormatBase, WrapMode)
+from spyke.enums import (FramebufferStatus, MagFilter, MinFilter,
+                         SizedInternalFormat, SizedInternalFormatBase,
+                         TextureFormat, WrapMode)
+from spyke.graphics import opengl_object
 from spyke.graphics.opengl_object import OpenglObjectBase
 from spyke.graphics.textures import Texture2D, TextureSpec
 
 
 @dataclasses.dataclass
 class AttachmentSpec:
+    width: int
+    height: int
     texture_format: SizedInternalFormatBase
     min_filter: MinFilter = MinFilter.LinearMipmapLinear
     mag_filter: MagFilter = MagFilter.Linear
@@ -27,48 +30,73 @@ class AttachmentSpec:
     def is_multisampled(self) -> bool:
         return self.samples > 1
 
-    def as_texture_spec(self, width: int, height: int) -> TextureSpec:
+    def to_texture_spec(self) -> TextureSpec:
         return TextureSpec(
-            width=width,
-            height=height,
-            mipmaps=1,
-            samples=self.samples,
-            min_filter=self.min_filter,
-            mag_filter=self.mag_filter,
-            wrap_mode=self.wrap_mode,
-            internal_format=self.texture_format)
-
-@dataclasses.dataclass
-class FramebufferSpec:
-    width: int
-    height: int
-    is_resizable: bool = False
-    attachments_specs: list[AttachmentSpec] = dataclasses.field(default_factory=list)
+            self.width,
+            self.height,
+            self.texture_format,
+            self.samples,
+            1,
+            self.min_filter,
+            self.mag_filter,
+            self.wrap_mode)
 
 class Framebuffer(OpenglObjectBase):
-    def __init__(self, spec: FramebufferSpec):
+    def __init__(self,
+                 color_attachments: list[AttachmentSpec],
+                 depth_attachment: AttachmentSpec | None = None,
+                 use_renderbuffer: bool = False):
         super().__init__()
 
-        self._width = spec.width
-        self._height = spec.height
-        self._is_resizable = spec.is_resizable
+        if len(color_attachments) > 0:
+            self._width = color_attachments[0].width
+            self._height = color_attachments[0].height
+        else:
+            self._width = 0
+            self._height = 0
 
-        self._color_attachments, self._depth_attachment = _create_framebuffer_attachments(spec.attachments_specs, spec.width, spec.height)
+        # TODO: Implement renderbuffers
+        if use_renderbuffer:
+            _logger.warning('Using renderbuffers as framebuffers attachment is not implemented yet.')
 
-        if spec.is_resizable:
-            events.register(
-                self._resize_callback,
-                events.ResizeEvent,
-                priority=-2)
+        self._color_attachments = [Texture2D(x.to_texture_spec()) for x in color_attachments]
+        self._depth_attachment = Texture2D(depth_attachment.to_texture_spec()) if depth_attachment is not None else None
 
-    @debug.profiled('graphics')
+    @debug.profiled('graphics', 'rendering')
     def bind(self) -> None:
+        self.ensure_initialized()
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.id)
         GL.glViewport(0, 0, self._width, self._height)
 
-    @debug.profiled('graphics')
+    @debug.profiled('graphics', 'rendering')
     def unbind(self) -> None:
+        self.ensure_initialized()
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+
+    @debug.profiled('graphics', 'buffers', 'initialization')
+    def initialize(self) -> None:
+        super().initialize()
+
+        GL.glCreateFramebuffers(1, self._id)
+
+        for i, tex in enumerate(self._color_attachments):
+            _check_attachment_valid(tex)
+            tex.initialize()
+            GL.glNamedFramebufferTexture(self.id, GL.GL_COLOR_ATTACHMENT0 + i, tex.id, 0)
+
+        if self._depth_attachment is not None:
+            _check_attachment_valid(self._depth_attachment)
+            self._depth_attachment.initialize()
+            GL.glNamedFramebufferTexture(self.id, GL.GL_DEPTH_STENCIL_ATTACHMENT, tex.id, 0)
+
+        attachments_count = len(self._color_attachments)
+        if attachments_count > 0:
+            draw_buffers = [GL.GL_COLOR_ATTACHMENT0 + i for i in range(attachments_count)]
+            GL.glNamedFramebufferDrawBuffers(self.id, attachments_count, draw_buffers)
+        else:
+            GL.glNamedFramebufferDrawBuffer(self.id, GL.GL_NONE)
+
+        self._check_complete()
 
     def get_color_attachment(self, index: int) -> Texture2D:
         assert index < len(self._color_attachments), f'Framebuffer has only {len(self._color_attachments)} color attachments.'
@@ -78,6 +106,27 @@ class Framebuffer(OpenglObjectBase):
         assert self._depth_attachment is not None, 'Framebuffer does not contain depth attachment.'
         return self._depth_attachment
 
+    def read_color_attachment(self, index: int, _format: TextureFormat) -> np.ndarray:
+        assert index < len(self._color_attachments), f'Framebuffer has only {len(self._color_attachments)} color attachments.'
+
+        tex = self._color_attachments[index]
+        pixels = np.empty((tex.width, tex.height, 3), dtype=np.ubyte)
+        GL.glGetTextureSubImage(
+            tex.id,
+            0,
+            0,
+            0,
+            0,
+            tex.width,
+            tex.height,
+            1,
+            _format,
+            GL.GL_UNSIGNED_BYTE,
+            pixels.nbytes,
+            pixels)
+
+        return pixels
+
     @property
     def width(self) -> int:
         return self._width
@@ -86,109 +135,61 @@ class Framebuffer(OpenglObjectBase):
     def height(self) -> int:
         return self._height
 
-    @debug.profiled('graphics', 'initialization')
-    def _initialize(self, context: t.Any) -> None:
-        GL.glCreateFramebuffers(1, self._id)
-
-        max_attachments = context.get_integer(GL.GL_MAX_COLOR_ATTACHMENTS)
-        attachments_count = len(self._color_attachments)
-        if attachments_count > max_attachments:
-            raise exceptions.GraphicsException(f'Cannot attach more than {max_attachments} color attachments to a single framebuffer.')
-
-        for i, tex in enumerate(self._color_attachments):
-            tex.initialize()
-            _check_attachment_valid(tex, context)
-            self._attach_texture(tex, _get_attachment_point(tex.internal_format), i)
-
-        if self._depth_attachment:
-            self._depth_attachment.initialize()
-            _check_attachment_valid(self._depth_attachment, context)
-            self._attach_texture(self._depth_attachment, _get_attachment_point(self._depth_attachment.internal_format))
-
-        if attachments_count == 0:
-            GL.glNamedFramebufferDrawBuffer(self.id, GL.GL_NONE)
-        else:
-            draw_buffers = [AttachmentPoint.ColorAttachment + i for i in range(attachments_count)]
-            GL.glNamedFramebufferDrawBuffers(
-                self.id,
-                attachments_count,
-                draw_buffers)
-
-        self._check_complete()
+    @property
+    def size(self) -> tuple[int, int]:
+        return (self._width, self._height)
 
     @debug.profiled('graphics', 'cleanup')
-    def _dispose(self) -> None:
-        self._delete_attachments()
+    def delete(self) -> None:
+        super().delete()
 
-        GL.glDeleteFramebuffers(1, self._id)
-
-    @debug.profiled('graphics', 'cleanup')
-    def _delete_attachments(self) -> None:
-        for tex in self._color_attachments:
-            tex.dispose()
-
-        self._color_attachments.clear()
-
-        if self._depth_attachment:
-            self._depth_attachment.dispose()
-            self._depth_attachment = None
-
-    def _attach_texture(self, texture: Texture2D, attachment_point: AttachmentPoint, index: int=0) -> None:
-        attachment: int
-        if attachment_point == AttachmentPoint.ColorAttachment:
-            attachment = attachment_point + index
-        else:
-            attachment = attachment_point
-
-        GL.glNamedFramebufferTexture(self.id, attachment, texture.id, 0)
+        GL.glDeleteFramebuffers(1, self.id)
 
     def _check_complete(self) -> None:
-        status = FramebufferStatus(GL.glCheckNamedFramebufferStatus(self.id, GL.GL_FRAMEBUFFER))
-        if status != FramebufferStatus.Complete:
+        if (status := FramebufferStatus(GL.glCheckNamedFramebufferStatus(self.id, GL.GL_FRAMEBUFFER))) != GL.GL_FRAMEBUFFER_COMPLETE:
             raise exceptions.FramebufferIncompleteException(status)
 
-    def _resize_callback(self, e: events.ResizeEvent) -> None:
-        if not self._is_resizable:
-            raise exceptions.GraphicsException('Tried to resize framebuffer that is marked as non-resizable.')
-
-        if e.width == 0 or e.height == 0:
+    @debug.profiled('graphics', 'buffers')
+    def resize(self, width: int, height: int) -> None:
+        if width == self._width or height == self._height:
             return
 
-        self._width = e.width
-        self._height = e.height
+        if width == 0 or height == 0:
+            return
 
-        self._dispose()
+        self._width = width
+        self._height = height
 
-        ctx = gl.context.get_current()
-        self._initialize(ctx)
+        new_attachments: list[Texture2D] = []
+        for tex in self._color_attachments:
+            spec = tex.spec
+            spec.width = width
+            spec.height = height
 
-        _logger.debug('Framebuffer %s resized to (%d, %d).', self, e.width, e.height)
+            opengl_object.delete_object(tex)
 
-def _get_attachment_point(internal_format: SizedInternalFormatBase) -> AttachmentPoint:
-    match internal_format:
-        case SizedInternalFormat.DepthComponent16 | SizedInternalFormat.DepthComponent24 | SizedInternalFormat.DepthComponent32f:
-            return AttachmentPoint.DepthAttachment
-        case SizedInternalFormat.Depth24Stencil8 | SizedInternalFormat.Depth32fStencil8:
-            return AttachmentPoint.DepthStencilAttachment
-        case SizedInternalFormat.StencilIndex8:
-            return AttachmentPoint.StencilAttachment
+            tex = Texture2D(spec)
+            tex.initialize()
+            new_attachments.append(tex)
 
-    return AttachmentPoint.ColorAttachment
+        self._color_attachments = new_attachments
 
-def _create_framebuffer_attachments(specs: list[AttachmentSpec], width: int, height: int) -> tuple[list[Texture2D], Texture2D | None]:
-    color_attachments = [Texture2D(x.as_texture_spec(width, height)) for x in specs if not x.is_depth_attachment]
+        if self._depth_attachment is not None:
+            spec = self._depth_attachment.spec
+            spec.width = width
+            spec.height = height
 
-    depth_spec = next((x for x in specs if x.is_depth_attachment), None)
-    depth_attachment: Texture2D | None = None
-    if depth_spec:
-        depth_attachment = Texture2D(depth_spec.as_texture_spec(width, height))
+            opengl_object.delete_object(self._depth_attachment)
 
-    return (color_attachments, depth_attachment)
+            self._depth_attachment = Texture2D(spec)
+            self._depth_attachment.initialize()
 
-def _check_attachment_valid(tex: Texture2D, ctx: t.Any) -> None:
-    max_width = ctx.get_integer(GL.GL_MAX_FRAMEBUFFER_WIDTH)
-    max_height = ctx.get_integer(GL.GL_MAX_FRAMEBUFFER_HEIGHT)
-    max_samples = ctx.get_integer(GL.GL_MAX_FRAMEBUFFER_SAMPLES)
+        _logger.debug('Framebuffer %s resized to (%d, %d).', self, width, height)
+
+def _check_attachment_valid(tex: Texture2D) -> None:
+    max_width = GL.glGetInteger(GL.GL_MAX_FRAMEBUFFER_WIDTH)
+    max_height = GL.glGetInteger(GL.GL_MAX_FRAMEBUFFER_HEIGHT)
+    max_samples = GL.glGetInteger(GL.GL_MAX_FRAMEBUFFER_SAMPLES)
 
     if tex.width > max_width:
         raise exceptions.GraphicsException(f'Framebuffer attachment ({tex.id}) width is bigger than GL_MAX_FRAMEBUFFER_WIDTH ({max_width}).')
