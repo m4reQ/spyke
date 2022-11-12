@@ -1,14 +1,14 @@
 import dataclasses
 
 import glm
+import numpy as np
 
-from spyke.graphics.rectangle import Rectangle
 
 @dataclasses.dataclass
 class Glyph:
     __slots__ = (
         '__weakref__',
-        'tex_rect',
+        'tex_coords',
         'size',
         'bearing',
         'advance'
@@ -17,4 +17,4 @@ class Glyph:
     size: glm.ivec2
     bearing: glm.ivec2
     advance: int
-    tex_rect: Rectangle
+    tex_coords: np.ndarray

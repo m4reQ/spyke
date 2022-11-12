@@ -7,6 +7,7 @@ import glm_typing
 import numpy as np
 import numpy.typing as npt
 from OpenGL import GL
+
 from spyke import debug, exceptions
 from spyke.enums import BufferStorageFlags
 
@@ -17,25 +18,22 @@ _DataType = glm_typing.AnyAnyVecAny | glm_typing.AnyAnyMatrixSquare | glm_typing
 class DynamicBuffer(BufferBase):
     def __init__(self,
                  count: int,
-                 dtype: npt.DTypeLike=np.float32):
+                 dtype: npt.DTypeLike = np.float32,
+                 create_storage: bool = True):
         self._stride = np.dtype(dtype).itemsize
 
         super().__init__(
             count * self._stride,
-            BufferStorageFlags.MapPersistentBit | BufferStorageFlags.MapCoherentBit | BufferStorageFlags.MapWriteBit) # type: ignore
+            BufferStorageFlags.DynamicStorageBit)
 
         self._lock = threading.Lock()
         self._current_offset = 0
         self._dtype = dtype
         self._elements_count = count
-        self._data: np.ndarray
-
-    @debug.profiled('graphics', 'initialization')
-    def initialize(self) -> None:
-        super().initialize()
-
-        ptr = GL.glMapNamedBufferRange(self.id, 0, self.size, GL.GL_MAP_WRITE_BIT | GL.GL_MAP_PERSISTENT_BIT | GL.GL_MAP_COHERENT_BIT)
-        self._data = _ptr_to_np_array(ptr, self._dtype, self._elements_count)
+        if create_storage:
+            self._data = np.empty((count,), dtype=dtype)
+        else:
+            self._data = np.empty((0,), dtype=dtype)
 
     @t.overload
     def store(self, data: int) -> None: ...
@@ -67,12 +65,10 @@ class DynamicBuffer(BufferBase):
     @debug.profiled('graphics', 'buffers', 'rendering')
     def store(self, data: _DataType) -> None:
         '''
-        Stores data in buffer's memory.
+        Stores data in buffer's CPU-side memory.
 
         @data: Data to be stored.
         '''
-
-        self.ensure_initialized()
 
         _data, elements_count = _convert_data(data)
         with self._lock:
@@ -80,6 +76,59 @@ class DynamicBuffer(BufferBase):
 
             self._data[self._current_offset:self._current_offset + elements_count] = _data
             self._current_offset += elements_count
+
+    @t.overload
+    def store_direct(self, data: int) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: float) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: np.ndarray) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: glm.mat2) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: glm.mat3) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: glm.mat4) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: glm.vec2) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: glm.vec3) -> None: ...
+
+    @t.overload
+    def store_direct(self, data: glm.vec4) -> None: ...
+
+    def store_direct(self, data: _DataType) -> None:
+        '''
+        Stores data directly in buffer's GPU-side memory.
+
+        @data: Data to be stored.
+        '''
+
+        self.ensure_initialized()
+
+        _data, elements_count = _convert_data(data)
+        self._check_overflow(elements_count)
+        with self._lock:
+            GL.glNamedBufferSubData(self.id, 0, elements_count * self._stride, _data)
+
+    def transfer(self) -> None:
+        '''
+        Transfers data present in buffer from CPU-side
+        storage to video memory.
+        '''
+
+        self.ensure_initialized()
+
+        with self._lock:
+            GL.glNamedBufferSubData(self.id, 0, self._current_offset * self._stride, self._data)
+            self._current_offset = 0
 
     def reset(self) -> None:
         self._current_offset = 0
@@ -109,8 +158,3 @@ def _convert_data(data: _DataType) -> tuple[t.Iterable, int]:
         _data = data
 
     return (_data, elements_count)
-
-def _ptr_to_np_array(ptr: int, dtype: npt.DTypeLike, elements_count: int) -> np.ndarray:
-    ptr_type = ct.POINTER(np.ctypeslib.as_ctypes_type(dtype)) # type: ignore
-
-    return np.ctypeslib.as_array(ct.cast(ptr, ptr_type), (elements_count, ))

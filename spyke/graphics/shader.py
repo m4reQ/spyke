@@ -8,6 +8,7 @@ import glm
 import numpy as np
 import numpy.typing as npt
 from OpenGL import GL
+
 from spyke import debug
 from spyke.enums import ShaderType
 from spyke.exceptions import SpykeException
@@ -236,7 +237,7 @@ class Shader(OpenglObjectBase):
 
     def _check_link_status(self):
         if (info_log := GL.glGetProgramInfoLog(self.id)) != '':
-            raise SpykeException(f'Shader program {self.id} link failure:\n{info_log}.')
+            raise SpykeException(f'Shader program {self.id} link failure:\n{info_log.decode(_ENCODING)}.')
 
     def _retrieve_interface(self) -> None:
         # via: https://stackoverflow.com/a/50382656
@@ -342,7 +343,7 @@ def _create_shader(_type: ShaderType, source: str) -> int:
     GL.glCompileShader(shader)
 
     if (info_log := GL.glGetShaderInfoLog(shader)) != '':
-        raise SpykeException(f'{_type.name} {shader} compilation failure:\n{info_log}.')
+        raise SpykeException(f'{_type.name} {shader} compilation failure:\n{info_log.decode(_ENCODING)}.')
 
     return shader
 

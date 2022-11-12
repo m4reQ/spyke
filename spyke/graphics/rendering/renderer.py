@@ -2,21 +2,25 @@ import logging
 import os
 import threading
 import time
+from collections import deque
 
 import glm
 import numpy as np
 from OpenGL import GL
 from PIL import Image
+
 from spyke import debug, events, exceptions, paths
 from spyke.enums import (ClearMask, DebugSeverity, DebugSource, DebugType,
                          GLType, Key, MagFilter, MinFilter, ShaderType,
-                         SizedInternalFormat, TextureFormat)
-from spyke.graphics.buffers import AttachmentSpec, DynamicBuffer, Framebuffer
+                         SizedInternalFormat, TextureBufferSizedInternalFormat,
+                         TextureFormat)
+from spyke.graphics.buffers import (AttachmentSpec, DynamicBuffer, Framebuffer,
+                                    TextureBuffer)
 from spyke.graphics.shader import Shader
 from spyke.graphics.textures import (Texture2D, TextureBase, TextureSpec,
                                      TextureUploadData)
 from spyke.graphics.vertex_array import VertexArray
-from spyke.resources import Model
+from spyke.resources import Font, Model
 from spyke.utils import once
 
 # from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
@@ -131,12 +135,17 @@ from spyke.utils import once
 #                 glyph.tex_rect.to_coordinates()))
 
 _SIZEOF_FLOAT = np.dtype(np.float32).itemsize
+_ENCODING = 'ansi'
 
 _DEFAULT_FB_SIZE = (1080, 720)
 
 _BASIC_SHADER_SPEC = {
     ShaderType.VertexShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert'),
     ShaderType.FragmentShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag')}
+_TEXT_SHADER_SPEC = {
+    ShaderType.VertexShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.vert'),
+    ShaderType.FragmentShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.frag'),
+}
 
 _MAX_MODEL_VERTICES = 2000
 _MODEL_VERTEX_COUNT = 3 + 2
@@ -151,15 +160,33 @@ _UNIFORM_BLOCK_BINDING = 0
 
 _MAX_TEXTURES = 16
 
+_TEXT_TEX_COORDS_BINDING = 15
+
+_QUAD_VERTICES = np.array(
+    [0.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 1.0, 0.0,
+    1.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0],
+    dtype=np.float32)
+
 @once
 def initialize(window_size: tuple[int, int]) -> None:
-    _enable_debug_output()
+    if __debug__:
+        _enable_debug_output()
     _setup_opengl_state()
 
     _basic_shader.set_uniform_array('uTextures', list(range(_MAX_TEXTURES)))
     _basic_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
     _basic_shader.validate()
 
+    _text_shader.set_uniform_array('uTextures', list(range(_MAX_TEXTURES - 1)))
+    _text_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
+    _text_shader.set_uniform('uTexCoordsBuffer', _TEXT_TEX_COORDS_BINDING)
+    _text_shader.validate()
+
+    _setup_text_vertex_array()
     _setup_vertex_array()
 
     _white_texture.upload(
@@ -214,7 +241,7 @@ def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: Te
 
     global _instance_count
 
-    if _instance_count >= _MAX_INSTANCES or len(_textures) >= _MAX_TEXTURES - 1:
+    if _should_flush(1):
         _flush()
 
     _instance_data_buffer.store(
@@ -226,18 +253,80 @@ def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: Te
     _instance_data_buffer.store(transform)
     _instance_count += 1
 
-def begin_batch(model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
-    global _current_model
-    _current_model = model
+@debug.profiled('graphics', 'rendering')
+def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font, entity_id: int = 0) -> None:
+    global _instance_count
 
-    _uniform_buffer.store(view_projection)
+    v_width, v_height = _framebuffer.size
+    x = pos.x
+    y = pos.y
+    # TODO: use points to pixels translation
+    scale = 3
+
+    tex_idx = _get_texture_index(font.texture)
+    transform = glm.mat4(1.0)
+
+    for char in text:
+        if _should_flush(2):
+            _flush_text()
+
+        glyph = font.get_glyph(char)
+
+        # TODO: Normalize all values here
+        pos_x = x + ((glyph.bearing.x / v_width) * scale)
+        pos_y = y - (((glyph.size.y - glyph.bearing.y) / v_height) * scale)
+
+        width = glyph.size.x / v_width * scale
+        height = glyph.size.y / v_height * scale
+
+        x += glyph.advance / v_width * scale
+
+        transform[3, 0] = pos_x
+        transform[3, 1] = pos_y
+        transform[3, 2] = pos.z
+        transform[0, 0] = width
+        transform[1, 1] = height
+
+        _instance_data_buffer.store(
+            np.array(
+                [*color,
+                tex_idx,
+                entity_id],
+                dtype = np.float32))
+        _instance_data_buffer.store(transform)
+        _text_tex_coords_buffer.store(glyph.tex_coords)
+        _instance_count += 1
+
+@debug.profiled('graphics', 'rendering')
+def begin_batch(model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
+    global _current_vertex_count
+
+    _model_data_buffer.store_direct(model.data)
+    _current_vertex_count = model.vertex_count
+
+    _uniform_buffer.store_direct(view_projection)
     _uniform_buffer.bind_ubo()
 
-def end_batch() -> None:
-    if _instance_count == 0:
-        _logger.warning('end_batch called with an empty batch. No objects will be rendered.')
-        return
+    _basic_shader.use()
+    _vertex_array.bind()
 
+@debug.profiled('graphics', 'rendering')
+def begin_text(view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
+    global _current_vertex_count
+
+    _model_data_buffer.store_direct(_QUAD_VERTICES)
+    _current_vertex_count = 6
+
+    _uniform_buffer.store_direct(view_projection)
+    _uniform_buffer.bind_ubo()
+
+    _text_shader.use()
+    _text_vertex_array.bind()
+
+def end_text() -> None:
+    _flush_text()
+
+def end_batch() -> None:
     _flush()
 
 @debug.profiled('graphics')
@@ -245,7 +334,7 @@ def capture_frame() -> None:
     pixels = _framebuffer.read_color_attachment(0, TextureFormat.Rgb)
     threading.Thread(target=_save_screenshot, args=(pixels, _framebuffer.size)).start()
 
-def _get_texture_index(texture):
+def _get_texture_index(texture: TextureBase | None) -> int:
     if texture is None:
         return 0
 
@@ -267,26 +356,37 @@ def _setup_vertex_array() -> None:
     _vertex_array.add_layout(_basic_shader.attributes['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
     _vertex_array.add_matrix_layout(_basic_shader.attributes['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
 
+@debug.profiled('graphics', 'setup')
+def _setup_text_vertex_array() -> None:
+    _text_vertex_array.bind_vertex_buffer(_MODEL_DATA_BUFFER_BINDING, _model_data_buffer, 0, 3 * _SIZEOF_FLOAT)
+    _text_vertex_array.add_layout(_text_shader.attributes['aPosition'], _MODEL_DATA_BUFFER_BINDING, 3, GLType.Float)
+
+    _text_vertex_array.bind_vertex_buffer(_INSTANCE_DATA_BUFFER_BINDING, _instance_data_buffer, 0, _INSTANCE_VERTEX_COUNT * _SIZEOF_FLOAT, 1)
+    _text_vertex_array.add_layout(_text_shader.attributes['aColor'], _INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float)
+    _text_vertex_array.add_layout(_text_shader.attributes['aTexIdx'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _text_vertex_array.add_layout(_text_shader.attributes['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _text_vertex_array.add_matrix_layout(_text_shader.attributes['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
+
 @debug.profiled('graphics', 'rendering')
-def _flush() -> None:
+def _flush(bind_white_texture: bool = True) -> None:
     global _instance_count
 
-    assert _current_model is not None, '_flush called but no model is set.'
+    if bind_white_texture:
+        _textures.appendleft(_white_texture)
+    TextureBase.bind_textures(0, _textures)
 
-    _model_data_buffer.store(_current_model.data)
+    _instance_data_buffer.transfer()
 
-    TextureBase.bind_textures(0, [_white_texture] + _textures) # type: ignore
+    GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, _current_vertex_count * _instance_count, _instance_count)
 
-    _vertex_array.bind()
-    _basic_shader.use()
-
-    GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, _current_model.vertex_count * _instance_count, _instance_count)
-
-    _instance_data_buffer.reset()
-    _model_data_buffer.reset()
-    _uniform_buffer.reset()
     _textures.clear()
     _instance_count = 0
+
+@debug.profiled('graphics', 'rendering')
+def _flush_text() -> None:
+    _text_tex_coords_buffer.transfer()
+    _text_tex_coords_buffer.bind(_TEXT_TEX_COORDS_BINDING)
+    _flush()
 
 @debug.profiled('graphics', 'events')
 def _resize_callback(e: events.ResizeEvent) -> None:
@@ -315,10 +415,10 @@ def _opengl_debug_callback(source: int, msg_type: int, _, severity: int, __, raw
     _msg_type = DebugType(msg_type).name.upper()
     _severity = DebugSeverity(severity)
 
-    message_formatted = f'OpenGL {_source} -> {_msg_type}: {raw.decode("ansi")}.'
+    message_formatted = f'OpenGL {_source} -> {_msg_type}: {raw.decode(_ENCODING)}.'
 
     if _severity == DebugSeverity.High:
-        raise exceptions.GraphicsException(message_formatted)
+        _logger.error(message_formatted)
     elif _severity == DebugSeverity.Medium:
         _logger.warning(message_formatted)
     elif _severity in [DebugSeverity.Low, DebugSeverity.Notification]:
@@ -330,7 +430,7 @@ def _enable_debug_output():
     GL.glEnable(GL.GL_DEBUG_OUTPUT_SYNCHRONOUS)
     GL.glDebugMessageCallback(_debug_proc, None)
 
-    msg = b'Testing OpenGL debug output...'
+    msg = b'Testing OpenGL debug output..'
     GL.glDebugMessageInsert(DebugSource.Application, DebugType.Other, 2137, DebugSeverity.Notification, len(msg), msg)
 
 @debug.profiled('graphics', 'setup')
@@ -358,18 +458,24 @@ def _save_screenshot(pixels: np.ndarray, size: tuple[int, int]) -> None:
 
     _logger.info('Screenshot was saved as "%s".', filename)
 
+def _should_flush(textures_reserved: int) -> bool:
+    return _instance_count >= _MAX_INSTANCES or len(_textures) >= _MAX_TEXTURES - textures_reserved
+
 _logger = logging.getLogger(__name__)
 _debug_proc = GL.GLDEBUGPROC(_opengl_debug_callback)
 
-_current_model: Model | None = None
-_textures: list[TextureBase] = []
+_textures = deque[TextureBase]([], maxlen=_MAX_TEXTURES)
 _instance_count = 0
+_current_vertex_count = 0
 
 _basic_shader = Shader.create(_BASIC_SHADER_SPEC)
-_model_data_buffer = DynamicBuffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT)
+_text_shader = Shader.create(_TEXT_SHADER_SPEC)
+_model_data_buffer = DynamicBuffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT, create_storage=False)
 _instance_data_buffer = DynamicBuffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT)
-_uniform_buffer = DynamicBuffer(_UNIFORM_BLOCK_COUNT)
+_uniform_buffer = DynamicBuffer(_UNIFORM_BLOCK_COUNT, create_storage=False)
+_text_tex_coords_buffer = TextureBuffer(2 * 6 * _MAX_INSTANCES, TextureBufferSizedInternalFormat.Rg32f)
 _vertex_array = VertexArray()
+_text_vertex_array = VertexArray()
 _white_texture = Texture2D(
     TextureSpec(
         1,

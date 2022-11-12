@@ -53,7 +53,7 @@ class TextureBase(OpenglObjectBase, abc.ABC):
             GL.glTextureParameteri(self.id, TextureParameter.MaxLevel, 1 if self._spec.is_multisampled else self._spec.mipmaps - 1)
             GL.glTextureParameteri(self.id, TextureParameter.BaseLevel, 0)
             if self._spec.swizzle_mask:
-                GL.glTextureParameteriv(self.id, self._spec.texture_swizzle, np.asarray(self._spec.swizzle_mask, dtype=np.uint))
+                GL.glTextureParameteriv(self.id, self._spec.texture_swizzle, np.asarray(self._spec.swizzle_mask, dtype=np.int32))
 
         self._check_is_immutable()
 

@@ -1,4 +1,5 @@
 import abc
+import atexit
 import logging
 import time
 
@@ -57,6 +58,7 @@ class Application(abc.ABC):
         resources.initialize()
         renderer.initialize(self._window.size)
         self.on_load()
+        atexit.register(self._close)
         utils.garbage_collect()
 
         _logger.info('Application loaded in %f seconds.', time.perf_counter() - self._loading_start)
@@ -75,9 +77,9 @@ class Application(abc.ABC):
             # _scene.process(dt=self.frametime)
 
             if self._window.is_active:
+                self._window.swap_buffers()
                 renderer.clear()
                 self.on_frame(self._frametime)
-                self._window.swap_buffers()
 
                 # self._renderer.render_scene(_scene)
                 # self.on_frame()
@@ -87,7 +89,10 @@ class Application(abc.ABC):
             self._frametime = self._window.get_time() - start
 
         self.on_close()
+        self._close()
+        atexit.unregister(self._close)
 
+    def _close(self) -> None:
         opengl_object.delete_all()
         resources.unload_all()
         self._audio_device.dispose()

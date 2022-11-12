@@ -2,6 +2,7 @@ import logging
 
 import glfw
 from PIL import Image
+
 from spyke import debug, events, paths
 from spyke.enums import Key
 from spyke.exceptions import GraphicsException
@@ -125,9 +126,11 @@ def _create_window_fullscreen(specification: WindowSpecs) -> glfw._GLFWwindow:
     glfw.window_hint(glfw.BLUE_BITS, mode.bits.blue)
     glfw.window_hint(glfw.REFRESH_RATE, mode.refresh_rate)
 
+    _logger.info('Creating window using fullscreen mode at monitor "%s".', glfw.get_monitor_name(mon).decode('ansi'))
+
     return glfw.create_window(
-        specification.width,
-        specification.height,
+        mode.size.width,
+        mode.size.height,
         specification.title,
         mon,
         None)
