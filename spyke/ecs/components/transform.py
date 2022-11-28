@@ -2,7 +2,10 @@ import uuid
 
 import glm
 
-class TransformComponent:
+from spyke.ecs import Component
+
+
+class TransformComponent(Component):
     __slots__ = (
         '__weakref__',
         'matrix',
@@ -26,7 +29,7 @@ class TransformComponent:
                  rotation: glm.vec3):
         self.matrix: glm.mat4 = glm.mat4(1.0)
         self.model_id: uuid.UUID = model_id
-        
+
         self._pos: glm.vec3 = position
         self._size: glm.vec3 = size
         self._rot: glm.vec3 = rotation % 360.0

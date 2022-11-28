@@ -7,7 +7,6 @@ numpy
 colorama
 glfw
 Pillow
-esper
 pydub
 freetype-py
 stdlib_list

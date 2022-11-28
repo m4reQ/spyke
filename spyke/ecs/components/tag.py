@@ -1,5 +1,8 @@
-from dataclasses import dataclass
+import dataclasses
 
-@dataclass
-class TagComponent:
+from spyke.ecs import Component
+
+
+@dataclasses.dataclass
+class TagComponent(Component):
 	name: str

@@ -1,10 +1,13 @@
+import dataclasses
 from uuid import UUID
-from dataclasses import dataclass
 
 import glm
 
-@dataclass
-class SpriteComponent:
+from spyke.ecs import Component
+
+
+@dataclasses.dataclass
+class SpriteComponent(Component):
     color: glm.vec4
     image_id: UUID
     tiling_factor: glm.vec2

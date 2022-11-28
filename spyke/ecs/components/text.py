@@ -1,10 +1,13 @@
+import dataclasses
 from uuid import UUID
-from dataclasses import dataclass
 
 import glm
 
-@dataclass
-class TextComponent:
+from spyke.ecs import Component
+
+
+@dataclasses.dataclass
+class TextComponent(Component):
     text: str
     size: int
     color: glm.vec4
