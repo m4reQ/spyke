@@ -1,8 +1,8 @@
 import logging
 
 import glfw
+
 from spyke import events
-from spyke.exceptions import GraphicsException
 
 _logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def register(window: glfw._GLFWwindow):
     _logger.debug('GLFW window callbacks registered.')
 
 def _error_callback(code: int, message: str) -> None:
-    raise GraphicsException(f'GLFW error: {message} ({code}).')
+    raise RuntimeError(f'GLFW error: {message} ({code}).')
 
 def _resize_cb(_, width: int, height: int) -> None:
     events.invoke(events.ResizeEvent(width, height))

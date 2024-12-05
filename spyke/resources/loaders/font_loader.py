@@ -6,11 +6,9 @@ import freetype as ft
 import glm
 import numpy as np
 
+from pygl import textures
 from spyke import debug, utils
-from spyke.enums import (MagFilter, MinFilter, SizedInternalFormat,
-                         TextureFormat, WrapMode)
 from spyke.graphics.glyph import Glyph
-from spyke.graphics.textures import Texture2D, TextureSpec, TextureUploadData
 from spyke.resources.types import Font
 
 from .loader import LoaderBase
@@ -31,8 +29,9 @@ class _CharPrototype:
 
 @dataclasses.dataclass
 class _FontData:
-    texture_specification: TextureSpec
-    texture_upload_data: TextureUploadData
+    texture_specification: textures.TextureSpec
+    texture_upload_data: np.ndarray
+    texture_upload_info: textures.UploadInfo
     font_name: str
     glyphs: dict[str, Glyph]
     base_size: int
@@ -99,24 +98,17 @@ class FontLoader(LoaderBase[Font, _FontData]):
 
             cur_x += width + 1
 
-        texture_spec = TextureSpec(
-            atlas_width,
-            atlas_height,
-            SizedInternalFormat.R8,
-            mipmaps=1,
-            min_filter=MinFilter.Linear,
-            mag_filter=MagFilter.Linear,
-            wrap_mode=WrapMode.ClampToEdge)
-
-        upload_data = TextureUploadData(
-            atlas_width,
-            atlas_height,
-            atlas,
-            TextureFormat.Red)
-
         return _FontData(
-            texture_spec,
-            upload_data,
+            textures.TextureSpec(
+                textures.TextureTarget.TEXTURE_2D,
+                atlas_width,
+                atlas_height,
+                textures.InternalFormat.R8),
+            atlas,
+            textures.UploadInfo(
+                textures.PixelFormat.RED,
+                atlas_width,
+                atlas_height),
             name,
             glyphs,
             face.size.x_ppem)
@@ -124,13 +116,14 @@ class FontLoader(LoaderBase[Font, _FontData]):
     @staticmethod
     @debug.profiled('resources', 'initialization')
     def finalize_loading(resource: Font, loading_data: _FontData) -> None:
-        tex = Texture2D(loading_data.texture_specification)
-        Texture2D.set_pixel_unpack_alignment(1)
-        tex.upload(loading_data.texture_upload_data)
-        Texture2D.set_pixel_unpack_alignment(4)
+        texture = textures.Texture(loading_data.texture_specification)
+
+        textures.set_pixel_unpack_alignment(1)
+        texture.upload(loading_data.texture_upload_info, loading_data.texture_upload_data)
+        textures.set_pixel_unpack_alignment(4)
 
         with resource.lock:
-            resource.texture = tex
+            resource.texture = texture
             resource.glyphs = loading_data.glyphs
             resource.name = loading_data.font_name
             resource.base_size = loading_data.base_size

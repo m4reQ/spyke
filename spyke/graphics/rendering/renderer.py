@@ -1,22 +1,16 @@
 import ctypes as ct
 import logging
 import os
-import threading
-import time
 
 import glm
 import numpy as np
-from OpenGL import GL
-from PIL import Image
 
 import pygl
 from pygl import buffers, commands
 from pygl import debug as gl_debug
-from pygl import rendering, shaders, textures, vertex_array
-from spyke import debug, events, paths
-from spyke.enums import (Key, MagFilter, MinFilter, SizedInternalFormat,
-                         TextureFormat)
-from spyke.graphics.buffers import AttachmentSpec, Framebuffer, TextureBuffer
+from pygl import framebuffer, rendering, shaders, textures, vertex_array
+from spyke import debug, paths
+from spyke.graphics.texture_buffer import TextureBuffer
 from spyke.resources import Font, Model
 from spyke.utils import once
 
@@ -214,15 +208,15 @@ def _create_vertex_arrays() -> None:
             buffer=_model_data_buffer,
             stride=3 * ct.sizeof(ct.c_float),
             descriptors=[
-                vertex_array.VertexDescriptor(_basic_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3)]),
+                vertex_array.VertexDescriptor(_text_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3)]),
         vertex_array.VertexInput(
             buffer=_instance_data_buffer,
             stride=_INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float),
             descriptors=[
-                vertex_array.VertexDescriptor(_basic_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
+                vertex_array.VertexDescriptor(_text_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
+                vertex_array.VertexDescriptor(_text_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
+                vertex_array.VertexDescriptor(_text_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
+                vertex_array.VertexDescriptor(_text_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
             divisor=1)]
     _text_vertex_array = vertex_array.VertexArray(text_layout)
 
@@ -242,6 +236,15 @@ def _create_white_texture() -> None:
         textures.UploadInfo(textures.PixelFormat.RGBA, 1, 1),
         np.array([255, 255, 255, 255], np.uint8))
 
+@debug.profiled('graphics', 'rendering')
+def _create_framebuffer(width: int, height: int) -> None:
+    global _framebuffer
+
+    attachments = [
+        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.RGBA8, 0),
+        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.DEPTH24_STENCIL8, framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)]
+    _framebuffer = framebuffer.Framebuffer(attachments, width, height)
+
 @once
 def initialize(window_size: tuple[int, int]) -> None:
     pygl.init()
@@ -249,18 +252,12 @@ def initialize(window_size: tuple[int, int]) -> None:
     if __debug__:
         _enable_debug_output()
 
-    _setup_opengl_state()
+    _setup_opengl_state(*window_size)
     _create_shaders()
     _create_buffers()
     _create_vertex_arrays()
     _create_white_texture()
-
-    _framebuffer.resize(*window_size)
-
-    events.register(_resize_callback, events.ResizeEvent, priority=-1)
-    events.register(_key_down_callback, events.KeyDownEvent, priority=-1)
-
-    _resize(*window_size)
+    _create_framebuffer(*window_size)
 
     _logger.info('Renderer initialized.')
 
@@ -274,14 +271,8 @@ def shutdown() -> None:
     _instance_data_buffer.delete()
     _uniform_buffer.delete()
     _white_texture.delete()
-
-@debug.profiled('graphics', 'rendering')
-def clear() -> None:
-    '''
-    Clears the screen.
-    '''
-
-    rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT | rendering.ClearMask.DEPTH_BUFFER_BIT)
+    _text_tex_coords_buffer.delete()
+    _framebuffer.delete()
 
 def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
     '''
@@ -294,6 +285,23 @@ def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
     '''
 
     commands.clear_color(r, g, b, a)
+
+@debug.profiled('graphics', 'rendering')
+def resize(width: int, height: int) -> None:
+    commands.viewport(0, 0, width, height)
+    commands.scissor(0, 0, width, height)
+
+    _framebuffer.resize(width, height)
+
+    _logger.info('Viewport size set to %d, %d.', width, height)
+
+@debug.profiled('graphics', 'rendering')
+def clear() -> None:
+    '''
+    Clears the screen.
+    '''
+
+    rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT | rendering.ClearMask.DEPTH_BUFFER_BIT)
 
 @debug.profiled('graphics', 'rendering')
 def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: textures.Texture | None = None) -> None:
@@ -327,7 +335,7 @@ def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font
     x = pos.x
     y = pos.y
     # TODO: use points to pixels translation
-    scale = 3
+    scale = size / v_height
 
     tex_idx = _get_texture_index(font.texture)
     transform = glm.mat4(1.0)
@@ -353,14 +361,13 @@ def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font
         transform[0, 0] = width
         transform[1, 1] = height
 
-        _instance_data_buffer.store(
-            np.array(
-                [*color,
-                tex_idx,
-                entity_id],
-                dtype = np.float32))
+        _instance_data_buffer.store(color)
+        _instance_data_buffer.store(float(tex_idx))
+        _instance_data_buffer.store(float(entity_id))
         _instance_data_buffer.store(transform)
+
         _text_tex_coords_buffer.store(glyph.tex_coords)
+
         _instance_count += 1
 
 @debug.profiled('graphics', 'rendering')
@@ -401,11 +408,6 @@ def end_text() -> None:
 def end_batch() -> None:
     _flush()
 
-@debug.profiled('graphics')
-def capture_frame() -> None:
-    pixels = _framebuffer.read_color_attachment(0, TextureFormat.Rgb)
-    threading.Thread(target=_save_screenshot, args=(pixels, _framebuffer.size)).start()
-
 def _get_texture_index(texture: textures.Texture | None) -> int:
     if texture is None:
         return 0
@@ -425,7 +427,11 @@ def _flush() -> None:
 
     _instance_data_buffer.transfer()
 
-    GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, _current_vertex_count * _instance_count, _instance_count)
+    rendering.draw_arrays_instanced(
+        rendering.DrawMode.TRIANGLES,
+        0,
+        _current_vertex_count * _instance_count,
+        _instance_count)
 
     _textures.clear()
     _instance_count = 0
@@ -436,28 +442,6 @@ def _flush_text() -> None:
     _text_tex_coords_buffer.bind(_TEXT_TEX_COORDS_BINDING)
 
     _flush()
-
-@debug.profiled('graphics', 'events')
-def _resize_callback(e: events.ResizeEvent) -> None:
-    _resize(e.width, e.height)
-
-@debug.profiled('graphics', 'events')
-def _key_down_callback(e: events.KeyDownEvent) -> None:
-    if e.repeat:
-        return
-
-    if e.key == Key.F1:
-        _logger.warning('Taking screenshots is not available yet')
-        return
-        # TODO: Use framebuffers to render
-        capture_frame()
-
-def _resize(width: int, height: int) -> None:
-    GL.glScissor(0, 0, width, height)
-    GL.glViewport(0, 0, width, height)
-    _framebuffer.resize(width, height)
-
-    _logger.info('Viewport size set to %d, %d.', width, height)
 
 def _opengl_debug_callback(source: int, msg_type: int, id: int, severity: int, msg: str, _) -> None:
     _source = gl_debug.DebugSource(source).name.upper()
@@ -483,11 +467,14 @@ def _enable_debug_output():
         'Testing OpenGL debug output..')
 
 @debug.profiled('graphics', 'setup')
-def _setup_opengl_state() -> None:
+def _setup_opengl_state(width: int, height: int) -> None:
     commands.enable(commands.EnableCap.MULTISAMPLE)
     commands.enable(commands.EnableCap.DEPTH_TEST)
     commands.enable(commands.EnableCap.BLEND)
     commands.enable(commands.EnableCap.LINE_SMOOTH)
+
+    commands.viewport(0, 0, width, height)
+    commands.scissor(0, 0, width, height)
 
     commands.clear_color(0.0, 0.0, 0.0, 1.0)
     commands.hint(commands.HintTarget.TEXTURE_COMPRESSION_HINT, commands.HintValue.NICEST)
@@ -497,16 +484,6 @@ def _setup_opengl_state() -> None:
     commands.front_face(commands.FrontFace.CW)
     commands.polygon_mode(commands.CullFace.FRONT_AND_BACK, commands.PolygonMode.FILL)
     commands.point_size(4.0)
-
-@debug.profiled('graphics', 'io')
-def _save_screenshot(pixels: np.ndarray, size: tuple[int, int]) -> None:
-    img = Image.frombytes('RGB', size, pixels)
-    img = img.transpose(Image.FLIP_TOP_BOTTOM)
-
-    filename = os.path.join(paths.SCREENSHOTS_DIRECTORY, f'screenshot_{int(time.time())}.jpg')
-    img.save(filename, 'JPEG')
-
-    _logger.info('Screenshot was saved as "%s".', filename)
 
 def _should_flush(textures_reserved: int) -> bool:
     return _instance_count >= _MAX_INSTANCES or len(_textures) >= _MAX_TEXTURES - textures_reserved
@@ -526,7 +503,4 @@ _basic_vertex_array: vertex_array.VertexArray
 _text_vertex_array: vertex_array.VertexArray
 _white_texture: textures.Texture
 _text_tex_coords_buffer: TextureBuffer
-
-_framebuffer = Framebuffer(
-    [AttachmentSpec(*_DEFAULT_FB_SIZE, SizedInternalFormat.Rgba8, MinFilter.Linear),
-    AttachmentSpec(*_DEFAULT_FB_SIZE, SizedInternalFormat.R8, MinFilter.Nearest, MagFilter.Nearest)])
+_framebuffer: framebuffer.Framebuffer
