@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import abc
+import ctypes as ct
 import typing as t
 
 import numpy as np
 from OpenGL import GL
+
 from spyke import debug, exceptions
 from spyke.enums import SizedInternalFormat, TextureParameter, TextureTarget
 from spyke.graphics.opengl_object import OpenglObjectBase
@@ -40,7 +42,7 @@ class TextureBase(OpenglObjectBase, abc.ABC):
 
         self._check_valid_size()
 
-        GL.glCreateTextures(self._target, 1, self._id)
+        GL.glCreateTextures(self._target, 1, ct.pointer(self._id))
 
         self.create_storage()
 
@@ -61,7 +63,7 @@ class TextureBase(OpenglObjectBase, abc.ABC):
     def delete(self) -> None:
         super().delete()
 
-        GL.glDeleteTextures(1, self._id)
+        GL.glDeleteTextures(1, ct.pointer(self._id))
 
     def set_parameter(self, parameter: TextureParameter, value: int | list[t.SupportsInt]) -> None:
         self.ensure_initialized()

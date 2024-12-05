@@ -1,6 +1,8 @@
+import ctypes as ct
 from collections import defaultdict
 
 from OpenGL import GL
+
 from spyke import debug
 from spyke.enums import GLType
 from spyke.graphics.buffers import BufferBase
@@ -18,13 +20,13 @@ class VertexArray(OpenglObjectBase):
     def initialize(self) -> None:
         super().initialize()
 
-        GL.glCreateVertexArrays(1, self._id)
+        GL.glCreateVertexArrays(1, ct.pointer(self._id))
 
     @debug.profiled('graphics', 'cleanup')
     def delete(self) -> None:
         super().delete()
 
-        GL.glDeleteVertexArrays(1, self._id)
+        GL.glDeleteVertexArrays(1, ct.pointer(self._id))
 
     @debug.profiled('graphics', 'setup')
     def bind_vertex_buffer(self, binding_index: int, buffer: BufferBase, offset: int, stride: int, divisor: int = 0) -> None:

@@ -1,6 +1,8 @@
 import abc
+import ctypes as ct
 
 from OpenGL import GL
+
 from spyke import debug
 from spyke.enums import BufferStorageFlags
 from spyke.graphics.opengl_object import OpenglObjectBase
@@ -23,14 +25,14 @@ class BufferBase(OpenglObjectBase, abc.ABC):
     def initialize(self) -> None:
         super().initialize()
 
-        GL.glCreateBuffers(1, self._id)
+        GL.glCreateBuffers(1, ct.pointer(self._id))
         GL.glNamedBufferStorage(self.id, self._size, None, self._storage_flags)
 
     @debug.profiled('graphics', 'cleanup')
     def delete(self) -> None:
         super().delete()
 
-        GL.glDeleteBuffers(1, self._id)
+        GL.glDeleteBuffers(1, ct.pointer(self._id))
 
     @debug.profiled('graphics', 'buffers', 'rendering')
     def bind_pbo_load(self) -> None:
