@@ -1,0 +1,3 @@
+[submodule "pygl"]
+	path = pygl
+	url = https://github.com/m4reQ/pygl
