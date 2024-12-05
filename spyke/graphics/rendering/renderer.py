@@ -1,3 +1,4 @@
+import ctypes as ct
 import logging
 import os
 import threading
@@ -10,10 +11,10 @@ from OpenGL import GL
 from PIL import Image
 
 import pygl
-from pygl import shaders
+from pygl import buffers, commands, shaders, vertex_array
 from spyke import debug, events, exceptions, paths
 from spyke.enums import (ClearMask, DebugSeverity, DebugSource, DebugType,
-                         GLType, Key, MagFilter, MinFilter, ShaderType,
+                         GLType, Key, MagFilter, MinFilter,
                          SizedInternalFormat, TextureBufferSizedInternalFormat,
                          TextureFormat)
 from spyke.graphics.buffers import (AttachmentSpec, DynamicBuffer, Framebuffer,
@@ -184,14 +185,25 @@ def _create_shaders() -> None:
     _text_shader.set_uniform('uTexCoordsBuffer', _TEXT_TEX_COORDS_BINDING, shaders.UniformType.INT)
     _text_shader.validate()
 
+def _create_buffers() -> None:
+    global _model_data_buffer, _instance_data_buffer, _uniform_buffer
+
+    _model_data_buffer = buffers.Buffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+    _instance_data_buffer = buffers.Buffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+
+    _uniform_buffer = buffers.Buffer(_UNIFORM_BLOCK_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+    _uniform_buffer.bind_base(buffers.BufferBaseTarget.UNIFORM_BUFFER, _UNIFORM_BLOCK_BINDING)
+
 @once
 def initialize(window_size: tuple[int, int]) -> None:
     pygl.init()
 
     if __debug__:
         _enable_debug_output()
+
     _setup_opengl_state()
     _create_shaders()
+    _create_buffers()
 
     _setup_text_vertex_array()
     _setup_vertex_array()
@@ -202,8 +214,6 @@ def initialize(window_size: tuple[int, int]) -> None:
             1,
             np.array([255, 255, 255, 255], dtype=np.ubyte),
             TextureFormat.Rgba))
-
-    _uniform_buffer.bind_to_uniform(_UNIFORM_BLOCK_BINDING)
 
     _framebuffer.resize(*window_size)
 
@@ -256,13 +266,11 @@ def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: Te
     if _should_flush(1):
         _flush()
 
-    _instance_data_buffer.store(
-        np.array(
-            [*color,
-            _get_texture_index(texture),
-            entity_id],
-            dtype = np.float32))
+    _instance_data_buffer.store(color)
+    _instance_data_buffer.store(float(_get_texture_index(texture)))
+    _instance_data_buffer.store(entity_id)
     _instance_data_buffer.store(transform)
+
     _instance_count += 1
 
 @debug.profiled('graphics', 'rendering')
@@ -313,14 +321,17 @@ def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font
 def begin_batch(model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
     global _current_vertex_count
 
-    _model_data_buffer.store_direct(model.data)
-    _current_vertex_count = model.vertex_count
+    _model_data_buffer.store(model.data)
+    _model_data_buffer.transfer()
 
-    _uniform_buffer.store_direct(view_projection)
-    _uniform_buffer.bind_ubo()
+    _uniform_buffer.store(view_projection)
+    _uniform_buffer.transfer()
+    _uniform_buffer.bind(buffers.BindTarget.UNIFORM_BUFFER)
 
     _basic_shader.use()
-    _vertex_array.bind()
+    _basic_vertex_array.bind()
+
+    _current_vertex_count = model.vertex_count
 
 @debug.profiled('graphics', 'rendering')
 def begin_text(view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
@@ -358,15 +369,15 @@ def _get_texture_index(texture: TextureBase | None) -> int:
 
 @debug.profiled('graphics', 'setup')
 def _setup_vertex_array() -> None:
-    _vertex_array.bind_vertex_buffer(_MODEL_DATA_BUFFER_BINDING, _model_data_buffer, 0, _MODEL_VERTEX_COUNT * _SIZEOF_FLOAT)
-    _vertex_array.add_layout(_basic_shader.resources['aPosition'], _MODEL_DATA_BUFFER_BINDING, 3, GLType.Float)
-    _vertex_array.add_layout(_basic_shader.resources['aTexCoord'], _MODEL_DATA_BUFFER_BINDING, 2, GLType.Float)
+    _basic_vertex_array.bind_vertex_buffer(_MODEL_DATA_BUFFER_BINDING, _model_data_buffer, 0, _MODEL_VERTEX_COUNT * _SIZEOF_FLOAT)
+    _basic_vertex_array.add_layout(_basic_shader.resources['aPosition'], _MODEL_DATA_BUFFER_BINDING, 3, GLType.Float)
+    _basic_vertex_array.add_layout(_basic_shader.resources['aTexCoord'], _MODEL_DATA_BUFFER_BINDING, 2, GLType.Float)
 
-    _vertex_array.bind_vertex_buffer(_INSTANCE_DATA_BUFFER_BINDING, _instance_data_buffer, 0, _INSTANCE_VERTEX_COUNT * _SIZEOF_FLOAT, 1)
-    _vertex_array.add_layout(_basic_shader.resources['aColor'], _INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float)
-    _vertex_array.add_layout(_basic_shader.resources['aTexIdx'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
-    _vertex_array.add_layout(_basic_shader.resources['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
-    _vertex_array.add_matrix_layout(_basic_shader.resources['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
+    _basic_vertex_array.bind_vertex_buffer(_INSTANCE_DATA_BUFFER_BINDING, _instance_data_buffer, 0, _INSTANCE_VERTEX_COUNT * _SIZEOF_FLOAT, 1)
+    _basic_vertex_array.add_layout(_basic_shader.resources['aColor'], _INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float)
+    _basic_vertex_array.add_layout(_basic_shader.resources['aTexIdx'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _basic_vertex_array.add_layout(_basic_shader.resources['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _basic_vertex_array.add_matrix_layout(_basic_shader.resources['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
 
 @debug.profiled('graphics', 'setup')
 def _setup_text_vertex_array() -> None:
@@ -447,18 +458,19 @@ def _enable_debug_output():
 
 @debug.profiled('graphics', 'setup')
 def _setup_opengl_state() -> None:
-    GL.glEnable(GL.GL_MULTISAMPLE)
-    GL.glHint(GL.GL_TEXTURE_COMPRESSION_HINT, GL.GL_NICEST)
-    GL.glEnable(GL.GL_BLEND)
-    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-    GL.glEnable(GL.GL_DEPTH_TEST)
-    GL.glDepthFunc(GL.GL_LEQUAL)
-    GL.glCullFace(GL.GL_FRONT)
-    GL.glFrontFace(GL.GL_CW)
-    GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-    GL.glPointSize(4.0)
-    GL.glEnable(GL.GL_LINE_SMOOTH)
-    GL.glClearColor(0.0, 0.0, 0.0, 1.0)
+    commands.enable(commands.EnableCap.MULTISAMPLE)
+    commands.enable(commands.EnableCap.DEPTH_TEST)
+    commands.enable(commands.EnableCap.BLEND)
+    commands.enable(commands.EnableCap.LINE_SMOOTH)
+
+    commands.clear_color(0.0, 0.0, 0.0, 1.0)
+    commands.hint(commands.HintTarget.TEXTURE_COMPRESSION_HINT, commands.HintValue.NICEST)
+    commands.blend_func(commands.BlendFactor.SRC_ALPHA, commands.BlendFactor.ONE_MINUS_SRC_ALPHA)
+    commands.depth_func(commands.DepthFunc.LEQUAL)
+    commands.cull_face(commands.CullFace.FRONT)
+    commands.front_face(commands.FrontFace.CW)
+    commands.polygon_mode(commands.CullFace.FRONT_AND_BACK, commands.PolygonMode.FILL)
+    commands.point_size(4.0)
 
 @debug.profiled('graphics', 'io')
 def _save_screenshot(pixels: np.ndarray, size: tuple[int, int]) -> None:
@@ -482,13 +494,17 @@ _current_vertex_count = 0
 
 _basic_shader: shaders.Shader
 _text_shader: shaders.Shader
+_model_data_buffer: buffers.Buffer
+_instance_data_buffer: buffers.Buffer
+_uniform_buffer: buffers.Buffer
+
+_basic_vertex_array = VertexArray()
+_text_vertex_array = VertexArray()
 
 _model_data_buffer = DynamicBuffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT, create_storage=False)
 _instance_data_buffer = DynamicBuffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT)
 _uniform_buffer = DynamicBuffer(_UNIFORM_BLOCK_COUNT, create_storage=False)
 _text_tex_coords_buffer = TextureBuffer(2 * 6 * _MAX_INSTANCES, TextureBufferSizedInternalFormat.Rg32f)
-_vertex_array = VertexArray()
-_text_vertex_array = VertexArray()
 _white_texture = Texture2D(
     TextureSpec(
         1,

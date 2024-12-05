@@ -31,7 +31,7 @@ class VertexArray(OpenglObjectBase):
     @debug.profiled('graphics', 'setup')
     def bind_vertex_buffer(self, binding_index: int, buffer: BufferBase, offset: int, stride: int, divisor: int = 0) -> None:
         self.ensure_initialized()
-        buffer.ensure_initialized()
+        # buffer.ensure_initialized()
 
         GL.glVertexArrayVertexBuffer(
             self.id,
@@ -44,7 +44,7 @@ class VertexArray(OpenglObjectBase):
     @debug.profiled('graphics', 'setup')
     def bind_element_buffer(self, buffer: BufferBase) -> None:
         self.ensure_initialized()
-        buffer.ensure_initialized()
+        # buffer.ensure_initialized()
 
         GL.glVertexArrayElementBuffer(self.id, buffer.id)
 
