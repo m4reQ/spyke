@@ -148,103 +148,6 @@ _QUAD_VERTICES = np.array(
     0.0, 0.0, 0.0],
     dtype=np.float32)
 
-@debug.profiled('graphics', 'rendering')
-def _create_shaders() -> None:
-    global _basic_shader, _text_shader
-
-    basic_shader_stages = [
-        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert')),
-        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag'))]
-    _basic_shader = shaders.Shader(basic_shader_stages)
-    _basic_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES, dtype=np.int32), shaders.UniformType.INT)
-    _basic_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
-    _basic_shader.validate()
-
-    text_shader_stages = [
-        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.vert')),
-        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.frag'))]
-    _text_shader = shaders.Shader(text_shader_stages)
-    _text_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES - 1, dtype=np.int32), shaders.UniformType.INT)
-    _text_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
-    _text_shader.set_uniform('uTexCoordsBuffer', _TEXT_TEX_COORDS_BINDING, shaders.UniformType.INT)
-    _text_shader.validate()
-
-@debug.profiled('graphics', 'rendering')
-def _create_buffers() -> None:
-    global _model_data_buffer, _instance_data_buffer, _uniform_buffer, _text_tex_coords_buffer
-
-    _model_data_buffer = buffers.Buffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-    _instance_data_buffer = buffers.Buffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-
-    _uniform_buffer = buffers.Buffer(_UNIFORM_BLOCK_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-    _uniform_buffer.bind_base(buffers.BufferBaseTarget.UNIFORM_BUFFER, _UNIFORM_BLOCK_BINDING)
-
-    _text_tex_coords_buffer = TextureBuffer(_MAX_INSTANCES * 6, textures.InternalFormat.RG32F, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-
-@debug.profiled('graphics', 'rendering')
-def _create_vertex_arrays() -> None:
-    global _basic_vertex_array, _text_vertex_array
-
-    basic_layout = [
-        vertex_array.VertexInput(
-            buffer=_model_data_buffer,
-            stride=_MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_basic_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTexCoord'], vertex_array.AttribType.FLOAT, 2)]),
-        vertex_array.VertexInput(
-            buffer=_instance_data_buffer,
-            stride=_INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_basic_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
-            divisor=1)]
-    _basic_vertex_array = vertex_array.VertexArray(basic_layout)
-
-    text_layout = [
-        vertex_array.VertexInput(
-            buffer=_model_data_buffer,
-            stride=3 * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_text_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3)]),
-        vertex_array.VertexInput(
-            buffer=_instance_data_buffer,
-            stride=_INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_text_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
-                vertex_array.VertexDescriptor(_text_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_text_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_text_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
-            divisor=1)]
-    _text_vertex_array = vertex_array.VertexArray(text_layout)
-
-@debug.profiled('graphics', 'rendering')
-def _create_white_texture() -> None:
-    global _white_texture
-
-    _white_texture = textures.Texture(
-        textures.TextureSpec(
-            textures.TextureTarget.TEXTURE_2D,
-            1,
-            1,
-            textures.InternalFormat.RGBA8,
-            min_filter=textures.MinFilter.NEAREST,
-            mag_filter=textures.MagFilter.NEAREST))
-    _white_texture.upload(
-        textures.UploadInfo(textures.PixelFormat.RGBA, 1, 1),
-        np.array([255, 255, 255, 255], np.uint8))
-
-@debug.profiled('graphics', 'rendering')
-def _create_framebuffer(width: int, height: int) -> None:
-    global _framebuffer
-
-    attachments = [
-        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.RGBA8, 0),
-        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.DEPTH24_STENCIL8, framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)]
-    _framebuffer = framebuffer.Framebuffer(attachments, width, height)
-
 @once
 def initialize(window_size: tuple[int, int]) -> None:
     pygl.init()
@@ -258,6 +161,9 @@ def initialize(window_size: tuple[int, int]) -> None:
     _create_vertex_arrays()
     _create_white_texture()
     _create_framebuffer(*window_size)
+
+    if __debug__:
+        _set_debug_names()
 
     _logger.info('Renderer initialized.')
 
@@ -484,6 +390,116 @@ def _setup_opengl_state(width: int, height: int) -> None:
     commands.front_face(commands.FrontFace.CW)
     commands.polygon_mode(commands.CullFace.FRONT_AND_BACK, commands.PolygonMode.FILL)
     commands.point_size(4.0)
+
+@debug.profiled('graphics', 'rendering')
+def _create_shaders() -> None:
+    global _basic_shader, _text_shader
+
+    basic_shader_stages = [
+        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert')),
+        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag'))]
+    _basic_shader = shaders.Shader(basic_shader_stages)
+    _basic_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES, dtype=np.int32), shaders.UniformType.INT)
+    _basic_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
+    _basic_shader.validate()
+
+    text_shader_stages = [
+        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.vert')),
+        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.frag'))]
+    _text_shader = shaders.Shader(text_shader_stages)
+    _text_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES - 1, dtype=np.int32), shaders.UniformType.INT)
+    _text_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
+    _text_shader.set_uniform('uTexCoordsBuffer', _TEXT_TEX_COORDS_BINDING, shaders.UniformType.INT)
+    _text_shader.validate()
+
+@debug.profiled('graphics', 'rendering')
+def _create_buffers() -> None:
+    global _model_data_buffer, _instance_data_buffer, _uniform_buffer, _text_tex_coords_buffer
+
+    _model_data_buffer = buffers.Buffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+    _instance_data_buffer = buffers.Buffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+
+    _uniform_buffer = buffers.Buffer(_UNIFORM_BLOCK_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+    _uniform_buffer.bind_base(buffers.BufferBaseTarget.UNIFORM_BUFFER, _UNIFORM_BLOCK_BINDING)
+
+    _text_tex_coords_buffer = TextureBuffer(_MAX_INSTANCES * 6, textures.InternalFormat.RG32F, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+
+@debug.profiled('graphics', 'rendering')
+def _create_vertex_arrays() -> None:
+    global _basic_vertex_array, _text_vertex_array
+
+    basic_layout = [
+        vertex_array.VertexInput(
+            buffer=_model_data_buffer,
+            stride=_MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float),
+            descriptors=[
+                vertex_array.VertexDescriptor(_basic_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3),
+                vertex_array.VertexDescriptor(_basic_shader.resources['aTexCoord'], vertex_array.AttribType.FLOAT, 2)]),
+        vertex_array.VertexInput(
+            buffer=_instance_data_buffer,
+            stride=_INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float),
+            descriptors=[
+                vertex_array.VertexDescriptor(_basic_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
+                vertex_array.VertexDescriptor(_basic_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
+                vertex_array.VertexDescriptor(_basic_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
+                vertex_array.VertexDescriptor(_basic_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
+            divisor=1)]
+    _basic_vertex_array = vertex_array.VertexArray(basic_layout)
+
+    text_layout = [
+        vertex_array.VertexInput(
+            buffer=_model_data_buffer,
+            stride=3 * ct.sizeof(ct.c_float),
+            descriptors=[
+                vertex_array.VertexDescriptor(_text_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3)]),
+        vertex_array.VertexInput(
+            buffer=_instance_data_buffer,
+            stride=_INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float),
+            descriptors=[
+                vertex_array.VertexDescriptor(_text_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
+                vertex_array.VertexDescriptor(_text_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
+                vertex_array.VertexDescriptor(_text_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
+                vertex_array.VertexDescriptor(_text_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
+            divisor=1)]
+    _text_vertex_array = vertex_array.VertexArray(text_layout)
+
+@debug.profiled('graphics', 'rendering')
+def _create_white_texture() -> None:
+    global _white_texture
+
+    _white_texture = textures.Texture(
+        textures.TextureSpec(
+            textures.TextureTarget.TEXTURE_2D,
+            1,
+            1,
+            textures.InternalFormat.RGBA8,
+            min_filter=textures.MinFilter.NEAREST,
+            mag_filter=textures.MagFilter.NEAREST))
+    _white_texture.upload(
+        textures.UploadInfo(textures.PixelFormat.RGBA, 1, 1),
+        np.array([255, 255, 255, 255], np.uint8))
+
+@debug.profiled('graphics', 'rendering')
+def _create_framebuffer(width: int, height: int) -> None:
+    global _framebuffer
+
+    attachments = [
+        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.RGBA8, 0),
+        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.DEPTH24_STENCIL8, framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)]
+    _framebuffer = framebuffer.Framebuffer(attachments, width, height)
+
+def _set_debug_names() -> None:
+    gl_debug.set_object_name(_basic_shader, 'BasicShader')
+    gl_debug.set_object_name(_text_shader, 'TextShader')
+    gl_debug.set_object_name(_model_data_buffer, 'ModelBuffer')
+    gl_debug.set_object_name(_instance_data_buffer, 'InstanceBuffer')
+    gl_debug.set_object_name(_uniform_buffer, 'UniformBuffer')
+    gl_debug.set_object_name(_basic_vertex_array, 'BasicVAO')
+    gl_debug.set_object_name(_text_vertex_array, 'TextVAO')
+    gl_debug.set_object_name(_white_texture, 'WhiteTexture')
+    gl_debug.set_object_name(_text_tex_coords_buffer.buffer, 'TextTexCoordsBuffer-Buffer')
+    gl_debug.set_object_name(_text_tex_coords_buffer.texture, 'TextTexCoordsBuffer-Texture')
+    gl_debug.set_object_name(_framebuffer, 'MainFramebuffer')
 
 def _should_flush(textures_reserved: int) -> bool:
     return _instance_count >= _MAX_INSTANCES or len(_textures) >= _MAX_TEXTURES - textures_reserved
