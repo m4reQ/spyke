@@ -7,7 +7,6 @@ debug.initialize()
 from spyke import events, exceptions, graphics, resources, utils
 
 from .application import *
-from .windowing import *
 
 __all__ = [
     'debug',
@@ -16,8 +15,6 @@ __all__ = [
     'resources',
     'events',
     'Application',
-    'Window',
-    'WindowSpecs',
     'exceptions'
 ]
 

@@ -116,11 +116,8 @@ class FontLoader(LoaderBase[Font, _FontData]):
     @staticmethod
     @debug.profiled('resources', 'initialization')
     def finalize_loading(resource: Font, loading_data: _FontData) -> None:
-        texture = textures.Texture(loading_data.texture_specification)
-
-        textures.set_pixel_unpack_alignment(1)
-        texture.upload(loading_data.texture_upload_info, loading_data.texture_upload_data)
-        textures.set_pixel_unpack_alignment(4)
+        texture = _create_texture(loading_data.texture_specification)
+        _upload_texture_data(texture, loading_data.texture_upload_info, loading_data.texture_upload_data)
 
         with resource.lock:
             resource.texture = texture
@@ -128,6 +125,16 @@ class FontLoader(LoaderBase[Font, _FontData]):
             resource.name = loading_data.font_name
             resource.base_size = loading_data.base_size
             resource.is_loaded = True
+
+@debug.profiled('resources', 'initialization')
+def _upload_texture_data(texture: textures.Texture, info: textures.UploadInfo, data: np.ndarray) -> None:
+    textures.set_pixel_unpack_alignment(1)
+    texture.upload(info, data)
+    textures.set_pixel_unpack_alignment(4)
+
+@debug.profiled('resources', 'initialization')
+def _create_texture(spec: textures.TextureSpec) -> textures.Texture:
+    return textures.Texture(spec)
 
 def _determine_atlas_size(glyphs: list[_CharPrototype]) -> tuple[int, int, int]:
     rows, cols = utils.get_closest_factors(len(glyphs))

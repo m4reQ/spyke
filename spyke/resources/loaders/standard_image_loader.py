@@ -48,12 +48,20 @@ class StandardImageLoader(LoaderBase[Image, ImageLoadingData]):
     @staticmethod
     @debug.profiled('resources', 'initialization')
     def finalize_loading(resource: Image, loading_data: ImageLoadingData) -> None:
-        texture = textures.Texture(loading_data.specification)
-        texture.upload(loading_data.upload_infos[0], loading_data.upload_data)
+        texture = _create_texture(loading_data.specification)
+        _upload_texture_data(texture, loading_data.upload_infos[0], loading_data.upload_data)
 
         with resource.lock:
             resource.texture = texture
             resource.is_loaded = True
+
+@debug.profiled('resources', 'initialization')
+def _upload_texture_data(texture: textures.Texture, info: textures.UploadInfo, data: np.ndarray) -> None:
+    texture.upload(info, data)
+
+@debug.profiled('resources', 'initialization')
+def _create_texture(spec: textures.TextureSpec) -> textures.Texture:
+    return textures.Texture(spec)
 
 @debug.profiled('resources', 'io')
 def _load_image_data(img: PILImage.Image) -> np.ndarray:

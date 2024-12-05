@@ -5,22 +5,19 @@ import time
 
 from spyke import debug, events, resources, utils
 from spyke.audio import AudioDevice
-from spyke.graphics import renderer
-from spyke.windowing import Window, WindowSpecs
+from spyke.debug import profiling
+from spyke.graphics import renderer, window
 
 __all__ = ['Application']
 
 class Application(abc.ABC):
     @debug.profiled('application', 'initialization')
-    def __init__(self, window_specification: WindowSpecs, use_imgui: bool=False):
-        self._loading_start = time.perf_counter()
+    def __init__(self, window_specification: window.WindowSpec, use_imgui: bool=False):
         self._is_running = False
         self._frametime = 0.0
+        self._window_spec = window_specification
 
-        self._window = Window(window_specification)
         self._audio_device = AudioDevice()
-
-        events.register(self._window_close_callback, events.WindowCloseEvent, priority=-1)
 
         # TODO: Reimplement imgui
         # if use_imgui:
@@ -45,60 +42,47 @@ class Application(abc.ABC):
         return self._frametime
 
     @property
-    def window(self) -> Window:
-        return self._window
-
-    @property
     def audio_device(self) -> AudioDevice:
         return self._audio_device
 
-    def run(self) -> None:
-        self._is_running = True
-
+    @debug.profiled('application', 'initialization')
+    def _load(self) -> None:
+        window.initialize(self._window_spec)
         resources.initialize()
-        renderer.initialize(self._window.size)
+        renderer.initialize(window.get_width(), window.get_height())
+
         self.on_load()
-        atexit.register(self._close)
-        utils.garbage_collect()
 
-        _logger.info('Application loaded in %f seconds.', time.perf_counter() - self._loading_start)
+    @debug.profiled('application')
+    def _process_frame(self) -> None:
+        start = time.perf_counter()
 
-        # enginePreview.CleanupPreview()
-        # glfw.swap_buffers(self._handle)
+        window.process_events()
+        events.process_events()
+        resources.process_loading_queue()
 
-        while self._is_running:
-            start = self._window.get_time()
+        if window.is_active():
+            window.swap_buffers()
+            renderer.clear()
 
-            resources.process_loading_queue()
-            events.process_events()
+            self.on_frame(self._frametime)
 
-            # TEMPORARY !!!!!!
-            # _scene = scene.get_current()
-            # _scene.process(dt=self.frametime)
+        self._frametime = time.perf_counter() - start
 
-            if self._window.is_active:
-                self._window.swap_buffers()
-                renderer.clear()
-                self.on_frame(self._frametime)
+    def run(self) -> None:
+        self._load()
 
-                # self._renderer.render_scene(_scene)
-                # self.on_frame()
-                # self._window.swap_buffers()
+        while not window.should_close():
+            self._process_frame()
 
-            self._window.process_events()
-            self._frametime = self._window.get_time() - start
-
-        self.on_close()
         self._close()
-        atexit.unregister(self._close)
 
     def _close(self) -> None:
-        renderer.shutdown()
+        self.on_close()
+
         resources.unload_all()
+        renderer.shutdown()
+        window.shutdown()
         self._audio_device.dispose()
-        self._window.dispose()
 
-    def _window_close_callback(self, _) -> None:
-        self._is_running = False
-
-_logger = logging.getLogger(__name__)
+        profiling._close_profiler()

@@ -12,7 +12,6 @@ from pygl import framebuffer, rendering, shaders, textures, vertex_array
 from spyke import debug, paths
 from spyke.graphics.texture_buffer import TextureBuffer
 from spyke.resources import Font, Model
-from spyke.utils import once
 
 # from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
 
@@ -148,26 +147,25 @@ _QUAD_VERTICES = np.array(
     0.0, 0.0, 0.0],
     dtype=np.float32)
 
-@once
-def initialize(window_size: tuple[int, int]) -> None:
+@debug.profiled('renderer', 'initialization')
+def initialize(width: int, height: int) -> None:
     pygl.init()
 
     if __debug__:
         _enable_debug_output()
 
-    _setup_opengl_state(*window_size)
+    _setup_opengl_state(width, height)
     _create_shaders()
     _create_buffers()
     _create_vertex_arrays()
     _create_white_texture()
-    _create_framebuffer(*window_size)
+    _create_framebuffer(width, height)
 
     if __debug__:
         _set_debug_names()
 
     _logger.info('Renderer initialized.')
 
-@debug.profiled('graphics', 'rendering')
 def shutdown() -> None:
     _basic_shader.delete()
     _text_shader.delete()
@@ -479,7 +477,7 @@ def _create_white_texture() -> None:
         textures.UploadInfo(textures.PixelFormat.RGBA, 1, 1),
         np.array([255, 255, 255, 255], np.uint8))
 
-@debug.profiled('graphics', 'rendering')
+@debug.profiled('renderer', 'initialization')
 def _create_framebuffer(width: int, height: int) -> None:
     global _framebuffer
 
@@ -488,6 +486,7 @@ def _create_framebuffer(width: int, height: int) -> None:
         framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.DEPTH24_STENCIL8, framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)]
     _framebuffer = framebuffer.Framebuffer(attachments, width, height)
 
+@debug.profiled('renderer', 'initialization')
 def _set_debug_names() -> None:
     gl_debug.set_object_name(_basic_shader, 'BasicShader')
     gl_debug.set_object_name(_text_shader, 'TextShader')

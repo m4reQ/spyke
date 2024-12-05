@@ -78,13 +78,21 @@ class DDSLoader(LoaderBase[Image, ImageLoadingData]):
     @staticmethod
     @debug.profiled('resources', 'initialization')
     def finalize_loading(resource: Image, loading_data: ImageLoadingData) -> None:
-        texture = textures.Texture(loading_data.specification)
-        for info in loading_data.upload_infos:
-            texture.upload(info, loading_data.upload_data)
+        texture = _create_texture(loading_data.specification)
+        _upload_texture_data(texture, loading_data.upload_infos, loading_data.upload_data)
 
         with resource.lock:
             resource.texture = texture
             resource.is_loaded = True
+
+@debug.profiled('resources', 'initialization')
+def _upload_texture_data(texture: textures.Texture, infos: list[textures.UploadInfo], data: np.ndarray) -> None:
+    for info in infos:
+        texture.upload(info, data)
+
+@debug.profiled('resources', 'initialization')
+def _create_texture(spec: textures.TextureSpec) -> textures.Texture:
+    return textures.Texture(spec)
 
 def _determine_internal_format(img_mode: str, fourcc: str) -> tuple[textures.CompressedInternalFormat, int]:
     texture_format: textures.CompressedInternalFormat
