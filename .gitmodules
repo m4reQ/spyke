@@ -1,3 +1,7 @@
 [submodule "pygl"]
 	path = pygl
 	url = https://github.com/m4reQ/pygl
+[submodule "pyimgui"]
+	path = pyimgui
+	url = https://github.com/pyimgui/pyimgui
+	branch = docking
