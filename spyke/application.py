@@ -94,6 +94,7 @@ class Application(abc.ABC):
 
     def _close(self) -> None:
         opengl_object.delete_all()
+        renderer.shutdown()
         resources.unload_all()
         self._audio_device.dispose()
         self._window.dispose()

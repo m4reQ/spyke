@@ -9,6 +9,8 @@ import numpy as np
 from OpenGL import GL
 from PIL import Image
 
+import pygl
+from pygl import shaders
 from spyke import debug, events, exceptions, paths
 from spyke.enums import (ClearMask, DebugSeverity, DebugSource, DebugType,
                          GLType, Key, MagFilter, MinFilter, ShaderType,
@@ -16,7 +18,6 @@ from spyke.enums import (ClearMask, DebugSeverity, DebugSource, DebugType,
                          TextureFormat)
 from spyke.graphics.buffers import (AttachmentSpec, DynamicBuffer, Framebuffer,
                                     TextureBuffer)
-from spyke.graphics.shader import Shader
 from spyke.graphics.textures import (Texture2D, TextureBase, TextureSpec,
                                      TextureUploadData)
 from spyke.graphics.vertex_array import VertexArray
@@ -139,14 +140,6 @@ _ENCODING = 'ansi'
 
 _DEFAULT_FB_SIZE = (1080, 720)
 
-_BASIC_SHADER_SPEC = {
-    ShaderType.VertexShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert'),
-    ShaderType.FragmentShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag')}
-_TEXT_SHADER_SPEC = {
-    ShaderType.VertexShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.vert'),
-    ShaderType.FragmentShader: os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.frag'),
-}
-
 _MAX_MODEL_VERTICES = 2000
 _MODEL_VERTEX_COUNT = 3 + 2
 _MAX_INSTANCES = 500
@@ -171,20 +164,34 @@ _QUAD_VERTICES = np.array(
     0.0, 0.0, 0.0],
     dtype=np.float32)
 
-@once
-def initialize(window_size: tuple[int, int]) -> None:
-    if __debug__:
-        _enable_debug_output()
-    _setup_opengl_state()
+def _create_shaders() -> None:
+    global _basic_shader, _text_shader
 
-    _basic_shader.set_uniform_array('uTextures', list(range(_MAX_TEXTURES)))
+    basic_shader_stages = [
+        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert')),
+        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag'))]
+    _basic_shader = shaders.Shader(basic_shader_stages)
+    _basic_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES, dtype=np.int32), shaders.UniformType.INT)
     _basic_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
     _basic_shader.validate()
 
-    _text_shader.set_uniform_array('uTextures', list(range(_MAX_TEXTURES - 1)))
+    text_shader_stages = [
+        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.vert')),
+        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.frag'))]
+    _text_shader = shaders.Shader(text_shader_stages)
+    _text_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES - 1, dtype=np.int32), shaders.UniformType.INT)
     _text_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
-    _text_shader.set_uniform('uTexCoordsBuffer', _TEXT_TEX_COORDS_BINDING)
+    _text_shader.set_uniform('uTexCoordsBuffer', _TEXT_TEX_COORDS_BINDING, shaders.UniformType.INT)
     _text_shader.validate()
+
+@once
+def initialize(window_size: tuple[int, int]) -> None:
+    pygl.init()
+
+    if __debug__:
+        _enable_debug_output()
+    _setup_opengl_state()
+    _create_shaders()
 
     _setup_text_vertex_array()
     _setup_vertex_array()
@@ -206,6 +213,11 @@ def initialize(window_size: tuple[int, int]) -> None:
     _resize(*window_size)
 
     _logger.info('Renderer initialized.')
+
+@debug.profiled('graphics', 'rendering')
+def shutdown() -> None:
+    _basic_shader.delete()
+    _text_shader.delete()
 
 @debug.profiled('graphics', 'rendering')
 def clear() -> None:
@@ -347,25 +359,25 @@ def _get_texture_index(texture: TextureBase | None) -> int:
 @debug.profiled('graphics', 'setup')
 def _setup_vertex_array() -> None:
     _vertex_array.bind_vertex_buffer(_MODEL_DATA_BUFFER_BINDING, _model_data_buffer, 0, _MODEL_VERTEX_COUNT * _SIZEOF_FLOAT)
-    _vertex_array.add_layout(_basic_shader.attributes['aPosition'], _MODEL_DATA_BUFFER_BINDING, 3, GLType.Float)
-    _vertex_array.add_layout(_basic_shader.attributes['aTexCoord'], _MODEL_DATA_BUFFER_BINDING, 2, GLType.Float)
+    _vertex_array.add_layout(_basic_shader.resources['aPosition'], _MODEL_DATA_BUFFER_BINDING, 3, GLType.Float)
+    _vertex_array.add_layout(_basic_shader.resources['aTexCoord'], _MODEL_DATA_BUFFER_BINDING, 2, GLType.Float)
 
     _vertex_array.bind_vertex_buffer(_INSTANCE_DATA_BUFFER_BINDING, _instance_data_buffer, 0, _INSTANCE_VERTEX_COUNT * _SIZEOF_FLOAT, 1)
-    _vertex_array.add_layout(_basic_shader.attributes['aColor'], _INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float)
-    _vertex_array.add_layout(_basic_shader.attributes['aTexIdx'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
-    _vertex_array.add_layout(_basic_shader.attributes['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
-    _vertex_array.add_matrix_layout(_basic_shader.attributes['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
+    _vertex_array.add_layout(_basic_shader.resources['aColor'], _INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float)
+    _vertex_array.add_layout(_basic_shader.resources['aTexIdx'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _vertex_array.add_layout(_basic_shader.resources['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _vertex_array.add_matrix_layout(_basic_shader.resources['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
 
 @debug.profiled('graphics', 'setup')
 def _setup_text_vertex_array() -> None:
     _text_vertex_array.bind_vertex_buffer(_MODEL_DATA_BUFFER_BINDING, _model_data_buffer, 0, 3 * _SIZEOF_FLOAT)
-    _text_vertex_array.add_layout(_text_shader.attributes['aPosition'], _MODEL_DATA_BUFFER_BINDING, 3, GLType.Float)
+    _text_vertex_array.add_layout(_text_shader.resources['aPosition'], _MODEL_DATA_BUFFER_BINDING, 3, GLType.Float)
 
     _text_vertex_array.bind_vertex_buffer(_INSTANCE_DATA_BUFFER_BINDING, _instance_data_buffer, 0, _INSTANCE_VERTEX_COUNT * _SIZEOF_FLOAT, 1)
-    _text_vertex_array.add_layout(_text_shader.attributes['aColor'], _INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float)
-    _text_vertex_array.add_layout(_text_shader.attributes['aTexIdx'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
-    _text_vertex_array.add_layout(_text_shader.attributes['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
-    _text_vertex_array.add_matrix_layout(_text_shader.attributes['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
+    _text_vertex_array.add_layout(_text_shader.resources['aColor'], _INSTANCE_DATA_BUFFER_BINDING, 4, GLType.Float)
+    _text_vertex_array.add_layout(_text_shader.resources['aTexIdx'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _text_vertex_array.add_layout(_text_shader.resources['aEntId'], _INSTANCE_DATA_BUFFER_BINDING, 1, GLType.Float)
+    _text_vertex_array.add_matrix_layout(_text_shader.resources['aTransform'], _INSTANCE_DATA_BUFFER_BINDING, 4, 4, GLType.Float)
 
 @debug.profiled('graphics', 'rendering')
 def _flush(bind_white_texture: bool = True) -> None:
@@ -468,8 +480,9 @@ _textures = deque[TextureBase]([], maxlen=_MAX_TEXTURES)
 _instance_count = 0
 _current_vertex_count = 0
 
-_basic_shader = Shader.create(_BASIC_SHADER_SPEC)
-_text_shader = Shader.create(_TEXT_SHADER_SPEC)
+_basic_shader: shaders.Shader
+_text_shader: shaders.Shader
+
 _model_data_buffer = DynamicBuffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT, create_storage=False)
 _instance_data_buffer = DynamicBuffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT)
 _uniform_buffer = DynamicBuffer(_UNIFORM_BLOCK_COUNT, create_storage=False)
