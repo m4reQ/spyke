@@ -14,6 +14,7 @@ _FOOTER = ']}'
 _RT = t.TypeVar('_RT')
 _AT = t.ParamSpec('_AT')
 _FRAME_FORMAT = ',{{"name":"{}","cat":"{}","ph":"X","ts": {},"dur":{},"tid":{},"pid":{}}}'
+_COUNTER_FORMAT = ',{{"name":"{}","ph":"C","ts":{},"pid":{},"args":{{"":{}}}}}'
 
 @dataclasses.dataclass
 class _ProfileFrame:
@@ -46,6 +47,12 @@ def profile(func: t.Callable,
         threading.get_ident(),
         os.getpid(),
         categories).dump(_file)
+
+def update_counter(name: str, value: float) -> None:
+    if not __debug__:
+        return
+
+    _file.write(_COUNTER_FORMAT.format(name, _to_microseconds(time.perf_counter_ns()) - _profiler_time_start, os.getpid(), value))
 
 def profiled(*categories: str) -> t.Callable[[t.Callable[_AT, _RT]], t.Callable[_AT, _RT]]:
     '''
@@ -81,19 +88,10 @@ def _close_profiler() -> None:
         _file.write(_FOOTER)
         _file.close()
 
-@profiled('debugging')
-def _dump_frames(frames: list[_ProfileFrame]) -> None:
-    with _write_lock:
-        for frame in frames:
-            frame.dump(_file)
-
-        _file.flush()
-
 def _to_microseconds(time_ns: int) -> float:
     return time_ns / (10 ** 3)
 
-_frames: list[_ProfileFrame] = []
 _file = open(paths.PROFILE_FILE, 'w+')
 _file.write(_HEADER)
 _write_lock = threading.RLock()
-_profiler_time_start = time.perf_counter_ns()
+_profiler_time_start = _to_microseconds(time.perf_counter_ns())

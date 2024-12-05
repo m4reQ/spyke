@@ -1,8 +1,6 @@
 PyGLM
 PyOgg
 PyOpenAL
-PyOpenGL
-PyOpenGL-accelerate
 numpy
 colorama
 glfw
@@ -10,6 +8,7 @@ Pillow
 pydub
 freetype-py
 stdlib_list
+psutil
 
 # dev dependencies
 pyglm-typing

@@ -1,6 +1,8 @@
 import abc
 import time
 
+import psutil
+
 from spyke import debug, events, resources
 from spyke.audio import AudioDevice
 from spyke.debug import profiling
@@ -16,6 +18,7 @@ class Application(abc.ABC):
         self._window_spec = window_specification
 
         self._audio_device = AudioDevice()
+        self._process = psutil.Process()
 
         # TODO: Reimplement imgui
         # if use_imgui:
@@ -67,6 +70,8 @@ class Application(abc.ABC):
 
         self._frametime = time.perf_counter() - start
 
+        self._update_counters()
+
     def run(self) -> None:
         self._load()
 
@@ -84,3 +89,12 @@ class Application(abc.ABC):
         self._audio_device.dispose()
 
         profiling._close_profiler()
+
+    def _update_counters(self) -> None:
+        if not __debug__:
+            return
+
+        memory = self._process.memory_info().rss / 1_000_000
+
+        profiling.update_counter('memory (MB)', memory)
+        profiling.update_counter('frametime (ms)', self._frametime * 1000)
