@@ -40,6 +40,15 @@ class Model(ResourceBase):
             0.0, 1.0], dtype=np.float32)
         model.is_loaded = True
 
+        model.data = np.array([
+            0.0, 1.0, 0.0, 0.0, 1.0,
+            1.0, 1.0, 0.0, 1.0, 1.0,
+            1.0, 0.0, 0.0, 1.0, 0.0,
+            1.0, 0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0, 1.0], dtype=np.float32)
+        model.vertex_count = 6
+
         return model
 
     def __init__(self, _id: uuid.UUID, filepath: str):
