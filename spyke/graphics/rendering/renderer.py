@@ -13,14 +13,13 @@ from PIL import Image
 import pygl
 from pygl import buffers, commands
 from pygl import debug as gl_debug
-from pygl import shaders, vertex_array
+from pygl import shaders, textures, vertex_array
 from spyke import debug, events, paths
 from spyke.enums import (ClearMask, Key, MagFilter, MinFilter,
                          SizedInternalFormat, TextureBufferSizedInternalFormat,
                          TextureFormat)
 from spyke.graphics.buffers import AttachmentSpec, Framebuffer, TextureBuffer
-from spyke.graphics.textures import (Texture2D, TextureBase, TextureSpec,
-                                     TextureUploadData)
+from spyke.graphics.textures import TextureBase
 from spyke.resources import Font, Model
 from spyke.utils import once
 
@@ -234,6 +233,22 @@ def _create_vertex_arrays() -> None:
             divisor=1)]
     _text_vertex_array = vertex_array.VertexArray(text_layout)
 
+@debug.profiled('graphics', 'rendering')
+def _create_white_texture() -> None:
+    global _white_texture
+
+    _white_texture = textures.Texture(
+        textures.TextureSpec(
+            textures.TextureTarget.TEXTURE_2D,
+            1,
+            1,
+            textures.InternalFormat.RGBA8,
+            min_filter=textures.MinFilter.NEAREST,
+            mag_filter=textures.MagFilter.NEAREST))
+    _white_texture.upload(
+        textures.UploadInfo(textures.PixelFormat.RGBA, 1, 1),
+        np.array([255, 255, 255, 255], np.uint8))
+
 @once
 def initialize(window_size: tuple[int, int]) -> None:
     pygl.init()
@@ -245,13 +260,7 @@ def initialize(window_size: tuple[int, int]) -> None:
     _create_shaders()
     _create_buffers()
     _create_vertex_arrays()
-
-    _white_texture.upload(
-        TextureUploadData(
-            1,
-            1,
-            np.array([255, 255, 255, 255], dtype=np.ubyte),
-            TextureFormat.Rgba))
+    _create_white_texture()
 
     _framebuffer.resize(*window_size)
 
@@ -513,16 +522,9 @@ _instance_data_buffer: buffers.Buffer
 _uniform_buffer: buffers.Buffer
 _basic_vertex_array: vertex_array.VertexArray
 _text_vertex_array: vertex_array.VertexArray
+_white_texture: textures.Texture
 
 _text_tex_coords_buffer = TextureBuffer(2 * 6 * _MAX_INSTANCES, TextureBufferSizedInternalFormat.Rg32f)
-_white_texture = Texture2D(
-    TextureSpec(
-        1,
-        1,
-        SizedInternalFormat.Rgba8,
-        mipmaps = 1,
-        min_filter = MinFilter.Nearest,
-        mag_filter = MagFilter.Nearest))
 _framebuffer = Framebuffer(
     [AttachmentSpec(*_DEFAULT_FB_SIZE, SizedInternalFormat.Rgba8, MinFilter.Linear),
     AttachmentSpec(*_DEFAULT_FB_SIZE, SizedInternalFormat.R8, MinFilter.Nearest, MagFilter.Nearest)])
