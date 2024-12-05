@@ -1,13 +1,14 @@
 import numpy as np
 from PIL import Image as PILImage
+
+from pygl import textures
 from spyke import debug
-from spyke.graphics.textures import Texture2D, TextureSpec, TextureUploadData
 from spyke.resources.types import Image
-from spyke.utils import convert
 
 from .image_loading_data import ImageLoadingData
 from .loader import LoaderBase
 
+_DEFAULT_MIPMAPS_COUNT = 4
 
 class StandardImageLoader(LoaderBase[Image, ImageLoadingData]):
     '''
@@ -19,31 +20,36 @@ class StandardImageLoader(LoaderBase[Image, ImageLoadingData]):
     @staticmethod
     @debug.profiled('resources', 'io')
     def load_from_file(filepath: str) -> ImageLoadingData:
+        width: int
+        height: int
+        bits: int
+        mode: str
         with PILImage.open(filepath, 'r') as img:
-            bits: int
-            if img.format == 'PNG':
-                bits = 8
-            else:
-                bits = img.bits # type: ignore
+            bits = 8 if img.format == 'PNG' else img.bits # type: ignore
+            mode = img.mode
+            width = img.width
+            height = img.height
 
-            texture_format = convert.image_mode_to_texture_format(img.mode)
-            spec = TextureSpec(
-                img.width,
-                img.height,
-                convert.texture_format_to_internal_format(texture_format, bits))
-            data = TextureUploadData(
-                img.width,
-                img.height,
-                _load_image_data(img),
-                texture_format)
+            data = _load_image_data(img)
 
-        return ImageLoadingData(spec, [data])
+        return ImageLoadingData(
+            textures.TextureSpec(
+                textures.TextureTarget.TEXTURE_2D,
+                width,
+                height,
+                _image_mode_to_internal_format(mode, bits),
+                mipmaps=_DEFAULT_MIPMAPS_COUNT),
+            [textures.UploadInfo(
+                _image_mode_to_pixel_format(mode),
+                width,
+                height)],
+            data)
 
     @staticmethod
     @debug.profiled('resources', 'initialization')
     def finalize_loading(resource: Image, loading_data: ImageLoadingData) -> None:
-        texture = Texture2D(loading_data.specification)
-        texture.upload(loading_data.upload_data[0])
+        texture = textures.Texture(loading_data.specification)
+        texture.upload(loading_data.upload_infos[0], loading_data.upload_data)
 
         with resource.lock:
             resource.texture = texture
@@ -67,3 +73,23 @@ def _load_image_data(img: PILImage.Image) -> np.ndarray:
         offset += len(d)
 
     return data
+
+def _image_mode_to_pixel_format(mode: str) -> textures.PixelFormat:
+    match mode.lower():
+        case 'rgba':
+            return textures.PixelFormat.RGBA
+        case 'rgb':
+            return textures.PixelFormat.RGB
+        case invalid:
+            raise ValueError(f'Invalid image mode: {invalid}')
+
+def _image_mode_to_internal_format(mode: str, bits: int) -> textures.InternalFormat:
+    match mode.lower(), bits:
+        case 'rgba', 8:
+            return textures.InternalFormat.RGBA8
+        case 'rgba', 16:
+            return textures.InternalFormat.RGBA16
+        case 'rgb', 8:
+            return textures.InternalFormat.RGB8
+        case invalid_mode, invalid_bits:
+            raise ValueError(f'Invalid mode and bits combination: {invalid_mode}, {invalid_bits}')

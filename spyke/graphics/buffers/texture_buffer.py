@@ -1,51 +1,73 @@
 import typing as t
 
-import numpy as np
-import numpy.typing as npt
-from OpenGL import GL
-
-from spyke import debug, exceptions
-from spyke.enums import (SizedInternalFormat, TextureBufferSizedInternalFormat,
-                         TextureTarget)
-from spyke.graphics.textures import TextureBase, TextureSpec, TextureUploadData
-
-from .dynamic_buffer import DynamicBuffer
+from pygl import buffers, textures
 
 
-class _TextureBufferTexture(TextureBase):
-    def __init__(self, spec: TextureSpec) -> None:
-        super().__init__(TextureTarget.TextureBuffer, spec, False)
+class TextureBuffer:
+    def __init__(self,
+                 width: int,
+                 format: textures.InternalFormat | textures.CompressedInternalFormat,
+                 flags: buffers.BufferFlags) -> None:
+        self.buffer = buffers.Buffer(
+            _texture_format_to_size(format) * width,
+            flags)
+        self.texture = textures.Texture(
+            textures.TextureSpec(
+                textures.TextureTarget.TEXTURE_BUFFER,
+                width,
+                1,
+                format,
+                min_filter=textures.MinFilter.NEAREST,
+                mag_filter=textures.MagFilter.NEAREST))
 
-    def create_storage(self) -> None:
-        pass
+        self.texture.set_texture_buffer(self.buffer)
 
-    def upload(self, data: TextureUploadData, generate_mipmap: bool = True) -> None:
-        raise exceptions.GraphicsException('Cannot use upload on buffer texture.')
+    def bind(self, unit: int) -> None:
+        self.texture.bind_to_unit(unit)
 
-    def upload_compressed(self, data: TextureUploadData, generate_mipmap: bool = True) -> None:
-        raise exceptions.GraphicsException('Cannot use upload_compressed on buffer texture.')
+    # TODO Fix typing in `TextureBuffer.store`
+    def store(self, data: t.Any) -> None:
+        self.buffer.store(data)
 
-    def _check_is_immutable(self) -> None:
-        pass
+    def transfer(self) -> None:
+        self.buffer.transfer()
 
-class TextureBuffer(DynamicBuffer):
-    def __init__(self, count: int, internal_format: TextureBufferSizedInternalFormat, dtype: npt.DTypeLike = np.float32) -> None:
-        super().__init__(count, dtype)
+    def reset_offset(self) -> None:
+        self.buffer.reset_offset()
 
-        self._internal_format = internal_format
-        self._texture = _TextureBufferTexture(TextureSpec(count, 1, t.cast(SizedInternalFormat, internal_format), mipmaps=1))
+    def delete(self) -> None:
+        self.buffer.delete()
+        self.texture.delete()
 
-    @debug.profiled('graphics', 'buffers', 'initialization')
-    def initialize(self) -> None:
-        super().initialize()
+def _texture_format_to_size(format: textures.InternalFormat | textures.CompressedInternalFormat) -> int:
+    match format:
+        case textures.InternalFormat.R8:
+            return 1
+        case textures.InternalFormat.R16:
+            return 2
+        case textures.InternalFormat.R32F | textures.InternalFormat.R32I | textures.InternalFormat.R32UI:
+            return 4
 
-        self._texture.initialize()
-        GL.glTextureBuffer(self._texture.id, self._internal_format, self.id)
+        case textures.InternalFormat.RG8:
+            return 2
+        case textures.InternalFormat.RG16:
+            return 4
+        case textures.InternalFormat.RG32F | textures.InternalFormat.RG32I | textures.InternalFormat.RG32UI:
+            return 8
 
-    @debug.profiled('graphics', 'rendering')
-    def bind(self, tex_unit: int) -> None:
-        GL.glBindTextureUnit(tex_unit, self._texture.id)
+        case textures.InternalFormat.RGB8:
+            return 3
+        case textures.InternalFormat.RGB16:
+            return 6
+        case textures.InternalFormat.RGB32F | textures.InternalFormat.RGB32I | textures.InternalFormat.RGB32UI:
+            return 12
 
-    @property
-    def texture(self) -> _TextureBufferTexture:
-        return self._texture
+        case textures.InternalFormat.RGBA8:
+            return 4
+        case textures.InternalFormat.RGBA16:
+            return 8
+        case textures.InternalFormat.RGBA32F | textures.InternalFormat.RGBA32I | textures.InternalFormat.RGBA32UI:
+            return 16
+
+        case unsupported:
+            raise ValueError(f'Unsuported format for texture buffer: {unsupported}')

@@ -1,9 +1,12 @@
 import dataclasses
 
-from spyke.graphics.textures import TextureSpec, TextureUploadData
+import numpy as np
+
+from pygl.textures import TextureSpec, UploadInfo
 
 
 @dataclasses.dataclass
 class ImageLoadingData:
     specification: TextureSpec
-    upload_data: list[TextureUploadData] = dataclasses.field(default_factory=list)
+    upload_infos: list[UploadInfo]
+    upload_data: np.ndarray

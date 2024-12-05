@@ -3,7 +3,6 @@ import logging
 import os
 import threading
 import time
-from collections import deque
 
 import glm
 import numpy as np
@@ -13,13 +12,11 @@ from PIL import Image
 import pygl
 from pygl import buffers, commands
 from pygl import debug as gl_debug
-from pygl import shaders, textures, vertex_array
+from pygl import rendering, shaders, textures, vertex_array
 from spyke import debug, events, paths
-from spyke.enums import (ClearMask, Key, MagFilter, MinFilter,
-                         SizedInternalFormat, TextureBufferSizedInternalFormat,
+from spyke.enums import (Key, MagFilter, MinFilter, SizedInternalFormat,
                          TextureFormat)
 from spyke.graphics.buffers import AttachmentSpec, Framebuffer, TextureBuffer
-from spyke.graphics.textures import TextureBase
 from spyke.resources import Font, Model
 from spyke.utils import once
 
@@ -134,18 +131,12 @@ from spyke.utils import once
 #                 ent,
 #                 glyph.tex_rect.to_coordinates()))
 
-_SIZEOF_FLOAT = np.dtype(np.float32).itemsize
-_ENCODING = 'ansi'
-
 _DEFAULT_FB_SIZE = (1080, 720)
 
 _MAX_MODEL_VERTICES = 2000
 _MODEL_VERTEX_COUNT = 3 + 2
 _MAX_INSTANCES = 500
 _INSTANCE_VERTEX_COUNT = 4 + 1 + 1 + 16
-
-_MODEL_DATA_BUFFER_BINDING = 0
-_INSTANCE_DATA_BUFFER_BINDING = 1
 
 _UNIFORM_BLOCK_COUNT = 16
 _UNIFORM_BLOCK_BINDING = 0
@@ -186,13 +177,15 @@ def _create_shaders() -> None:
 
 @debug.profiled('graphics', 'rendering')
 def _create_buffers() -> None:
-    global _model_data_buffer, _instance_data_buffer, _uniform_buffer
+    global _model_data_buffer, _instance_data_buffer, _uniform_buffer, _text_tex_coords_buffer
 
     _model_data_buffer = buffers.Buffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
     _instance_data_buffer = buffers.Buffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
 
     _uniform_buffer = buffers.Buffer(_UNIFORM_BLOCK_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
     _uniform_buffer.bind_base(buffers.BufferBaseTarget.UNIFORM_BUFFER, _UNIFORM_BLOCK_BINDING)
+
+    _text_tex_coords_buffer = TextureBuffer(_MAX_INSTANCES * 6, textures.InternalFormat.RG32F, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
 
 @debug.profiled('graphics', 'rendering')
 def _create_vertex_arrays() -> None:
@@ -275,6 +268,12 @@ def initialize(window_size: tuple[int, int]) -> None:
 def shutdown() -> None:
     _basic_shader.delete()
     _text_shader.delete()
+    _basic_vertex_array.delete()
+    _text_vertex_array.delete()
+    _model_data_buffer.delete()
+    _instance_data_buffer.delete()
+    _uniform_buffer.delete()
+    _white_texture.delete()
 
 @debug.profiled('graphics', 'rendering')
 def clear() -> None:
@@ -282,7 +281,7 @@ def clear() -> None:
     Clears the screen.
     '''
 
-    GL.glClear(ClearMask.ColorBufferBit | ClearMask.DepthBufferBit)
+    rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT | rendering.ClearMask.DEPTH_BUFFER_BIT)
 
 def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
     '''
@@ -294,10 +293,10 @@ def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
     @a: Alpha component of the color.
     '''
 
-    GL.glClearColor(r, g, b, a)
+    commands.clear_color(r, g, b, a)
 
 @debug.profiled('graphics', 'rendering')
-def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: TextureBase | None = None) -> None:
+def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: textures.Texture | None = None) -> None:
     '''
     Renders instance of the currently set models with given parameters.
     NOTE: This function is not thread-safe.
@@ -384,14 +383,17 @@ def begin_batch(model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None
 def begin_text(view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
     global _current_vertex_count
 
-    _model_data_buffer.store_direct(_QUAD_VERTICES)
-    _current_vertex_count = 6
+    _model_data_buffer.store(_QUAD_VERTICES)
+    _model_data_buffer.transfer()
 
-    _uniform_buffer.store_direct(view_projection)
-    _uniform_buffer.bind_ubo()
+    _uniform_buffer.store(view_projection)
+    _uniform_buffer.transfer()
+    _uniform_buffer.bind(buffers.BindTarget.UNIFORM_BUFFER)
 
     _text_shader.use()
     _text_vertex_array.bind()
+
+    _current_vertex_count = 6
 
 def end_text() -> None:
     _flush_text()
@@ -404,7 +406,7 @@ def capture_frame() -> None:
     pixels = _framebuffer.read_color_attachment(0, TextureFormat.Rgb)
     threading.Thread(target=_save_screenshot, args=(pixels, _framebuffer.size)).start()
 
-def _get_texture_index(texture: TextureBase | None) -> int:
+def _get_texture_index(texture: textures.Texture | None) -> int:
     if texture is None:
         return 0
 
@@ -415,12 +417,11 @@ def _get_texture_index(texture: TextureBase | None) -> int:
     return len(_textures)
 
 @debug.profiled('graphics', 'rendering')
-def _flush(bind_white_texture: bool = True) -> None:
+def _flush() -> None:
     global _instance_count
 
-    if bind_white_texture:
-        _textures.appendleft(_white_texture)
-    TextureBase.bind_textures(0, _textures)
+    _white_texture.bind_to_unit(0)
+    textures.bind_textures(_textures, 1)
 
     _instance_data_buffer.transfer()
 
@@ -433,6 +434,7 @@ def _flush(bind_white_texture: bool = True) -> None:
 def _flush_text() -> None:
     _text_tex_coords_buffer.transfer()
     _text_tex_coords_buffer.bind(_TEXT_TEX_COORDS_BINDING)
+
     _flush()
 
 @debug.profiled('graphics', 'events')
@@ -511,7 +513,7 @@ def _should_flush(textures_reserved: int) -> bool:
 
 _logger = logging.getLogger(__name__)
 
-_textures = deque[TextureBase]([], maxlen=_MAX_TEXTURES)
+_textures = list[textures.Texture]()
 _instance_count = 0
 _current_vertex_count = 0
 
@@ -523,8 +525,8 @@ _uniform_buffer: buffers.Buffer
 _basic_vertex_array: vertex_array.VertexArray
 _text_vertex_array: vertex_array.VertexArray
 _white_texture: textures.Texture
+_text_tex_coords_buffer: TextureBuffer
 
-_text_tex_coords_buffer = TextureBuffer(2 * 6 * _MAX_INSTANCES, TextureBufferSizedInternalFormat.Rg32f)
 _framebuffer = Framebuffer(
     [AttachmentSpec(*_DEFAULT_FB_SIZE, SizedInternalFormat.Rgba8, MinFilter.Linear),
     AttachmentSpec(*_DEFAULT_FB_SIZE, SizedInternalFormat.R8, MinFilter.Nearest, MagFilter.Nearest)])
