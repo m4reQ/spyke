@@ -2,9 +2,9 @@ import ctypes as ct
 
 import numpy as np
 from PIL import Image as PILImage
+
+from pygl import textures
 from spyke import debug
-from spyke.enums import S3tcCompressedInternalFormat
-from spyke.graphics.textures import Texture2D, TextureSpec, TextureUploadData
 from spyke.resources.types import Image
 
 from .image_loading_data import ImageLoadingData
@@ -58,52 +58,49 @@ class DDSLoader(LoaderBase[Image, ImageLoadingData]):
 
             internal_format, block_size = _determine_internal_format(img.mode, fourcc)
 
-            buf = np.frombuffer(f.read(), dtype=np.ubyte)
+            data = np.frombuffer(f.read(), dtype=np.ubyte)
 
-        # TODO: Fix inheritance being fucked up in enums related to texture internal format
-
-        spec = TextureSpec(
-            header.width,
-            header.height,
-            internal_format, # type: ignore
-            mipmaps=header.mipmap_count)
-
-        upload_data = _create_upload_data(
-            header.width,
-            header.height,
-            header.mipmap_count,
-            block_size,
-            buf,
-            internal_format)
-
-        return ImageLoadingData(spec, upload_data)
+        return ImageLoadingData(
+            textures.TextureSpec(
+                textures.TextureTarget.TEXTURE_2D,
+                header.width,
+                header.height,
+                internal_format,
+                mipmaps=header.mipmap_count),
+            _create_upload_infos(
+                header.width,
+                header.height,
+                header.mipmap_count,
+                block_size,
+                internal_format),
+            data)
 
     @staticmethod
     @debug.profiled('resources', 'initialization')
     def finalize_loading(resource: Image, loading_data: ImageLoadingData) -> None:
-        tex = Texture2D(loading_data.specification)
-        for data in loading_data.upload_data:
-            tex.upload_compressed(data, False)
+        texture = textures.Texture(loading_data.specification)
+        for info in loading_data.upload_infos:
+            texture.upload(info, loading_data.upload_data)
 
         with resource.lock:
-            resource.texture = tex
+            resource.texture = texture
             resource.is_loaded = True
 
-def _determine_internal_format(img_mode: str, fourcc: str) -> tuple[S3tcCompressedInternalFormat, int]:
-    texture_format: S3tcCompressedInternalFormat
+def _determine_internal_format(img_mode: str, fourcc: str) -> tuple[textures.CompressedInternalFormat, int]:
+    texture_format: textures.CompressedInternalFormat
     block_size: int
     match img_mode, fourcc[-1]:
         case 'RGB', '1':
-            texture_format = S3tcCompressedInternalFormat.CompressedRgbS3tcDxt1
+            texture_format = textures.CompressedInternalFormat.COMPRESSED_RGB_S3TC_DXT1_EXT
             block_size = 8
         case 'RGBA', '1':
-            texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt1
+            texture_format = textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT1_EXT
             block_size = 8
         case 'RGBA', '3':
-            texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt3
+            texture_format = textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT3_EXT
             block_size = 16
         case 'RGBA', '5':
-            texture_format = S3tcCompressedInternalFormat.CompressedRgbaS3tcDxt5
+            texture_format = textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT5_EXT
             block_size = 16
         case _, '0':
             raise RuntimeError('Loader does not support DXT10 format')
@@ -112,13 +109,13 @@ def _determine_internal_format(img_mode: str, fourcc: str) -> tuple[S3tcCompress
 
     return (texture_format, block_size)
 
-def _create_upload_data(width: int,
+@debug.profiled('resources', 'initialization')
+def _create_upload_infos(width: int,
                         height: int,
                         mipmaps: int,
                         block_size: int,
-                        buffer: np.ndarray,
-                        internal_format: S3tcCompressedInternalFormat) -> list[TextureUploadData]:
-    data: list[TextureUploadData] = []
+                        internal_format: textures.CompressedInternalFormat) -> list[textures.UploadInfo]:
+    infos = list[textures.UploadInfo]()
     offset = 0
     w = width
     h = height
@@ -128,18 +125,19 @@ def _create_upload_data(width: int,
 
         size = ((w + 3) // 4) * ((h + 3) // 4) * block_size
 
-        _data = TextureUploadData(
+        info = textures.UploadInfo(
+            internal_format,
             w,
             h,
-            buffer[offset:offset + size],
-            internal_format, # type: ignore
-            i,
-            image_size=size)
+            level=i,
+            image_size=size,
+            generate_mipmap=False,
+            data_offset=offset)
 
         offset += size
         w //= 2
         h //= 2
 
-        data.append(_data)
+        infos.append(info)
 
-    return data
+    return infos

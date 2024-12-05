@@ -5,7 +5,6 @@ from PIL import Image
 
 from spyke import debug, events, paths
 from spyke.enums import Key
-from spyke.exceptions import GraphicsException
 from spyke.runtime import DisposableBase
 from spyke.windowing import WindowSpecs, glfw_callbacks
 
@@ -20,7 +19,7 @@ class Window(DisposableBase):
         self._is_vsync_on = True
 
         if not glfw.init():
-            raise GraphicsException('Cannot initialize GLFW.')
+            raise RuntimeError('Cannot initialize GLFW.')
 
         _set_default_window_flags(specification)
 

@@ -4,10 +4,9 @@ import os
 import typing as t
 
 import colorama
+
 from spyke import paths
-from spyke.debug import profiling
 from spyke.debug.logging import LOG_LEVEL, SpykeLogger
-from spyke.debug.opengl import get_gl_error, opengl_debug_callback
 from spyke.debug.profiling import profile, profiled
 from spyke.utils import once
 
@@ -16,10 +15,8 @@ __all__ = [
     'LOG_LEVEL',
     'debug_only',
     'profiled',
-    'get_gl_error',
     'get_profiler',
     'ChromeProfiler',
-    'opengl_debug_callback',
     'profiler',
     'profile'
 ]

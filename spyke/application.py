@@ -5,7 +5,7 @@ import time
 
 from spyke import debug, events, resources, utils
 from spyke.audio import AudioDevice
-from spyke.graphics import opengl_object, renderer
+from spyke.graphics import renderer
 from spyke.windowing import Window, WindowSpecs
 
 __all__ = ['Application']
@@ -93,7 +93,7 @@ class Application(abc.ABC):
         atexit.unregister(self._close)
 
     def _close(self) -> None:
-        opengl_object.delete_all()
+        renderer.shutdown()
         resources.unload_all()
         self._audio_device.dispose()
         self._window.dispose()
