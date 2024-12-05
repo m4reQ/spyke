@@ -1,9 +1,7 @@
 import abc
-import atexit
-import logging
 import time
 
-from spyke import debug, events, resources, utils
+from spyke import debug, events, resources
 from spyke.audio import AudioDevice
 from spyke.debug import profiling
 from spyke.graphics import renderer, window
@@ -14,7 +12,7 @@ class Application(abc.ABC):
     @debug.profiled('application', 'initialization')
     def __init__(self, window_specification: window.WindowSpec, use_imgui: bool=False):
         self._is_running = False
-        self._frametime = 0.0
+        self._frametime = 1.0
         self._window_spec = window_specification
 
         self._audio_device = AudioDevice()

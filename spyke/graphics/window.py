@@ -66,7 +66,7 @@ def is_active() -> bool:
     return _is_active
 
 def should_close() -> bool:
-    return glfw.window_should_close(_handle)
+    return _should_close
 
 def set_title(title: str) -> None:
     glfw.set_window_title(_handle, title)
@@ -169,6 +169,9 @@ def _resize_cb(_, width: int, height: int) -> None:
     _logger.info('Window resized to (%d, %d)', width, height)
 
 def _window_close_callback(_) -> None:
+    global _should_close
+    _should_close = True
+
     events.invoke(events.WindowCloseEvent())
 
 def _window_focus_callback(_, value: int) -> None:
@@ -206,5 +209,6 @@ def _key_callback(_, key, scancode: int, action: int, mods: int) -> None:
 _width = 0
 _height = 0
 _is_active = True
+_should_close = False
 _handle = glfw._GLFWwindow()
 _logger = logging.getLogger(__name__)

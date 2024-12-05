@@ -141,6 +141,7 @@ def unload_all() -> None:
     for resource in resources:
         resource.unload()
 
+@profiled('resources')
 def process_loading_queue() -> None:
     while not _finalization_queue.empty():
         task = _finalization_queue.get_nowait()
