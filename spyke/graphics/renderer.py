@@ -124,8 +124,6 @@ from spyke.resources import Font, Model
 #                 ent,
 #                 glyph.tex_rect.to_coordinates()))
 
-_DEFAULT_FB_SIZE = (1080, 720)
-
 _MAX_MODEL_VERTICES = 2000
 _MODEL_VERTEX_COUNT = 3 + 2
 _MAX_INSTANCES = 500
@@ -154,7 +152,7 @@ def initialize(width: int, height: int) -> None:
     if __debug__:
         _enable_debug_output()
 
-    _setup_opengl_state(width, height)
+    # _setup_opengl_state(width, height)
     _create_shaders()
     _create_buffers()
     _create_vertex_arrays()
@@ -191,6 +189,14 @@ def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
     commands.clear_color(r, g, b, a)
 
 @debug.profiled('graphics', 'rendering')
+def begin_frame() -> None:
+    _setup_opengl_state(_framebuffer.width, _framebuffer.height)
+
+@debug.profiled('graphics', 'rendering')
+def end_frame() -> None:
+    pass
+
+@debug.profiled('graphics', 'rendering')
 def resize(width: int, height: int) -> None:
     commands.viewport(0, 0, width, height)
     commands.scissor(0, 0, width, height)
@@ -200,12 +206,12 @@ def resize(width: int, height: int) -> None:
     _logger.info('Viewport size set to %d, %d.', width, height)
 
 @debug.profiled('graphics', 'rendering')
-def clear() -> None:
+def clear(clear_depth: bool = True) -> None:
     '''
     Clears the screen.
     '''
 
-    rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT | rendering.ClearMask.DEPTH_BUFFER_BIT)
+    rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT | (rendering.ClearMask.DEPTH_BUFFER_BIT if clear_depth else 0))
 
 @debug.profiled('graphics', 'rendering')
 def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: textures.Texture | None = None) -> None:

@@ -63,9 +63,6 @@ class Application(abc.ABC):
         resources.process_loading_queue()
 
         if window.is_active():
-            window.swap_buffers()
-            renderer.clear()
-
             self.on_frame(self._frametime)
 
         self._frametime = time.perf_counter() - start

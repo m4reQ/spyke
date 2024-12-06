@@ -1,5 +1,7 @@
 import enum
+
 import glfw
+
 
 class MouseButton(enum.IntEnum):
     Left = glfw.MOUSE_BUTTON_LEFT
@@ -7,7 +9,7 @@ class MouseButton(enum.IntEnum):
     Right = glfw.MOUSE_BUTTON_RIGHT
 
 
-class KeyMod(enum.IntEnum):
+class KeyMod(enum.IntFlag):
     Control = glfw.MOD_CONTROL
     Shift = glfw.MOD_SHIFT
     Alt = glfw.MOD_ALT
