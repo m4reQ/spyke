@@ -1,6 +1,7 @@
 import glm
-import imgui
-from imgui.integrations.base import BaseOpenGLRenderer
+import imgui  # type: ignore[import-untyped]
+from imgui.integrations.base import \
+    BaseOpenGLRenderer  # type: ignore[import-untyped]
 
 from pygl import buffers, commands, rendering, shaders, textures, vertex_array
 from spyke import debug
@@ -48,7 +49,7 @@ class PYGLBackend(BaseOpenGLRenderer):
         self._vertex_array: vertex_array.VertexArray
         self._vertex_buffer: buffers.Buffer
         self._index_buffer: buffers.Buffer
-        self._font_texture_obj: textures.Texture
+        self._font_texture: textures.Texture
 
     @debug.profiled('editor', 'imgui')
     def render(self, draw_data):
@@ -87,23 +88,31 @@ class PYGLBackend(BaseOpenGLRenderer):
             0.0, 0.0, -1.0, 0.0,
             (r + l) / (l - r), (t + b) / (b - t), 0.0, 1.0)
         self._shader.set_uniform_mat4('uProjMtx', projection)
-
         self._shader.use()
         self._vertex_array.bind()
 
         clip_off = draw_data.display_pos
         clip_scale = draw_data.frame_buffer_scale
 
-        for draw_commands in draw_data.commands_lists:
-            idx_buffer_offset = 0
+        command_list_offsets = list[tuple[int, int]]()
+        current_vertex_offset = 0
+        current_index_offset = 0
+        for commands_list in draw_data.commands_lists:
+            self._vertex_buffer.store_address(commands_list.vtx_buffer_data, commands_list.vtx_buffer_size * imgui.VERTEX_SIZE)
+            self._index_buffer.store_address(commands_list.idx_buffer_data, commands_list.idx_buffer_size * imgui.INDEX_SIZE)
 
-            self._vertex_buffer.store_address(draw_commands.vtx_buffer_data, draw_commands.vtx_buffer_size * imgui.VERTEX_SIZE)
-            self._vertex_buffer.transfer()
+            command_list_offsets.append((current_vertex_offset, current_index_offset))
 
-            self._index_buffer.store_address(draw_commands.idx_buffer_data, draw_commands.idx_buffer_size * imgui.INDEX_SIZE)
-            self._index_buffer.transfer()
+            current_vertex_offset += commands_list.vtx_buffer_size
+            current_index_offset += commands_list.idx_buffer_size
 
-            for cmd in draw_commands.commands:
+        self._vertex_buffer.transfer()
+        self._index_buffer.transfer()
+
+        for (vtx_offset, idx_offset), commands_list in zip(command_list_offsets, draw_data.commands_lists):
+            list_idx_offset = 0
+
+            for cmd in commands_list.commands:
                 clip_min_x = int((cmd.clip_rect.x - clip_off.x) * clip_scale.x)
                 clip_min_y = int((cmd.clip_rect.y - clip_off.y) * clip_scale.y)
                 clip_max_x = int((cmd.clip_rect.z - clip_off.x) * clip_scale.x)
@@ -117,37 +126,36 @@ class PYGLBackend(BaseOpenGLRenderer):
                     fb_height - clip_max_y,
                     clip_max_x - clip_min_x,
                     clip_max_y - clip_min_y)
-
                 textures.bind_texture_ids([cmd.texture_id])
 
-                element_type = rendering.ElementsType.UNSIGNED_SHORT if imgui.INDEX_SIZE == 2 else rendering.ElementsType.UNSIGNED_INT
-                rendering.draw_elements(
+                index_type = rendering.ElementsType.UNSIGNED_SHORT if imgui.INDEX_SIZE == 2 else rendering.ElementsType.UNSIGNED_INT
+                rendering.draw_elements_base_vertex(
                     rendering.DrawMode.TRIANGLES,
                     cmd.elem_count,
-                    element_type)
+                    index_type,
+                    vtx_offset,
+                    list_idx_offset + idx_offset * imgui.INDEX_SIZE)
 
-                idx_buffer_offset += cmd.elem_count * imgui.INDEX_SIZE
+                list_idx_offset += cmd.elem_count * imgui.INDEX_SIZE
 
     @debug.profiled('editor', 'imgui')
     def refresh_font_texture(self):
         width, height, pixels = self.io.fonts.get_tex_data_as_rgba32()
 
         if self._font_texture is not None:
-            self._font_texture_obj.delete()
+            self._font_texture.delete()
 
-        self._font_texture_obj = textures.Texture(
+        self._font_texture = textures.Texture(
             textures.TextureSpec(
                 textures.TextureTarget.TEXTURE_2D,
                 width,
                 height,
                 textures.InternalFormat.RGBA8))
-        self._font_texture_obj.upload(
-            textures.UploadInfo(textures.PixelFormat.RGBA, width, height),
+        self._font_texture.upload(
+            textures.UploadInfo(textures.PixelFormat.RGBA, width, height, generate_mipmap=False),
             pixels)
 
-        self._font_texture = self._font_texture_obj.id
-        self.io.fonts.texture_id = self._font_texture
-        self.io.fonts.clear_tex_data()
+        self.io.fonts.texture_id = self._font_texture.id
 
     @debug.profiled('editor', 'imgui')
     def _create_device_objects(self):
@@ -177,4 +185,4 @@ class PYGLBackend(BaseOpenGLRenderer):
         self._index_buffer.delete()
 
         self.io.fonts.texture_id = 0
-        self._font_texture = 0
+        self._font_texture = None

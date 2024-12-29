@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
-import typing as t
 import dataclasses
+import typing as t
+
 
 @dataclasses.dataclass
 class Event(abc.ABC):
@@ -23,10 +24,17 @@ class KeyUpEvent(Event):
 class ResizeEvent(Event):
     width: int
     height: int
+    framebuffer_width: int
+    framebuffer_height: int
 
     @property
     def size(self) -> tuple[int, int]:
         return (self.width, self.height)
+
+
+    @property
+    def framebuffer_size(self) -> tuple[int, int]:
+        return (self.framebuffer_width, self.framebuffer_height)
 
 @dataclasses.dataclass
 class MouseButtonDownEvent(Event):

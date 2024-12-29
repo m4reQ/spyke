@@ -152,7 +152,7 @@ def initialize(width: int, height: int) -> None:
     if __debug__:
         _enable_debug_output()
 
-    # _setup_opengl_state(width, height)
+    _setup_opengl_state(width, height)
     _create_shaders()
     _create_buffers()
     _create_vertex_arrays()
@@ -190,7 +190,7 @@ def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
 
 @debug.profiled('graphics', 'rendering')
 def begin_frame() -> None:
-    _setup_opengl_state(_framebuffer.width, _framebuffer.height)
+    pass
 
 @debug.profiled('graphics', 'rendering')
 def end_frame() -> None:
@@ -201,7 +201,7 @@ def resize(width: int, height: int) -> None:
     commands.viewport(0, 0, width, height)
     commands.scissor(0, 0, width, height)
 
-    _framebuffer.resize(width, height)
+    # _framebuffer.resize(width, height)
 
     _logger.info('Viewport size set to %d, %d.', width, height)
 

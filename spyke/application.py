@@ -29,7 +29,10 @@ class Application(abc.ABC):
         # enginePreview.RenderPreview()
         # glfw.swap_buffers(self._handle)
 
-    def on_frame(self, frametime: float) -> None:
+    def on_update(self, frametime: float) -> None:
+        pass
+
+    def on_render(self, frametime: float) -> None:
         pass
 
     def on_close(self) -> None:
@@ -62,8 +65,10 @@ class Application(abc.ABC):
         events.process_events()
         resources.process_loading_queue()
 
+        self.on_update(self._frametime)
+
         if window.is_active():
-            self.on_frame(self._frametime)
+            self.on_render(self._frametime)
 
         self._frametime = time.perf_counter() - start
 

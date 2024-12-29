@@ -26,7 +26,7 @@ class WindowSpec:
 
 @debug.profiled('window', 'initialization')
 def initialize(spec: WindowSpec) -> None:
-    global _handle, _width, _height
+    global _handle, _width, _height, _fb_width, _fb_height
 
     _initialize_glfw()
     _set_default_window_flags(spec.samples)
@@ -36,7 +36,8 @@ def initialize(spec: WindowSpec) -> None:
     else:
         _handle = _create_window_normal(spec)
 
-    _width, _height = glfw.get_framebuffer_size(_handle)
+    _width, _height = glfw.get_window_size(_handle)
+    _fb_width, _fb_height = glfw.get_framebuffer_size(_handle)
 
     glfw.make_context_current(_handle)
     glfw.set_input_mode(
@@ -61,6 +62,15 @@ def get_width() -> int:
 
 def get_height() -> int:
     return _height
+
+def get_framebuffer_width() -> int:
+    return _fb_width
+
+def get_framebuffer_height() -> int:
+    return _fb_height
+
+def get_handle() -> glfw._GLFWwindow:
+    return _handle
 
 def is_active() -> bool:
     return _is_active
@@ -124,14 +134,16 @@ def _create_window_fullscreen(specification: WindowSpec) -> glfw._GLFWwindow:
 
 @debug.profiled('window', 'initialization')
 def _set_default_window_flags(samples: int) -> None:
+    if samples == 1:
+        samples = 0
+
+    glfw.window_hint(glfw.DOUBLEBUFFER, True)
     glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 5)
     glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-    if samples > 1:
-        glfw.window_hint(glfw.SAMPLES, samples)
-
     glfw.window_hint(glfw.OPENGL_DEBUG_CONTEXT, __debug__)
+    glfw.window_hint(glfw.SAMPLES, samples)
 
 @debug.profiled('window', 'initialization')
 def _initialize_glfw() -> None:
@@ -161,12 +173,14 @@ def _error_callback(code: int, message: str) -> None:
     raise RuntimeError(f'GLFW error: {message} ({code}).')
 
 def _resize_cb(_, width: int, height: int) -> None:
-    global _width, _height
+    global _width, _height, _fb_width, _fb_height
 
     _width = width
     _height = height
 
-    events.invoke(events.ResizeEvent(width, height))
+    _fb_width, _fb_height = glfw.get_framebuffer_size(_handle)
+
+    events.invoke(events.ResizeEvent(width, height, _fb_width, _fb_height))
 
     _logger.info('Window resized to (%d, %d)', width, height)
 
@@ -210,6 +224,8 @@ def _key_callback(_, key, scancode: int, action: int, mods: int) -> None:
 
 _width = 0
 _height = 0
+_fb_width = 0
+_fb_height = 0
 _is_active = True
 _should_close = False
 _handle = glfw._GLFWwindow()

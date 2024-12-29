@@ -1,6 +1,6 @@
 import enum
 
-import glfw
+import glfw  # type: ignore[import-untyped]
 
 
 class MouseButton(enum.IntEnum):
@@ -35,6 +35,7 @@ class Key(enum.IntEnum):
     Grave = glfw.KEY_GRAVE_ACCENT
     Escape = glfw.KEY_ESCAPE
     Enter = glfw.KEY_ENTER
+    KeypadEnter = glfw.KEY_KP_ENTER
     Tab = glfw.KEY_TAB
     Backspace = glfw.KEY_BACKSPACE
     Insert = glfw.KEY_INSERT
