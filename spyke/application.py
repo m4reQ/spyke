@@ -17,7 +17,7 @@ class Application(abc.ABC):
         self._frametime = 1.0
         self._window_spec = window_specification
 
-        self._audio_device = AudioDevice()
+        # self._audio_device = AudioDevice()
         self._process = psutil.Process()
 
         # TODO: Reimplement imgui
@@ -88,7 +88,7 @@ class Application(abc.ABC):
         resources.unload_all()
         renderer.shutdown()
         window.shutdown()
-        self._audio_device.dispose()
+        # self._audio_device.dispose()
 
         profiling._close_profiler()
 

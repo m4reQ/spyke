@@ -2,13 +2,13 @@ import ctypes as ct
 import logging
 import os
 
-import glm
 import numpy as np
 
 import pygl
 from pygl import buffers, commands
 from pygl import debug as gl_debug
 from pygl import framebuffer, rendering, shaders, textures, vertex_array
+from pygl.math import Matrix4, Vector3, Vector4
 from spyke import debug, paths
 from spyke.graphics.texture_buffer import TextureBuffer
 from spyke.resources import Font, Model
@@ -176,45 +176,52 @@ def shutdown() -> None:
     _text_tex_coords_buffer.delete()
     _framebuffer.delete()
 
-def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
+def get_framebuffer_color_texture_id() -> int:
     '''
-    Sets background color of the window.
-
-    @r: Red component of the color.
-    @g: Green component of the color.
-    @b: Blue component of the color.
-    @a: Alpha component of the color.
+    Returns ID of the texture used as main framebuffer's color attachment.
     '''
 
-    commands.clear_color(r, g, b, a)
+    return _framebuffer.get_attachment_id(0)
+
+def get_framebuffer_depth_texture_id() -> int:
+    '''
+    Returns ID of the texture used as main framebuffer's depth-stencil attachment.
+    '''
+
+    return _framebuffer.get_attachment_id(framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)
 
 @debug.profiled('graphics', 'rendering')
-def begin_frame() -> None:
-    pass
+def begin_frame(use_framebuffer: bool = True) -> None:
+    if use_framebuffer:
+        _framebuffer.bind()
 
 @debug.profiled('graphics', 'rendering')
 def end_frame() -> None:
-    pass
+    _framebuffer.unbind()
 
 @debug.profiled('graphics', 'rendering')
 def resize(width: int, height: int) -> None:
     commands.viewport(0, 0, width, height)
     commands.scissor(0, 0, width, height)
 
-    # _framebuffer.resize(width, height)
-
-    _logger.info('Viewport size set to %d, %d.', width, height)
+    _framebuffer.resize(width, height)
 
 @debug.profiled('graphics', 'rendering')
-def clear(clear_depth: bool = True) -> None:
+def clear(color: Vector4, clear_depth: bool = True) -> None:
     '''
     Clears the screen.
     '''
 
+    global _clear_color
+
+    if color != _clear_color:
+        commands.clear_color(*color)
+        _clear_color = color
+
     rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT | (rendering.ClearMask.DEPTH_BUFFER_BIT if clear_depth else 0))
 
 @debug.profiled('graphics', 'rendering')
-def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: textures.Texture | None = None) -> None:
+def render(color: Vector4, transform: Matrix4, entity_id: int = 0, texture: textures.Texture | None = None) -> None:
     '''
     Renders instance of the currently set models with given parameters.
     NOTE: This function is not thread-safe.
@@ -238,7 +245,7 @@ def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: te
     _instance_count += 1
 
 @debug.profiled('graphics', 'rendering')
-def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font, entity_id: int = 0) -> None:
+def render_text(text: str, pos: Vector3, color: Vector4, size: int, font: Font, entity_id: int = 0) -> None:
     global _instance_count
 
     v_width, v_height = _framebuffer.size
@@ -248,7 +255,7 @@ def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font
     scale = size / v_height
 
     tex_idx = _get_texture_index(font.texture)
-    transform = glm.mat4(1.0)
+    transform = Matrix4.identity()
 
     for char in text:
         if _should_flush(2):
@@ -281,7 +288,7 @@ def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font
         _instance_count += 1
 
 @debug.profiled('graphics', 'rendering')
-def begin_batch(model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
+def begin_batch(model: Model, view_projection: Matrix4 = Matrix4.identity()) -> None:
     global _current_vertex_count
 
     _model_data_buffer.store(model.data)
@@ -297,7 +304,7 @@ def begin_batch(model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None
     _current_vertex_count = model.vertex_count
 
 @debug.profiled('graphics', 'rendering')
-def begin_text(view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
+def begin_text(view_projection: Matrix4 = Matrix4.identity()) -> None:
     global _current_vertex_count
 
     _model_data_buffer.store(_QUAD_VERTICES)
@@ -488,7 +495,7 @@ def _create_framebuffer(width: int, height: int) -> None:
     global _framebuffer
 
     attachments = [
-        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.RGBA8, 0),
+        framebuffer.TextureAttachment(width, height, framebuffer.AttachmentFormat.RGBA8, 0),
         framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.DEPTH24_STENCIL8, framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)]
     _framebuffer = framebuffer.Framebuffer(attachments, width, height)
 
@@ -514,6 +521,7 @@ _logger = logging.getLogger(__name__)
 _textures = list[textures.Texture]()
 _instance_count = 0
 _current_vertex_count = 0
+_clear_color = Vector4(0.0, 0.0, 0.0, 1.0)
 
 _basic_shader: shaders.Shader
 _text_shader: shaders.Shader
