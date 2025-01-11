@@ -1,24 +1,20 @@
 import ctypes as ct
 import logging
-import os
 
-import glm
 import numpy as np
 
 import pygl
 import pygl.vertex_array
 from pygl import buffers, commands
 from pygl import debug as gl_debug
-from pygl import framebuffer, rendering, shaders, sync, textures, vertex_array
+from pygl import sync, textures
 from pygl.math import Matrix4, Vector4
-from spyke import debug, paths
+from spyke import debug
 from spyke.assets.types.model import Model
 from spyke.graphics.deferred_pipeline import DeferredPipeline
 from spyke.graphics.frame_data import FrameData
 from spyke.graphics.pipeline import GraphicsPipeline, PipelineSettings
 from spyke.graphics.render_batch import RenderBatch
-from spyke.graphics.ring_buffer import RingBuffer
-from spyke.graphics.texture_buffer import TextureBuffer
 
 DEFERRED_PIPELINE = DeferredPipeline()
 
