@@ -6,346 +6,300 @@ import glm
 import numpy as np
 
 import pygl
+import pygl.vertex_array
 from pygl import buffers, commands
 from pygl import debug as gl_debug
-from pygl import framebuffer, rendering, shaders, textures, vertex_array
+from pygl import framebuffer, rendering, shaders, sync, textures, vertex_array
+from pygl.math import Matrix4, Vector4
 from spyke import debug, paths
+from spyke.assets.types.model import Model
+from spyke.graphics.deferred_pipeline import DeferredPipeline
+from spyke.graphics.frame_data import FrameData
+from spyke.graphics.pipeline import GraphicsPipeline, PipelineSettings
+from spyke.graphics.render_batch import RenderBatch
+from spyke.graphics.ring_buffer import RingBuffer
 from spyke.graphics.texture_buffer import TextureBuffer
-from spyke.resources import Font, Model
 
-# from OpenGL.GL.INTEL.framebuffer_CMAA import glApplyFramebufferAttachmentCMAAINTEL
+DEFERRED_PIPELINE = DeferredPipeline()
 
-# TODO: Restore particle rendering
+MAX_MODEL_VERTICES = 8192
+MAX_INSTANCES = 1024
+MAX_INDICES = 16384
+INDEX_SIZE = ct.sizeof(ct.c_ushort)
 
-# framebuffer_spec.samples = 1 if context.has_extension('GL_INTEL_framebuffer_CMAA') else 2
+_FLOAT_SIZE = ct.sizeof(ct.c_float)
+_UBYTE_SIZE = ct.sizeof(ct.c_ubyte)
+_MAX_TEXTURES_COUNT = 16
 
-# @debug.profiled('graphics', 'rendering')
-# def render_scene(scene: Scene) -> None:
-#     assert _is_initialized, 'Renderer not initialized.'
-#     # self.info.reset_frame_stats()
-#     # TODO: Decide if we really want to measure draw time even without performing glFlush
-#     start = time.perf_counter()
+_INITIAL_TEXTURE_UPLOAD_BUFFER_SIZE = 640 * 480 * 4 * _UBYTE_SIZE
 
-#     primary_camera = None
-#     for _, camera in scene.get_component(components.CameraComponent):
-#         if camera.is_primary:
-#             primary_camera = camera
+class ModelVertex:
+    LENGTH = 3 + 2 + 3
+    SIZE = LENGTH * _FLOAT_SIZE
 
-#     if not primary_camera:
-#         view_projection = glm.mat4(1.0)
-#     else:
-#         view_projection = primary_camera.view_projection
+class InstanceVertex:
+    LENGTH = 4 + 1 + 16
+    SIZE = LENGTH * _FLOAT_SIZE
 
-#     _uniform_buffer.store_direct(view_projection)
-
-#     BufferBase.bind_ubo(_uniform_buffer)
-
-#     # self.framebuffer.bind()
-
-#     clear_screen()
-
-#     GL.glPolygonMode(GL.GL_FRONT_AND_BACK, _polygon_mode_iterator.current)
-#     GL.glEnable(GL.GL_DEPTH_TEST)
-
-#     _render_objects(scene)
-#     _flush()
-
-#     GL.glDisable(GL.GL_DEPTH_TEST)
-
-#     _render_text(scene)
-#     _flush()
-
-#     # TODO: Reimplement particle renderer
-#     # for _, system in scene.GetComponent(components.ParticleSystemComponent):
-#     # 	for particle in system.particlePool:
-#     # 		if particle.isAlive:
-#     # 			Renderer.__ParticleRenderer.RenderParticle(particle.position, particle.size, particle.rotation, particle.color, particle.texHandle)
-
-#     # TODO: Implement rendering of multisampled framebuffer
-#     # if self.info.extension_present('GL_INTEL_framebuffer_CMAA'):
-#     # self.framebuffer.unbind()
-
-#     # GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-#     # GL.glViewport(0, 0, self.info.window_width, self.info.window_height)
-
-#     # self.clear_screen()
-
-#     # self._render_quad(glm.mat4(1.0), glm.vec4(1.0), glm.vec2(
-#     #     1.0), self.framebuffer.get_color_attachment(0))
-#     # self._flush()
-
-#     # if self.info.vendor == Vendor.Nvidia:
-#     #     self.info.video_memory_used = self.info.video_memory_available - \
-#     #         GL.glGetInteger(NvidiaIntegerName.GpuMemInfoCurrentAvailable)
-
-#     # self.info.drawtime = time.perf_counter() - start
-
-# @debug.profiled('graphics', 'rendering')
-# def _render_text(scene: esper.World) -> None:
-#     text_transform = glm.mat4(1.0)
-
-#     fb_width = _framebuffer.width
-#     fb_height = _framebuffer.height
-
-#     for ent, (text, transform) in scene.get_components(components.TextComponent, components.TransformComponent):
-#         font: Font = resources.get(text.font_id, Font) # type: ignore
-#         if not font.is_loaded:
-#             continue
-
-#         scale = text.size / font.base_size
-
-#         x = transform.position.x
-#         y = transform.position.y
-
-#         for char in text.text:
-#             glyph = font.get_glyph(char)
-
-#             # TODO: Normalize all values here
-#             pos_x = x + ((glyph.bearing.x / fb_height) * scale)
-#             pos_y = y - (((glyph.size.y - glyph.bearing.y) / fb_height) * scale)
-
-#             width = glyph.size.x / fb_width * scale
-#             height = glyph.size.y / fb_height * scale
-
-#             x += glyph.advance / fb_width * scale
-
-#             text_transform[3, 0] = pos_x
-#             text_transform[3, 1] = pos_y
-#             text_transform[3, 2] = transform.position.z
-#             text_transform[0, 0] = width
-#             text_transform[1, 1] = height
-
-#             _render(RenderCommand(
-#                 font.texture.id,
-#                 Model.quad,
-#                 text_transform,
-#                 text.color,
-#                 glm.vec2(1.0),
-#                 ent,
-#                 glyph.tex_rect.to_coordinates()))
-
-_DEFAULT_FB_SIZE = (1080, 720)
-
-_MAX_MODEL_VERTICES = 2000
-_MODEL_VERTEX_COUNT = 3 + 2
-_MAX_INSTANCES = 500
-_INSTANCE_VERTEX_COUNT = 4 + 1 + 1 + 16
-
-_UNIFORM_BLOCK_COUNT = 16
-_UNIFORM_BLOCK_BINDING = 0
-
-_MAX_TEXTURES = 16
-
-_TEXT_TEX_COORDS_BINDING = 15
-
-_QUAD_VERTICES = np.array(
-    [0.0, 0.0, 0.0,
-    1.0, 0.0, 0.0,
-    1.0, 1.0, 0.0,
-    1.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0],
-    dtype=np.float32)
+class UniformData:
+    LENGTH = 4 * 4 * 2
+    SIZE = LENGTH * _FLOAT_SIZE
 
 @debug.profiled('renderer', 'initialization')
 def initialize(width: int, height: int) -> None:
+    global _frame_data
+
     pygl.init()
 
     if __debug__:
         _enable_debug_output()
 
-    _setup_opengl_state(width, height)
-    _create_shaders()
-    _create_buffers()
-    _create_vertex_arrays()
     _create_white_texture()
-    _create_framebuffer(width, height)
+    _create_texture_upload_buffer(_INITIAL_TEXTURE_UPLOAD_BUFFER_SIZE)
 
-    if __debug__:
-        _set_debug_names()
+    pipeline_settings = PipelineSettings(
+        MAX_MODEL_VERTICES * ModelVertex.SIZE,
+        MAX_INSTANCES * InstanceVertex.SIZE,
+        UniformData.SIZE,
+        MAX_INDICES * INDEX_SIZE,
+        ModelVertex.SIZE,
+        InstanceVertex.SIZE,
+        _MAX_TEXTURES_COUNT - 1)
+    DEFERRED_PIPELINE.initialize(pipeline_settings, width, height)
+
+    _frame_data = FrameData(_white_texture, width, height)
 
     _logger.info('Renderer initialized.')
 
 def shutdown() -> None:
-    _basic_shader.delete()
-    _text_shader.delete()
-    _basic_vertex_array.delete()
-    _text_vertex_array.delete()
-    _model_data_buffer.delete()
-    _instance_data_buffer.delete()
-    _uniform_buffer.delete()
+    DEFERRED_PIPELINE.destroy()
+
     _white_texture.delete()
-    _text_tex_coords_buffer.delete()
-    _framebuffer.delete()
+    _texture_upload_buffer.delete()
+    _texture_upload_sync.delete()
 
 def set_clear_color(r: float, g: float, b: float, a: float = 1.0) -> None:
     '''
-    Sets background color of the window.
-
-    @r: Red component of the color.
-    @g: Green component of the color.
-    @b: Blue component of the color.
-    @a: Alpha component of the color.
+    Returns ID of the texture used as main framebuffer's color attachment.
     '''
 
-    commands.clear_color(r, g, b, a)
+    assert _current_pipeline is not None, 'Cannot retrieve current framebuffer: no pipeline bound'
+    return _current_pipeline.get_output_texture_id()
+
+def get_framebuffer_width() -> int:
+    assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
+    return _frame_data.frame_width
+
+def get_framebuffer_height() -> int:
+    assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
+    return _frame_data.frame_height
+
+def get_white_texture() -> textures.Texture:
+    return _white_texture
+
+@debug.profiled('graphics', 'rendering')
+def begin_frame(pipeline: GraphicsPipeline) -> None:
+    global _current_pipeline
+
+    _current_pipeline = pipeline
+
+@debug.profiled('graphics', 'rendering')
+def end_frame() -> None:
+    assert _current_pipeline is not None, 'Cannot render frame: no pipeline bound'
+    assert _frame_data is not None, 'Cannot render frame: no frame data, renderer not initialized properly'
+
+    _current_pipeline.render(_frame_data)
+    _frame_data.reset()
 
 @debug.profiled('graphics', 'rendering')
 def resize(width: int, height: int) -> None:
-    commands.viewport(0, 0, width, height)
-    commands.scissor(0, 0, width, height)
+    assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
 
-    _framebuffer.resize(width, height)
-
-    _logger.info('Viewport size set to %d, %d.', width, height)
+    _frame_data.frame_width = width
+    _frame_data.frame_height = height
 
 @debug.profiled('graphics', 'rendering')
-def clear() -> None:
-    '''
-    Clears the screen.
-    '''
+def render(model: Model,
+           transform: Matrix4,
+           color: Vector4,
+           texture: textures.Texture | None = None) -> None:
+    assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
 
-    rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT | rendering.ClearMask.DEPTH_BUFFER_BIT)
+    batch_list = _frame_data.batches[model]
+    for batch in batch_list:
+        if batch.try_add_instance(transform, color, texture):
+            return
 
-@debug.profiled('graphics', 'rendering')
-def render(color: glm.vec4, transform: glm.mat4, entity_id: int = 0, texture: textures.Texture | None = None) -> None:
-    '''
-    Renders instance of the currently set models with given parameters.
-    NOTE: This function is not thread-safe.
+    new_batch = _create_new_batch()
+    add_succeeded = new_batch.try_add_instance(transform, color, texture)
+    assert add_succeeded, 'Failed to add instance to a newly created batch'
 
-    @color: Color of the rendered instance.
-    @transform: Determines where in the scene should the instance be drawn.
-    @entity_id: Used when running with imgui on, to determine entity given its position on the screen.
-    @texture: Texture to apply on the rendered instance. If `None` instance will be rendered with flat color.
-    '''
+    batch_list.append(new_batch)
 
-    global _instance_count
+@debug.profiled('rendering')
+def acquire_texture_upload_buffer(texture_width: int, texture_height: int, texture_format: textures.InternalFormat) -> buffers.Buffer:
+    texture_size = _calculate_texture_byte_size(texture_width, texture_height, texture_format)
 
-    if _should_flush(1):
-        _flush()
+    if _texture_upload_buffer.size < texture_size:
+        _texture_upload_buffer.delete()
+        _texture_upload_sync.delete()
+        _create_texture_upload_buffer(texture_size)
 
-    _instance_data_buffer.store(color)
-    _instance_data_buffer.store(float(_get_texture_index(texture)))
-    _instance_data_buffer.store(entity_id)
-    _instance_data_buffer.store(transform)
+    _texture_upload_buffer.bind(buffers.BindTarget.PIXEL_UNPACK_BUFFER)
+    return _texture_upload_buffer
 
-    _instance_count += 1
+def set_camera_transform(view: Matrix4, projection: Matrix4) -> None:
+    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
 
-@debug.profiled('graphics', 'rendering')
-def render_text(text: str, pos: glm.vec3, color: glm.vec4, size: int, font: Font, entity_id: int = 0) -> None:
-    global _instance_count
+    _frame_data.camera_view = view
+    _frame_data.camera_projection = projection
 
-    v_width, v_height = _framebuffer.size
-    x = pos.x
-    y = pos.y
-    # TODO: use points to pixels translation
-    scale = size / v_height
+def set_polygon_mode(mode: commands.PolygonMode) -> None:
+    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
 
-    tex_idx = _get_texture_index(font.texture)
-    transform = glm.mat4(1.0)
+    _frame_data.polygon_mode = mode
 
-    for char in text:
-        if _should_flush(2):
-            _flush_text()
+def set_clear_color(color: Vector4) -> None:
+    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
 
-        glyph = font.get_glyph(char)
+    _frame_data.clear_color = color
 
-        # TODO: Normalize all values here
-        pos_x = x + ((glyph.bearing.x / v_width) * scale)
-        pos_y = y - (((glyph.size.y - glyph.bearing.y) / v_height) * scale)
+def get_clear_color() -> Vector4:
+    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
+    return _frame_data.clear_color
 
-        width = glyph.size.x / v_width * scale
-        height = glyph.size.y / v_height * scale
+def _calculate_texture_byte_size(width: int, height: int, format: textures.InternalFormat) -> int:
+    bpp: int
+    match format:
+        case textures.InternalFormat.R8:
+            bpp = 1
+        case textures.InternalFormat.R8_SNORM:
+            bpp = 1
+        case textures.InternalFormat.R16:
+            bpp = 2
+        case textures.InternalFormat.R16_SNORM:
+            bpp = 2
+        case textures.InternalFormat.RG8:
+            bpp = 2
+        case textures.InternalFormat.RG8_SNORM:
+            bpp = 2
+        case textures.InternalFormat.RG16:
+            bpp = 4
+        case textures.InternalFormat.RG16_SNORM:
+            bpp = 4
+        case textures.InternalFormat.R3_G3_B2:
+            bpp = 1
+        case textures.InternalFormat.RGB4:
+            bpp = 2
+        case textures.InternalFormat.RGB5:
+            bpp = 2
+        case textures.InternalFormat.RGB8:
+            bpp = 3
+        case textures.InternalFormat.RGB8_SNORM:
+            bpp = 3
+        case textures.InternalFormat.RGB10:
+            bpp = 4
+        case textures.InternalFormat.RGB12:
+            bpp = 5
+        case textures.InternalFormat.RGB16_SNORM:
+            bpp = 6
+        case textures.InternalFormat.RGBA2:
+            bpp = 1
+        case textures.InternalFormat.RGBA4:
+            bpp = 2
+        case textures.InternalFormat.RGB5_A1:
+            bpp = 2
+        case textures.InternalFormat.RGBA8:
+            bpp = 4
+        case textures.InternalFormat.RGBA8_SNORM:
+            bpp = 4
+        case textures.InternalFormat.RGB10_A2:
+            bpp = 4
+        case textures.InternalFormat.RGB10_A2UI:
+            bpp = 4
+        case textures.InternalFormat.RGBA12:
+            bpp = 5
+        case textures.InternalFormat.RGBA16:
+            bpp = 8
+        case textures.InternalFormat.SRGB8:
+            bpp = 3
+        case textures.InternalFormat.SRGB8_ALPHA8:
+            bpp = 4
+        case textures.InternalFormat.R16F:
+            bpp = 2
+        case textures.InternalFormat.RG16F:
+            bpp = 4
+        case textures.InternalFormat.RGB16F:
+            bpp = 6
+        case textures.InternalFormat.RGBA16F:
+            bpp = 8
+        case textures.InternalFormat.R32F:
+            bpp = 4
+        case textures.InternalFormat.RG32F:
+            bpp = 8
+        case textures.InternalFormat.RGB32F:
+            bpp = 12
+        case textures.InternalFormat.RGBA32F:
+            bpp = 16
+        case textures.InternalFormat.R11F_G11F_B10F:
+            bpp = 4
+        case textures.InternalFormat.RGB9_E5:
+            bpp = 4
+        case textures.InternalFormat.R8I:
+            bpp = 1
+        case textures.InternalFormat.R8UI:
+            bpp = 1
+        case textures.InternalFormat.R16I:
+            bpp = 2
+        case textures.InternalFormat.R16UI:
+            bpp = 2
+        case textures.InternalFormat.R32I:
+            bpp = 4
+        case textures.InternalFormat.R32UI:
+            bpp = 4
+        case textures.InternalFormat.RG8I:
+            bpp = 2
+        case textures.InternalFormat.RG8UI:
+            bpp = 2
+        case textures.InternalFormat.RG16I:
+            bpp = 4
+        case textures.InternalFormat.RG16UI:
+            bpp = 4
+        case textures.InternalFormat.RG32I:
+            bpp = 8
+        case textures.InternalFormat.RG32UI:
+            bpp = 8
+        case textures.InternalFormat.RGB8I:
+            bpp = 3
+        case textures.InternalFormat.RGB8UI:
+            bpp = 3
+        case textures.InternalFormat.RGB16I:
+            bpp = 6
+        case textures.InternalFormat.RGB16UI:
+            bpp = 6
+        case textures.InternalFormat.RGB32I:
+            bpp = 12
+        case textures.InternalFormat.RGB32UI:
+            bpp = 12
+        case textures.InternalFormat.RGBA8I:
+            bpp = 4
+        case textures.InternalFormat.RGBA8UI:
+            bpp = 4
+        case textures.InternalFormat.RGBA16I:
+            bpp = 8
+        case textures.InternalFormat.RGBA16UI:
+            bpp = 8
+        case textures.InternalFormat.RGBA32I:
+            bpp = 16
+        case textures.InternalFormat.RGBA32UI:
+            bpp = 16
 
-        x += glyph.advance / v_width * scale
+    return width * height * bpp
 
-        transform[3, 0] = pos_x
-        transform[3, 1] = pos_y
-        transform[3, 2] = pos.z
-        transform[0, 0] = width
-        transform[1, 1] = height
-
-        _instance_data_buffer.store(color)
-        _instance_data_buffer.store(float(tex_idx))
-        _instance_data_buffer.store(float(entity_id))
-        _instance_data_buffer.store(transform)
-
-        _text_tex_coords_buffer.store(glyph.tex_coords)
-
-        _instance_count += 1
-
-@debug.profiled('graphics', 'rendering')
-def begin_batch(model: Model, view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
-    global _current_vertex_count
-
-    _model_data_buffer.store(model.data)
-    _model_data_buffer.transfer()
-
-    _uniform_buffer.store(view_projection)
-    _uniform_buffer.transfer()
-    _uniform_buffer.bind(buffers.BindTarget.UNIFORM_BUFFER)
-
-    _basic_shader.use()
-    _basic_vertex_array.bind()
-
-    _current_vertex_count = model.vertex_count
-
-@debug.profiled('graphics', 'rendering')
-def begin_text(view_projection: glm.mat4 = glm.mat4(1.0)) -> None:
-    global _current_vertex_count
-
-    _model_data_buffer.store(_QUAD_VERTICES)
-    _model_data_buffer.transfer()
-
-    _uniform_buffer.store(view_projection)
-    _uniform_buffer.transfer()
-    _uniform_buffer.bind(buffers.BindTarget.UNIFORM_BUFFER)
-
-    _text_shader.use()
-    _text_vertex_array.bind()
-
-    _current_vertex_count = 6
-
-def end_text() -> None:
-    _flush_text()
-
-def end_batch() -> None:
-    _flush()
-
-def _get_texture_index(texture: textures.Texture | None) -> int:
-    if texture is None:
-        return 0
-
-    if texture in _textures:
-        return _textures.index(texture) + 1
-
-    _textures.append(texture)
-    return len(_textures)
-
-@debug.profiled('graphics', 'rendering')
-def _flush() -> None:
-    global _instance_count
-
-    _white_texture.bind_to_unit(0)
-    textures.bind_textures(_textures, 1)
-
-    _instance_data_buffer.transfer()
-
-    rendering.draw_arrays_instanced(
-        rendering.DrawMode.TRIANGLES,
-        0,
-        _current_vertex_count * _instance_count,
-        _instance_count)
-
-    _textures.clear()
-    _instance_count = 0
-
-@debug.profiled('graphics', 'rendering')
-def _flush_text() -> None:
-    _text_tex_coords_buffer.transfer()
-    _text_tex_coords_buffer.bind(_TEXT_TEX_COORDS_BINDING)
-
-    _flush()
+def _create_new_batch() -> RenderBatch:
+    return RenderBatch(
+        MAX_INSTANCES,
+        _MAX_TEXTURES_COUNT - 1)
 
 def _opengl_debug_callback(source: int, msg_type: int, id: int, severity: int, msg: str, _) -> None:
     _source = gl_debug.DebugSource(source).name.upper()
@@ -360,8 +314,18 @@ def _opengl_debug_callback(source: int, msg_type: int, id: int, severity: int, m
     elif severity in (gl_debug.DebugSeverity.DEBUG_SEVERITY_LOW, gl_debug.DebugSeverity.DEBUG_SEVERITY_NOTIFICATION):
         _logger.info(message_formatted)
 
+def _pygl_log_callback(log_level: int, msg: str) -> None:
+    match log_level:
+        case gl_debug.LogLevel.INFO:
+            _logger.debug(msg)
+        case gl_debug.LogLevel.WARNING:
+            _logger.warning(msg)
+        case gl_debug.LogLevel.ERROR:
+            _logger.error(msg)
+
 @debug.profiled('graphics', 'setup')
 def _enable_debug_output():
+    gl_debug.set_log_callback(_pygl_log_callback)
     gl_debug.enable(_opengl_debug_callback)
     gl_debug.insert_message(
         gl_debug.DebugSource.DEBUG_SOURCE_APPLICATION,
@@ -369,97 +333,6 @@ def _enable_debug_output():
         2137,
         gl_debug.DebugSeverity.DEBUG_SEVERITY_NOTIFICATION,
         'Testing OpenGL debug output..')
-
-@debug.profiled('graphics', 'setup')
-def _setup_opengl_state(width: int, height: int) -> None:
-    commands.enable(commands.EnableCap.MULTISAMPLE)
-    commands.enable(commands.EnableCap.DEPTH_TEST)
-    commands.enable(commands.EnableCap.BLEND)
-    commands.enable(commands.EnableCap.LINE_SMOOTH)
-
-    commands.viewport(0, 0, width, height)
-    commands.scissor(0, 0, width, height)
-
-    commands.clear_color(0.0, 0.0, 0.0, 1.0)
-    commands.hint(commands.HintTarget.TEXTURE_COMPRESSION_HINT, commands.HintValue.NICEST)
-    commands.blend_func(commands.BlendFactor.SRC_ALPHA, commands.BlendFactor.ONE_MINUS_SRC_ALPHA)
-    commands.depth_func(commands.DepthFunc.LEQUAL)
-    commands.cull_face(commands.CullFace.FRONT)
-    commands.front_face(commands.FrontFace.CW)
-    commands.polygon_mode(commands.CullFace.FRONT_AND_BACK, commands.PolygonMode.FILL)
-    commands.point_size(4.0)
-
-@debug.profiled('graphics', 'rendering')
-def _create_shaders() -> None:
-    global _basic_shader, _text_shader
-
-    basic_shader_stages = [
-        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.vert')),
-        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'basic.frag'))]
-    _basic_shader = shaders.Shader(basic_shader_stages)
-    _basic_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES, dtype=np.int32), shaders.UniformType.INT)
-    _basic_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
-    _basic_shader.validate()
-
-    text_shader_stages = [
-        shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.vert')),
-        shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, os.path.join(paths.SHADER_SOURCES_DIRECTORY, 'text.frag'))]
-    _text_shader = shaders.Shader(text_shader_stages)
-    _text_shader.set_uniform_array('uTextures', np.arange(_MAX_TEXTURES - 1, dtype=np.int32), shaders.UniformType.INT)
-    _text_shader.set_uniform_block_binding('uMatrices', _UNIFORM_BLOCK_BINDING)
-    _text_shader.set_uniform('uTexCoordsBuffer', _TEXT_TEX_COORDS_BINDING, shaders.UniformType.INT)
-    _text_shader.validate()
-
-@debug.profiled('graphics', 'rendering')
-def _create_buffers() -> None:
-    global _model_data_buffer, _instance_data_buffer, _uniform_buffer, _text_tex_coords_buffer
-
-    _model_data_buffer = buffers.Buffer(_MAX_MODEL_VERTICES * _MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-    _instance_data_buffer = buffers.Buffer(_MAX_INSTANCES * _INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-
-    _uniform_buffer = buffers.Buffer(_UNIFORM_BLOCK_COUNT * ct.sizeof(ct.c_float), buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-    _uniform_buffer.bind_base(buffers.BufferBaseTarget.UNIFORM_BUFFER, _UNIFORM_BLOCK_BINDING)
-
-    _text_tex_coords_buffer = TextureBuffer(_MAX_INSTANCES * 6, textures.InternalFormat.RG32F, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-
-@debug.profiled('graphics', 'rendering')
-def _create_vertex_arrays() -> None:
-    global _basic_vertex_array, _text_vertex_array
-
-    basic_layout = [
-        vertex_array.VertexInput(
-            buffer=_model_data_buffer,
-            stride=_MODEL_VERTEX_COUNT * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_basic_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTexCoord'], vertex_array.AttribType.FLOAT, 2)]),
-        vertex_array.VertexInput(
-            buffer=_instance_data_buffer,
-            stride=_INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_basic_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_basic_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
-            divisor=1)]
-    _basic_vertex_array = vertex_array.VertexArray(basic_layout)
-
-    text_layout = [
-        vertex_array.VertexInput(
-            buffer=_model_data_buffer,
-            stride=3 * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_text_shader.resources['aPosition'], vertex_array.AttribType.FLOAT, 3)]),
-        vertex_array.VertexInput(
-            buffer=_instance_data_buffer,
-            stride=_INSTANCE_VERTEX_COUNT * ct.sizeof(ct.c_float),
-            descriptors=[
-                vertex_array.VertexDescriptor(_text_shader.resources['aColor'], vertex_array.AttribType.FLOAT, 4),
-                vertex_array.VertexDescriptor(_text_shader.resources['aTexIdx'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_text_shader.resources['aEntId'], vertex_array.AttribType.FLOAT, 1),
-                vertex_array.VertexDescriptor(_text_shader.resources['aTransform'], vertex_array.AttribType.FLOAT, 4, 4)],
-            divisor=1)]
-    _text_vertex_array = vertex_array.VertexArray(text_layout)
 
 @debug.profiled('graphics', 'rendering')
 def _create_white_texture() -> None:
@@ -477,45 +350,22 @@ def _create_white_texture() -> None:
         textures.UploadInfo(textures.PixelFormat.RGBA, 1, 1),
         np.array([255, 255, 255, 255], np.uint8))
 
-@debug.profiled('renderer', 'initialization')
-def _create_framebuffer(width: int, height: int) -> None:
-    global _framebuffer
+    if __debug__:
+        gl_debug.set_object_name(_white_texture, 'WhiteTexture')
 
-    attachments = [
-        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.RGBA8, 0),
-        framebuffer.RenderbufferAttachment(width, height, framebuffer.AttachmentFormat.DEPTH24_STENCIL8, framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)]
-    _framebuffer = framebuffer.Framebuffer(attachments, width, height)
+@debug.profiled('graphics', 'rendering')
+def _create_texture_upload_buffer(initial_size: int) -> None:
+    global _texture_upload_buffer, _texture_upload_sync
 
-@debug.profiled('renderer', 'initialization')
-def _set_debug_names() -> None:
-    gl_debug.set_object_name(_basic_shader, 'BasicShader')
-    gl_debug.set_object_name(_text_shader, 'TextShader')
-    gl_debug.set_object_name(_model_data_buffer, 'ModelBuffer')
-    gl_debug.set_object_name(_instance_data_buffer, 'InstanceBuffer')
-    gl_debug.set_object_name(_uniform_buffer, 'UniformBuffer')
-    gl_debug.set_object_name(_basic_vertex_array, 'BasicVAO')
-    gl_debug.set_object_name(_text_vertex_array, 'TextVAO')
-    gl_debug.set_object_name(_white_texture, 'WhiteTexture')
-    gl_debug.set_object_name(_text_tex_coords_buffer.buffer, 'TextTexCoordsBuffer-Buffer')
-    gl_debug.set_object_name(_text_tex_coords_buffer.texture, 'TextTexCoordsBuffer-Texture')
-    gl_debug.set_object_name(_framebuffer, 'MainFramebuffer')
+    _texture_upload_buffer = buffers.Buffer(initial_size, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+    gl_debug.set_object_name(_texture_upload_buffer, 'TextureUploadBuffer')
 
-def _should_flush(textures_reserved: int) -> bool:
-    return _instance_count >= _MAX_INSTANCES or len(_textures) >= _MAX_TEXTURES - textures_reserved
+    _texture_upload_sync = sync.Sync()
+    gl_debug.set_object_name(_texture_upload_buffer, 'TextureUploadSync')
 
 _logger = logging.getLogger(__name__)
-
-_textures = list[textures.Texture]()
-_instance_count = 0
-_current_vertex_count = 0
-
-_basic_shader: shaders.Shader
-_text_shader: shaders.Shader
-_model_data_buffer: buffers.Buffer
-_instance_data_buffer: buffers.Buffer
-_uniform_buffer: buffers.Buffer
-_basic_vertex_array: vertex_array.VertexArray
-_text_vertex_array: vertex_array.VertexArray
 _white_texture: textures.Texture
-_text_tex_coords_buffer: TextureBuffer
-_framebuffer: framebuffer.Framebuffer
+_texture_upload_buffer: buffers.Buffer
+_texture_upload_sync: sync.Sync
+_current_pipeline: GraphicsPipeline | None = None
+_frame_data: FrameData | None = None
