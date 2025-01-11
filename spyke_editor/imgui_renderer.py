@@ -76,9 +76,9 @@ def render(draw_data) -> None:
     current_vertex_offset = 0
     current_index_offset = 0
 
-    with debug.profiled_scope('map_buffers'):
-        _vertex_buffer.map()
-        _index_buffer.map()
+    # with debug.profiled_scope('map_buffers'):
+    #     _vertex_buffer.map()
+    #     _index_buffer.map()
 
     with debug.profiled_scope('prepare_command_lists'):
         for commands_list in draw_data.commands_lists:
@@ -160,8 +160,8 @@ def _create_shader() -> None:
 def _create_buffers() -> None:
     global _vertex_buffer, _index_buffer
 
-    _vertex_buffer = buffers.Buffer(_VERTEX_BUFFER_SIZE, buffers.BufferFlags.MAP_WRITE_BIT)
-    _index_buffer = buffers.Buffer(_INDEX_BUFFER_SIZE, buffers.BufferFlags.MAP_WRITE_BIT)
+    _vertex_buffer = buffers.Buffer(_VERTEX_BUFFER_SIZE, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+    _index_buffer = buffers.Buffer(_INDEX_BUFFER_SIZE, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
 
 @debug.profiled('editor', 'imgui')
 def _create_vertex_array() -> None:
