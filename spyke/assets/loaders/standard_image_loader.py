@@ -1,67 +1,55 @@
+import io
+
 import numpy as np
 from PIL import Image as PILImage
 
 from pygl import textures
 from spyke import debug
-from spyke.resources.types import Image
+from spyke.assets.asset_config import AssetConfig
+from spyke.assets.asset_loader import AssetLoader
+from spyke.assets.types.image import ImageConfig
 
-from .image_loading_data import ImageLoadingData
-from .loader import LoaderBase
+from .image_load_data import ImageLoadData
 
-_DEFAULT_MIPMAPS_COUNT = 4
+_PNG_MAGIC_VALUE = b'\x89PNG\r\n\x1a\n'
+_JPG_MAGIC_VALUES = b'\xff\xd8\xff' # i don't know if it's enough to just check those 3 bytes...
 
-class StandardImageLoader(LoaderBase[Image, ImageLoadingData]):
+class StandardImageLoader(AssetLoader):
     '''
     Loader used to load images from standard files.
     '''
 
-    __supported_extensions__ = ['.png', '.jpg', '.jpeg']
+    def can_process_file_data(self, file_data: bytes) -> bool:
+        return file_data.startswith((_PNG_MAGIC_VALUE, _JPG_MAGIC_VALUES))
 
-    @staticmethod
-    @debug.profiled('resources', 'io')
-    def load_from_file(filepath: str) -> ImageLoadingData:
-        width: int
-        height: int
-        bits: int
-        mode: str
-        with PILImage.open(filepath, 'r') as img:
+    @debug.profiled('assets', 'io')
+    def load_from_binary(self, data: bytes, config: AssetConfig) -> ImageLoadData:
+        assert isinstance(config, ImageConfig), 'Invalid type of config provided to StandardImageLoader'
+
+        fp = io.BytesIO(data)
+
+        with PILImage.open(fp, 'r') as img:
             bits = 8 if img.format == 'PNG' else img.bits # type: ignore
             mode = img.mode
             width = img.width
             height = img.height
 
-            data = _load_image_data(img)
+            img_data = _load_image_data(img)
 
-        return ImageLoadingData(
+        return ImageLoadData(
             textures.TextureSpec(
                 textures.TextureTarget.TEXTURE_2D,
                 width,
                 height,
                 _image_mode_to_internal_format(mode, bits),
-                mipmaps=_DEFAULT_MIPMAPS_COUNT),
+                mipmaps=config.mipmap_count,
+                min_filter=config.min_filter,
+                mag_filter=config.mag_filter),
             [textures.UploadInfo(
                 _image_mode_to_pixel_format(mode),
                 width,
                 height)],
-            data)
-
-    @staticmethod
-    @debug.profiled('resources', 'initialization')
-    def finalize_loading(resource: Image, loading_data: ImageLoadingData) -> None:
-        texture = _create_texture(loading_data.specification)
-        _upload_texture_data(texture, loading_data.upload_infos[0], loading_data.upload_data)
-
-        with resource.lock:
-            resource.texture = texture
-            resource.is_loaded = True
-
-@debug.profiled('resources', 'initialization')
-def _upload_texture_data(texture: textures.Texture, info: textures.UploadInfo, data: np.ndarray) -> None:
-    texture.upload(info, data)
-
-@debug.profiled('resources', 'initialization')
-def _create_texture(spec: textures.TextureSpec) -> textures.Texture:
-    return textures.Texture(spec)
+            img_data)
 
 @debug.profiled('resources', 'io')
 def _load_image_data(img: PILImage.Image) -> np.ndarray:

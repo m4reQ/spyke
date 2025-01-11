@@ -6,7 +6,7 @@ from pygl.textures import TextureSpec, UploadInfo
 
 
 @dataclasses.dataclass
-class ImageLoadingData:
+class ImageLoadData:
     specification: TextureSpec
     upload_infos: list[UploadInfo]
     upload_data: np.ndarray

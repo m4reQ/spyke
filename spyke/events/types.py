@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import abc
-import typing as t
 import dataclasses
+import typing as t
+
+from spyke.assets.asset import Asset
+
 
 @dataclasses.dataclass
 class Event(abc.ABC):
@@ -48,6 +51,10 @@ class MouseMoveEvent(Event):
         return (self.x, self.y)
 
 @dataclasses.dataclass
+class CharEvent(Event):
+    character: str
+
+@dataclasses.dataclass
 class MouseScrollEvent(Event):
     x_offset: float
     y_offset: float
@@ -80,5 +87,9 @@ class ResourceLoadedEvent(Event):
     loader: t.Any
 
 @dataclasses.dataclass
-class FrameEndEvent(Event):
-    pass
+class AssetLoadedEvent(Event):
+    asset: Asset
+
+@dataclasses.dataclass
+class AssetUnloadedEvent(Event):
+    asset: Asset
