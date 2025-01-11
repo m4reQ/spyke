@@ -146,6 +146,6 @@ Thumbs.db
 # Main test file
 test.py
 
-profile.json
+**/*profile*.json
 
-imgui.ini
+**/imgui.ini

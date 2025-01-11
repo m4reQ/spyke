@@ -1,7 +1,6 @@
-import dataclasses
+from __future__ import annotations
 
-import glm
-import numpy as np
+import dataclasses
 
 
 @dataclasses.dataclass
@@ -11,14 +10,8 @@ class Rectangle:
     width: float
     height: float
 
-    def to_coordinates(self) -> np.ndarray:
-        return np.array([
-            self.left, self.top,
-            self.right, self.top,
-            self.right, self.bottom,
-            self.right, self.bottom,
-            self.left, self.bottom,
-            self.left, self.top], dtype=np.float32)
+    def to_int(self) -> RectangleInt:
+        return RectangleInt(int(self.x), int(self.y), int(self.width), int(self.height))
 
     @property
     def left(self) -> float:
@@ -36,14 +29,25 @@ class Rectangle:
     def top(self) -> float:
         return self.y
 
-    @property
-    def size(self) -> glm.vec2:
-        return glm.vec2(self.width, self.height)
+@dataclasses.dataclass
+class RectangleInt:
+    x: int
+    y: int
+    width: int
+    height: int
 
     @property
-    def origin(self) -> glm.vec2:
-        return glm.vec2(self.x, self.y)
+    def left(self) -> int:
+        return self.x
 
-    @classmethod
-    def one(cls):
-        return Rectangle(0.0, 0.0, 1.0, 1.0)
+    @property
+    def right(self) -> int:
+        return self.x + self.width
+
+    @property
+    def bottom(self) -> int:
+        return self.y + self.height
+
+    @property
+    def top(self) -> int:
+        return self.y

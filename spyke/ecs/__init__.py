@@ -21,16 +21,20 @@ class Processor(abc.ABC):
     def process(self, scene: Scene, *args: t.Any, **kwargs: t.Any) -> None:
         pass
 
+ComponentType = t.TypeVar('ComponentType', bound=Component)
+ComponentTypes = t.TypeVarTuple('ComponentTypes')
+
 class Scene:
     def __init__(self, name: str='') -> None:
         self.name = name
 
         self._components_by_type = defaultdict[type[Component], set[Component]](set)
-        self._components_by_entity = defaultdict[int, set[Component]](set)
+        self._components_by_entity = defaultdict[int, dict[type[Component], Component]](dict)
         self._entities_by_components = defaultdict[type[Component], set[int]](set)
         self._to_remove = set[int]()
         self._next_entity_id = 0
         self._processors: list[Processor] = []
+        self._current_camera_entity: int = -1
 
     def create_entity(self, *components: Component) -> int:
         '''
@@ -43,9 +47,7 @@ class Scene:
         self._next_entity_id += 1
 
         for comp in components:
-            self._entities_by_components[type(comp)].add(_id)
-            self._components_by_type[type(comp)].add(comp)
-            self._components_by_entity[_id].add(comp)
+            self.add_component(_id, comp)
 
         self._clear_caches()
 
@@ -62,9 +64,16 @@ class Scene:
 
         self._components_by_type[type(component)].add(component)
         self._entities_by_components[type(component)].add(entity)
-        self._components_by_entity[entity].add(component)
+        self._components_by_entity[entity][type(component)] = component
 
         self._clear_caches()
+
+    def has_component(self, entity: int, component_type: type[Component]) -> bool:
+        entities = self._entities_by_components.get(component_type, None)
+        if entities is not None:
+            return entity in entities
+
+        return False
 
     def remove_entity(self, entity: int, immediate: bool = False) -> None:
         '''
@@ -94,10 +103,11 @@ class Scene:
         '''
 
         self._entities_by_components[_type].discard(entity)
-        x = next((x for x in self._components_by_entity[entity] if isinstance(x, _type)), None)
-        if x is not None:
-            self._components_by_entity[entity].remove(x)
-            self._components_by_type[_type].remove(x)
+
+        entity_component_store = self._components_by_entity[entity]
+        if comp := entity_component_store.get(_type, None):
+            del entity_component_store[_type]
+            self._components_by_type[_type].remove(comp)
 
         self._clear_caches()
 
@@ -128,6 +138,15 @@ class Scene:
 
         self._processors.remove(proc)
 
+    def get_current_camera_entity(self) -> int:
+        return self._current_camera_entity
+
+    def set_current_camera_entity(self, entity: int) -> None:
+        self._current_camera_entity = entity
+
+    def get_entities(self) -> t.KeysView[int]:
+        return self._components_by_entity.keys()
+
     def process(self, *args: t.Any, **kwargs: t.Any) -> None:
         '''
         Calls `process` on every registered processor with provided arguments.
@@ -139,8 +158,8 @@ class Scene:
         for processor in self._processors:
             processor.process(self, *args, **kwargs)
 
-    @functools.lru_cache
-    def get_components(self, *types: type[Component]) -> t.Generator[tuple[int, t.Generator[Component, None, None]], None, None]:
+    @functools.lru_cache()
+    def get_components(self, *types: *ComponentTypes) -> list[tuple[int, tuple[*ComponentTypes]]]:
         '''
         Retrieves all entities that have components of given types. The returned query
         is in form of (entity, components generator). The second value will always be of length
@@ -149,11 +168,19 @@ class Scene:
         @types: Types of components that are required for entity to have.
         '''
 
-        entities: set[int] = set.intersection(*[self._entities_by_components[x] for x in types])
-        return ((ent, (x for x in self._components_by_entity[ent] if type(x) in types)) for ent in entities)
+        result = list[tuple[int, tuple[*ComponentTypes]]]()
+        for entity in set.intersection(*(self._entities_by_components[x] for x in types)):
+            entity_component_store = self._components_by_entity[entity]
+            entity_components = tuple(
+                entity_component_store[_type]
+                for _type in types
+                if _type in entity_component_store)
+            result.append((entity, entity_components))
 
-    @functools.lru_cache
-    def get_component(self, _type: type[Component]) -> set[Component]:
+        return result
+
+    @functools.lru_cache()
+    def get_component(self, _type: type[ComponentType]) -> set[ComponentType]:
         '''
         Returns set of all components of given type.
         Returns empty set if there are no components of the given type.
@@ -161,10 +188,16 @@ class Scene:
         @_type: Type of the component to retrieve.
         '''
 
-        return self._components_by_type.get(_type, set())
+        return self._components_by_type.get(_type, set()) # type: ignore[return-value]
 
-    @functools.lru_cache
-    def get_components_for_entity(self, entity: int) -> set[Component]:
+    def get_component_for_entity(self, entity: int, _type: type[ComponentType]) -> ComponentType:
+        component = self._components_by_entity[entity][_type]
+        assert isinstance(component, _type)
+
+        return component
+
+    @functools.lru_cache()
+    def get_components_for_entity(self, entity: int) -> t.ValuesView[Component]:
         '''
         Returns all components that belong to given entity.
         Returns empty set if entity with given id doesn't exits.
@@ -172,12 +205,12 @@ class Scene:
         @entity: Entity id for which components to retrieve.
         '''
 
-        return self._components_by_entity.get(entity, set())
+        return self._components_by_entity.get(entity, dict()).values()
 
     def _remove_entity(self, entity: int) -> None:
-        for comp in self._components_by_entity[entity]:
-            self._components_by_type[type(comp)].remove(comp)
-            self._entities_by_components[type(comp)].remove(entity)
+        for comp_type, comp in self._components_by_entity[entity].items():
+            self._components_by_type[comp_type].remove(comp)
+            self._entities_by_components[comp_type].remove(entity)
 
         del self._components_by_entity[entity]
 

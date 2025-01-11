@@ -18,10 +18,10 @@ out FsIn
     flat float entId;
 } vsOut;
 
-// TODO: Separate view and projection matrices here and in the camera
 layout(std140) uniform uMatrices
 {
-    mat4 viewProjection;
+    mat4 view;
+    mat4 projection;
 };
 
 void main()
@@ -31,5 +31,5 @@ void main()
     vsOut.texIdx = aTexIdx;
     vsOut.entId = aEntId;
 
-    gl_Position = aTransform * viewProjection * vec4(aPosition, 1.0f);
+    gl_Position = aTransform * view * projection * vec4(aPosition, 1.0f);
 }

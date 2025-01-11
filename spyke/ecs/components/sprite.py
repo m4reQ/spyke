@@ -1,13 +1,12 @@
 import dataclasses
 from uuid import UUID
 
-import glm
-
+from pygl.math import Vector4
 from spyke.ecs import Component
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False, slots=True)
 class SpriteComponent(Component):
-    color: glm.vec4
+    color: Vector4
+    model_id: UUID
     image_id: UUID
-    tiling_factor: glm.vec2

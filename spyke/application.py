@@ -3,8 +3,7 @@ import time
 
 import psutil
 
-from spyke import debug, events, resources
-from spyke.audio import AudioDevice
+from spyke import assets, debug, events
 from spyke.debug import profiling
 from spyke.graphics import renderer, window
 
@@ -12,22 +11,11 @@ __all__ = ['Application']
 
 class Application(abc.ABC):
     @debug.profiled('application', 'initialization')
-    def __init__(self, window_specification: window.WindowSpec, use_imgui: bool=False):
+    def __init__(self, window_specification: window.WindowSpec):
         self._is_running = False
         self._frametime = 1.0
         self._window_spec = window_specification
-
-        # self._audio_device = AudioDevice()
         self._process = psutil.Process()
-
-        # TODO: Reimplement imgui
-        # if use_imgui:
-            # self._imgui = Imgui()
-
-
-        # TODO: Implement this at some point
-        # enginePreview.RenderPreview()
-        # glfw.swap_buffers(self._handle)
 
     def on_update(self, frametime: float) -> None:
         pass
@@ -45,14 +33,10 @@ class Application(abc.ABC):
     def frametime(self) -> float:
         return self._frametime
 
-    @property
-    def audio_device(self) -> AudioDevice:
-        return self._audio_device
-
     @debug.profiled('application', 'initialization')
     def _load(self) -> None:
+        events.initialize()
         window.initialize(self._window_spec)
-        resources.initialize()
         renderer.initialize(window.get_width(), window.get_height())
 
         self.on_load()
@@ -63,12 +47,13 @@ class Application(abc.ABC):
 
         window.process_events()
         events.process_events()
-        resources.process_loading_queue()
+        assets.process_loading_queue()
 
         self.on_update(self._frametime)
 
         if window.is_active():
             self.on_render(self._frametime)
+            window.swap_buffers()
 
         self._frametime = time.perf_counter() - start
 
@@ -85,10 +70,9 @@ class Application(abc.ABC):
     def _close(self) -> None:
         self.on_close()
 
-        resources.unload_all()
+        assets.unload_all()
         renderer.shutdown()
         window.shutdown()
-        # self._audio_device.dispose()
 
         profiling._close_profiler()
 

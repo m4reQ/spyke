@@ -1,96 +1,62 @@
-import uuid
+import dataclasses
 
-import glm
-
+from pygl.math import Matrix4, Quaternion, Vector3
 from spyke.ecs import Component
 
 
+@dataclasses.dataclass(repr=False, slots=True, eq=False)
 class TransformComponent(Component):
-    __slots__ = (
-        '__weakref__',
-        'matrix',
-        'model_id',
-        '_pos',
-        '_size',
-        '_rot',
-        '_rot_hint',
-        '_pos_changed',
-        '_size_changed',
-        '_rot_changed',
-        '_trans_mat',
-        '_scale_mat',
-        '_rot_quat'
-    )
+    matrix: Matrix4
+    _position: Vector3
+    _scale: Vector3
+    _rotation: Quaternion
 
     def __init__(self,
-                 model_id: uuid.UUID,
-                 position: glm.vec3,
-                 size: glm.vec3,
-                 rotation: glm.vec3):
-        self.matrix: glm.mat4 = glm.mat4(1.0)
-        self.model_id: uuid.UUID = model_id
+                 position: Vector3,
+                 scale: Vector3,
+                 rotation: Vector3):
+        self._position = position
+        self._scale = scale
+        self._rotation_hint = rotation
+        self._rotation = Quaternion.from_euler_deg(rotation)
+        self._needs_recalculate = True
 
-        self._pos: glm.vec3 = position
-        self._size: glm.vec3 = size
-        self._rot: glm.vec3 = rotation % 360.0
-        self._rot_hint = rotation
-
-        self._pos_changed: bool = True
-        self._size_changed: bool = True
-        self._rot_changed: bool = True
-
-        self._trans_mat: glm.mat4 = glm.mat4(1.0)
-        self._scale_mat: glm.mat4 = glm.mat4(1.0)
-        self._rot_quat: glm.quat = glm.quat(glm.radians(self._rot))
+        self.matrix: Matrix4
 
         self.recalculate()
 
     def recalculate(self) -> None:
-        if self._pos_changed:
-            self._trans_mat = glm.translate(glm.mat4(1.0), self._pos)
-            self._pos_changed = False
-
-        if self._rot_changed:
-            self._rot_quat = glm.quat(glm.radians(self._rot))
-            self._rot_changed = False
-
-        if self._size_changed:
-            self._scale_mat = glm.scale(glm.mat4(1.0), self._size)
-            self._size_changed = False
-
-        self.matrix = self._trans_mat * glm.mat4_cast(self._rot_quat) * self._scale_mat
+        self.matrix = Matrix4.transform(self._position, self._scale, self._rotation)
+        self._needs_recalculate = False
 
     @property
-    def should_recalculate(self) -> bool:
-        return any([
-            self._pos_changed,
-            self._size_changed,
-            self._rot_changed])
+    def needs_recalculate(self) -> bool:
+        return self._needs_recalculate
 
     @property
-    def position(self) -> glm.vec3:
-        return self._pos
+    def position(self) -> Vector3:
+        return self._position
 
     @position.setter
-    def position(self, val: glm.vec3) -> None:
-        self._pos = val
-        self._pos_changed = True
+    def position(self, value: Vector3) -> None:
+        self._position = value
+        self._needs_recalculate = True
 
     @property
-    def size(self) -> glm.vec3:
-        return self._size
+    def scale(self) -> Vector3:
+        return self._scale
 
-    @size.setter
-    def size(self, val: glm.vec3) -> None:
-        self._size = val
-        self._size_changed = True
+    @scale.setter
+    def scale(self, value: Vector3) -> None:
+        self._scale = value
+        self._needs_recalculate = True
 
     @property
-    def rotation(self) -> glm.vec3:
-        return self._rot
+    def rotation(self) -> Vector3:
+        return self._rotation_hint
 
     @rotation.setter
-    def rotation(self, val: glm.vec3):
-        self._rot = val % 360.0
-        self._rot_hint = val
-        self._rot_changed = True
+    def rotation(self, value: Vector3):
+        self._rotation_hint = value % 360.0
+        self._rotation = Quaternion.from_euler_deg(value)
+        self._needs_recalculate = True
