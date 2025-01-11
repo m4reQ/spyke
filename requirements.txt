@@ -1,4 +1,3 @@
-PyGLM
 PyOgg
 PyOpenAL
 numpy
@@ -7,7 +6,6 @@ glfw
 Pillow
 pydub
 freetype-py
-stdlib_list
 psutil
 
 # dev dependencies
