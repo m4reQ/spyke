@@ -141,21 +141,25 @@ def _get_glfw_error() -> str:
 
 @debug.profiled('window', 'initialization')
 def _register_window_callbacks():
-    glfw.set_error_callback(_error_callback)
+    glfw.set_error_callback(_error_cb)
 
     glfw.set_framebuffer_size_callback(_handle, _resize_cb)
-    glfw.set_cursor_pos_callback(_handle, _cursor_pos_callback)
-    glfw.set_window_iconify_callback(_handle, _iconify_callback)
-    glfw.set_mouse_button_callback(_handle, _mouse_callback)
-    glfw.set_scroll_callback(_handle, _mouse_scroll_callback)
-    glfw.set_key_callback(_handle, _key_callback)
-    glfw.set_window_pos_callback(_handle, _window_pos_callback)
-    glfw.set_window_focus_callback(_handle, _window_focus_callback)
-    glfw.set_window_close_callback(_handle, _window_close_callback)
+    glfw.set_cursor_pos_callback(_handle, _cursor_pos_cb)
+    glfw.set_window_iconify_callback(_handle, _iconify_cb)
+    glfw.set_mouse_button_callback(_handle, _mouse_cb)
+    glfw.set_scroll_callback(_handle, _mouse_scroll_cb)
+    glfw.set_key_callback(_handle, _key_cb)
+    glfw.set_window_pos_callback(_handle, _window_pos_cb)
+    glfw.set_window_focus_callback(_handle, _window_focus_cb)
+    glfw.set_window_close_callback(_handle, _window_close_cb)
+    glfw.set_char_callback(_handle, _char_cb)
 
     _logger.debug('GLFW window callbacks registered.')
 
-def _error_callback(code: int, message: str) -> None:
+def _char_cb(_, character: str) -> None:
+    events.invoke(events.CharEvent(character))
+
+def _error_cb(code: int, message: str) -> None:
     raise RuntimeError(f'GLFW error: {message} ({code}).')
 
 def _resize_cb(_, width: int, height: int) -> None:
@@ -168,37 +172,37 @@ def _resize_cb(_, width: int, height: int) -> None:
 
     _logger.info('Window resized to (%d, %d)', width, height)
 
-def _window_close_callback(_) -> None:
+def _window_close_cb(_) -> None:
     global _should_close
     _should_close = True
 
     events.invoke(events.WindowCloseEvent())
 
-def _window_focus_callback(_, value: int) -> None:
+def _window_focus_cb(_, value: int) -> None:
     global _is_active
     _is_active = bool(value)
 
     events.invoke(events.WindowChangeFocusEvent(bool(value)))
 
-def _cursor_pos_callback(_, x: int, y: int) -> None:
+def _cursor_pos_cb(_, x: int, y: int) -> None:
     events.invoke(events.MouseMoveEvent(x, y))
 
-def _window_pos_callback(_, x: int, y: int) -> None:
+def _window_pos_cb(_, x: int, y: int) -> None:
     events.invoke(events.WindowMoveEvent(x, y))
 
-def _iconify_callback(_, value: int) -> None:
+def _iconify_cb(_, value: int) -> None:
     events.invoke(events.WindowChangeFocusEvent(bool(value)))
 
-def _mouse_callback(_, button: int, action: int, mods: int) -> None:
+def _mouse_cb(_, button: int, action: int, mods: int) -> None:
     if action == glfw.PRESS:
         events.invoke(events.MouseButtonDownEvent(button, mods))
     elif action == glfw.RELEASE:
         events.invoke(events.MouseButtonUpEvent(button, mods))
 
-def _mouse_scroll_callback(_, x_offset: float, y_offset: float) -> None:
+def _mouse_scroll_cb(_, x_offset: float, y_offset: float) -> None:
     events.invoke(events.MouseScrollEvent(x_offset, y_offset))
 
-def _key_callback(_, key, scancode: int, action: int, mods: int) -> None:
+def _key_cb(_, key, scancode: int, action: int, mods: int) -> None:
     if action == glfw.PRESS:
         events.invoke(events.KeyDownEvent(key, mods, scancode, False))
     elif action == glfw.REPEAT:
