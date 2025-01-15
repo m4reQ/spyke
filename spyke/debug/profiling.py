@@ -28,6 +28,18 @@ class _ProfileFrame:
     def dump(self, file: t.TextIO) -> None:
         file.write(_FRAME_FORMAT.format(self.name, ','.join(self.categories), self.time_start - _profiler_time_start, self.time_end - self.time_start, self.thread_id, self.process_id))
 
+class _ScopedProfiler:
+    def __init__(self, name: str) -> None:
+        self._name = name
+        self._start = 0
+
+    def __enter__(self) -> t.Self:
+        self._start = time.perf_counter_ns()
+        return self
+
+    def __exit__(self, *_) -> None:
+        profile(self._name, self._start, time.perf_counter_ns(), ('unknown',))
+
 @once
 def initialize() -> None:
     with _write_lock:
@@ -36,12 +48,12 @@ def initialize() -> None:
 
     runtime.register_dispose_function(_close_profiler)
 
-def profile(func: t.Callable,
+def profile(name: str,
             start: int,
             end: int,
             categories: tuple[str, ...]) -> None:
     _ProfileFrame(
-        f'{func.__module__}:{func.__qualname__}',
+        name,
         _to_microseconds(start),
         _to_microseconds(end),
         threading.get_ident(),
@@ -53,6 +65,9 @@ def update_counter(name: str, value: float) -> None:
         return
 
     _file.write(_COUNTER_FORMAT.format(name, _to_microseconds(time.perf_counter_ns()) - _profiler_time_start, os.getpid(), value))
+
+def profiled_scope(name: str) -> _ScopedProfiler:
+    return _ScopedProfiler(name)
 
 def profiled(*categories: str) -> t.Callable[[t.Callable[_AT, _RT]], t.Callable[_AT, _RT]]:
     '''
@@ -72,7 +87,7 @@ def profiled(*categories: str) -> t.Callable[[t.Callable[_AT, _RT]], t.Callable[
             res = func(*args, **kwargs)
             end = time.perf_counter_ns()
 
-            profile(func, start, end, categories)
+            profile(f'{func.__module__}:{func.__qualname__}', start, end, categories)
 
             return res
 

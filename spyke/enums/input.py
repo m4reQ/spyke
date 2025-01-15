@@ -1,5 +1,7 @@
 import enum
-import glfw
+
+import glfw  # type: ignore[import-untyped]
+
 
 class MouseButton(enum.IntEnum):
     Left = glfw.MOUSE_BUTTON_LEFT
@@ -7,7 +9,7 @@ class MouseButton(enum.IntEnum):
     Right = glfw.MOUSE_BUTTON_RIGHT
 
 
-class KeyMod(enum.IntEnum):
+class KeyMod(enum.IntFlag):
     Control = glfw.MOD_CONTROL
     Shift = glfw.MOD_SHIFT
     Alt = glfw.MOD_ALT
@@ -33,6 +35,7 @@ class Key(enum.IntEnum):
     Grave = glfw.KEY_GRAVE_ACCENT
     Escape = glfw.KEY_ESCAPE
     Enter = glfw.KEY_ENTER
+    KeypadEnter = glfw.KEY_KP_ENTER
     Tab = glfw.KEY_TAB
     Backspace = glfw.KEY_BACKSPACE
     Insert = glfw.KEY_INSERT

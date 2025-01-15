@@ -7,7 +7,7 @@ import colorama
 
 from spyke import paths
 from spyke.debug.logging import LOG_LEVEL, SpykeLogger
-from spyke.debug.profiling import profile, profiled
+from spyke.debug.profiling import profiled, profiled_scope
 from spyke.utils import once
 
 __all__ = [
@@ -15,10 +15,10 @@ __all__ = [
     'LOG_LEVEL',
     'debug_only',
     'profiled',
+    'profiled_scope',
     'get_profiler',
     'ChromeProfiler',
     'profiler',
-    'profile'
 ]
 
 _Params = t.ParamSpec('_Params')
