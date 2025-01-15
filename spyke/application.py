@@ -3,7 +3,7 @@ import time
 
 import psutil
 
-from spyke import assets, debug, events
+from spyke import assets, debug
 from spyke.debug import profiling
 from spyke.graphics import renderer, window
 
@@ -11,10 +11,10 @@ __all__ = ['Application']
 
 class Application(abc.ABC):
     @debug.profiled('application', 'initialization')
-    def __init__(self, window_specification: window.WindowSpec):
+    def __init__(self, window_settings: window.WindowSettings):
         self._is_running = False
         self._frametime = 1.0
-        self._window_spec = window_specification
+        self._window_settings = window_settings
         self._process = psutil.Process()
 
     def on_update(self, frametime: float) -> None:
@@ -35,8 +35,7 @@ class Application(abc.ABC):
 
     @debug.profiled('application', 'initialization')
     def _load(self) -> None:
-        events.initialize()
-        window.initialize(self._window_spec)
+        window.initialize(self._window_settings)
         renderer.initialize(window.get_width(), window.get_height())
 
         self.on_load()
@@ -46,12 +45,11 @@ class Application(abc.ABC):
         start = time.perf_counter()
 
         window.process_events()
-        events.process_events()
         assets.process_loading_queue()
 
         self.on_update(self._frametime)
 
-        if window.is_active():
+        if window.is_visible():
             self.on_render(self._frametime)
             window.swap_buffers()
 

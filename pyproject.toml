@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spyke"
+version = "0.0.1"
+requires-python = ">=3.12"
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { file = "LICENSE" }
+authors = [
+    { name = "Marek `m4reQ` Mizerski" }
+]
+description = "Python OpenGL-based game engine"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Graphics :: 3D Rendering",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed"
+]
+dependencies = [
+    "PyOgg",
+    "PyOpenAL",
+    "numpy",
+    "colorama",
+    "glfw",
+    "Pillow",
+    "pydub",
+    "freetype-py",
+    "psutil",
+    "pygl @ git+https://github.com/m4reQ/pygl@private_0.0.1"
+]
+
+[project.urls]
+home = "https://github.com/m4reQ/spyke"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["spyke*"]

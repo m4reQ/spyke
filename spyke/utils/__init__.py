@@ -1,5 +1,4 @@
 import functools
-import gc
 import inspect
 import logging
 import os
@@ -7,15 +6,12 @@ import time
 import typing as t
 from types import ModuleType
 
-from . import math
-from .math import *
-
 __all__ = [
     'garbage_collect',
     'get_extension_name',
     'get_submodules',
     'Iterator',
-    'Delayer'] + math.__all__
+    'Delayer']
 
 _Iterable = t.TypeVar('_Iterable')
 class Iterator(t.Iterator[_Iterable]):
@@ -116,31 +112,5 @@ def once(f: t.Callable[_Params, _Return]) -> t.Callable[_Params, _Return]:
         return f(*args, **kwargs)
 
     return inner
-
-def garbage_collect():
-    prev = gc.get_count()[0]
-    gc.collect()
-
-    _logger.debug('Garbage collection freed %d objects', prev - gc.get_count()[0])
-
-@once
-def create_quad_indices(quads_count: int) -> list[int]:
-    data = []
-
-    offset = 0
-    i = 0
-    while i < quads_count:
-        data.extend([
-            0 + offset,
-            1 + offset,
-            2 + offset,
-            2 + offset,
-            3 + offset,
-            0 + offset])
-
-        offset += 4
-        i += 1
-
-    return data
 
 _logger = logging.getLogger(__name__)
