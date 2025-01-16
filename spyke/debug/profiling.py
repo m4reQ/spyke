@@ -6,7 +6,6 @@ import time
 import typing as t
 
 from spyke import paths, runtime
-from spyke.utils import once
 
 _MAX_FRAMES = 400
 _HEADER = '{"traceEvents":[{}'
@@ -40,7 +39,6 @@ class _ScopedProfiler:
     def __exit__(self, *_) -> None:
         profile(self._name, self._start, time.perf_counter_ns(), ('unknown',))
 
-@once
 def initialize() -> None:
     with _write_lock:
         _file.write(_HEADER)

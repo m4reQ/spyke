@@ -8,7 +8,6 @@ import colorama
 from spyke import paths
 from spyke.debug.logging import LOG_LEVEL, SpykeLogger
 from spyke.debug.profiling import profiled, profiled_scope
-from spyke.utils import once
 
 __all__ = [
     'SpykeLogger',
@@ -41,7 +40,6 @@ def debug_only(func: t.Callable[_Params, None]) -> t.Callable[_Params, None]:
 
     return inner
 
-@once
 def initialize() -> None:
     colorama.init()
 

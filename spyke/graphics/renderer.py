@@ -78,12 +78,6 @@ def get_framebuffer_color_texture_id() -> int:
     '''
     Returns ID of the texture used as main framebuffer's color attachment.
     '''
-    Returns ID of the texture used as main framebuffer's color attachment.
-    '''
-    Returns ID of the texture used as main framebuffer's depth-stencil attachment.
-    '''
-
-    return _framebuffer.get_attachment_id(framebuffer.Attachment.DEPTH_STENCIL_ATTACHMENT)
 
     assert _current_pipeline is not None, 'Cannot retrieve current framebuffer: no pipeline bound'
     return _current_pipeline.get_output_texture_id()

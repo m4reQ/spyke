@@ -152,8 +152,10 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM wParam, LPARAM 
     }
     case WM_SHOWWINDOW:
     {
+        s_IsVisible = (bool)wParam;
+
         CREATE_EVENT_DATA(PyShowEventData);
-        eventData->isVisible = (bool)wParam;
+        eventData->isVisible = s_IsVisible;
 
         INVOKE_EVENT(s_ShowEvent);
 

@@ -1,15 +1,9 @@
 import functools
-import inspect
 import logging
-import os
 import time
 import typing as t
-from types import ModuleType
 
 __all__ = [
-    'garbage_collect',
-    'get_extension_name',
-    'get_submodules',
     'Iterator',
     'Delayer']
 
@@ -77,17 +71,6 @@ class Delayer:
         self._last_time = cur_time
 
         return True
-
-def get_submodules(module: ModuleType) -> t.List[ModuleType]:
-    return [x[1] for x in inspect.getmembers(module, inspect.ismodule)]
-
-def get_extension_name(filepath: str) -> str:
-    '''
-    Returns extension of the file in form of uppercase file
-    suffix with dot removed.
-    '''
-
-    return os.path.splitext(filepath)[1].removeprefix('.').upper()
 
 _Params = t.ParamSpec('_Params')
 _Return = t.TypeVar('_Return')
