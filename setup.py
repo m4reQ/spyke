@@ -20,6 +20,13 @@ class SpykeBuildExt(build_ext):
 setuptools.setup(
     ext_modules=[
         setuptools.Extension(
+            name='spyke.input',
+            sources=[
+                'src_c/spyke/input/input.c',
+                'src_c/spyke/api.c',
+                'src_c/spyke/enum.c'],
+            extra_compile_args=['/std:c17', '/W4']),
+        setuptools.Extension(
             name='spyke.graphics.window',
             sources=[
                 'src_c/spyke/window/window.c',
@@ -28,7 +35,7 @@ setuptools.setup(
                 'src_c/spyke/api.c',
                 'src_c/spyke/enum.c',
                 GLAD_WGL_SOURCE],
-            extra_compile_args=['/std:c17', '/W4', '/permissive-'],
+            extra_compile_args=['/std:c17', '/W4'],
             libraries=['gdi32', 'user32', 'opengl32'],
             include_dirs=[GLAD_INCLUDE_DIR]),
         setuptools.Extension(
@@ -38,6 +45,6 @@ setuptools.setup(
                 'src_c/spyke/api.c',
                 'src_c/spyke/enum.c',
                 STB_SOURCE],
-            extra_compile_args=['/std:c17', '/W4', '/permissive-'],
+            extra_compile_args=['/std:c17', '/W4'],
             include_dirs=[STB_INCLUDE_DIR])],
     cmdclass={'build_ext': SpykeBuildExt})

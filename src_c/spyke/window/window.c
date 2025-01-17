@@ -6,6 +6,7 @@
 #include "../api.h"
 #include "../enum.h"
 #include "../events/events.h"
+#include "../input/input.h"
 
 #define WIN32_CLASS_NAME L"SpykeWindowClass"
 #define WIN32_WGL_CLASS_NAME "WGLDummyClass"
@@ -29,6 +30,9 @@ static RECT s_WindowRect;
 
 // events API
 static EventsAPI *s_Events;
+
+// input API
+static PyInput_API *s_Input;
 
 // window events
 static PyEvent *s_ResizeEvent;
@@ -59,12 +63,8 @@ static bool InvokeEvent(PyEvent *event, PyObject *eventData)
     bool success = true;
 
     // suppress events during window initialization
-    // prevent further event invocations when an event raised exception (WindowProc is recursive bruh)
     if (!s_IsInitializing)
         success = s_Events->pyEventInvoke(event, eventData) != NULL;
-
-    // if (s_WindowProcFailed)
-    //     success = false;
 
     Py_DecRef(eventData);
     return success;
@@ -72,6 +72,8 @@ static bool InvokeEvent(PyEvent *event, PyObject *eventData)
 
 static void InvokeButtonDown(uint8_t button, WPARAM wParam, LPARAM lParam)
 {
+    s_Input->UpdateButtonState(button, true);
+
     CREATE_EVENT_DATA(PyButtonDownEventData);
     eventData->button = button;
     eventData->modifiers = wParam;
@@ -83,6 +85,8 @@ static void InvokeButtonDown(uint8_t button, WPARAM wParam, LPARAM lParam)
 
 static void InvokeButtonUp(uint8_t button, WPARAM wParam, LPARAM lParam)
 {
+    s_Input->UpdateButtonState(button, false);
+
     CREATE_EVENT_DATA(PyButtonUpEventData);
     eventData->button = button;
     eventData->modifiers = wParam;
@@ -108,10 +112,17 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM wParam, LPARAM 
     {
     case WM_MOUSEMOVE:
     {
+        const uint16_t x = (uint16_t)LOWORD(lParam);
+        const uint16_t y = (uint16_t)HIWORD(lParam);
+        const uint8_t modifiers = (uint8_t)wParam;
+
+        s_Input->UpdateMousePos(x, y);
+        s_Input->UpdateModifiers(modifiers);
+
         CREATE_EVENT_DATA(PyMouseMoveEventData);
-        eventData->modifiers = (uint16_t)wParam;
-        eventData->x = LOWORD(lParam);
-        eventData->y = HIWORD(lParam);
+        eventData->modifiers = modifiers;
+        eventData->x = x;
+        eventData->y = y;
 
         INVOKE_EVENT(s_MouseMoveEvent);
 
@@ -191,6 +202,8 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM wParam, LPARAM 
     }
     case WM_KEYDOWN:
     {
+        s_Input->UpdateKeyState(wParam, true);
+
         CREATE_EVENT_DATA(PyKeyDownEventData);
         eventData->key = wParam;
         eventData->repeatCount = LOWORD(lParam);
@@ -203,6 +216,8 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM wParam, LPARAM 
     }
     case WM_KEYUP:
     {
+        s_Input->UpdateKeyState(wParam, false);
+
         CREATE_EVENT_DATA(PyKeyUpEventData);
         eventData->key = wParam;
         eventData->scanCode = (lParam & 0x00FF0000) >> 16;
@@ -213,17 +228,17 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM wParam, LPARAM 
     }
     case WM_LBUTTONDOWN:
     {
-        InvokeButtonDown(3, wParam, lParam);
+        InvokeButtonDown(BUTTON_LEFT, wParam, lParam);
         break;
     }
     case WM_RBUTTONDOWN:
     {
-        InvokeButtonDown(4, wParam, lParam);
+        InvokeButtonDown(BUTTON_RIGHT, wParam, lParam);
         break;
     }
     case WM_MBUTTONDOWN:
     {
-        InvokeButtonDown(5, wParam, lParam);
+        InvokeButtonDown(BUTTON_MIDDLE, wParam, lParam);
         break;
     }
     case WM_XBUTTONDOWN:
@@ -234,17 +249,17 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM wParam, LPARAM 
 
     case WM_LBUTTONUP:
     {
-        InvokeButtonUp(3, wParam, lParam);
+        InvokeButtonUp(BUTTON_LEFT, wParam, lParam);
         break;
     }
     case WM_RBUTTONUP:
     {
-        InvokeButtonUp(4, wParam, lParam);
+        InvokeButtonUp(BUTTON_RIGHT, wParam, lParam);
         break;
     }
     case WM_MBUTTONUP:
     {
-        InvokeButtonUp(5, wParam, lParam);
+        InvokeButtonUp(BUTTON_MIDDLE, wParam, lParam);
         break;
     }
     case WM_XBUTTONUP:
@@ -254,6 +269,8 @@ static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM wParam, LPARAM 
     }
     case WM_CHAR:
     {
+        s_Input->AppendTextChar((wchar_t)wParam);
+
         CREATE_EVENT_DATA(PyCharEventData);
         eventData->character = wParam;
         eventData->repeatCount = LOWORD(lParam);
@@ -312,7 +329,7 @@ static HCURSOR LoadWindowCursor(void)
     return LoadCursorA(NULL, IDC_ARROW);
 }
 
-static bool RegisterWindowClass(bool cursorVisible)
+static bool RegisterWindowClass(void)
 {
     const WNDCLASSEXW wndClass = {
         .cbSize = sizeof(WNDCLASSEXW),
@@ -320,7 +337,7 @@ static bool RegisterWindowClass(bool cursorVisible)
         .lpszClassName = WIN32_CLASS_NAME,
         .style = CS_OWNDC,
         .lpfnWndProc = WindowProc,
-        .hCursor = cursorVisible ? NULL : s_Cursor,
+        .hCursor = s_Cursor,
     };
     return (bool)RegisterClassExW(&wndClass);
 }
@@ -566,7 +583,7 @@ static PyObject *PyWindow_Initialize(PyObject *UNUSED(self), PyWindowSettings *s
         return NULL;
     }
 
-    if (!RegisterWindowClass(s_CursorVisible))
+    if (!RegisterWindowClass())
     {
         PyErr_Format(PyExc_RuntimeError, "Failed to register window class: %s", GetWin32ErrorString());
         return NULL;
@@ -750,6 +767,10 @@ PyMODINIT_FUNC PyInit_window()
 {
     s_Events = PyAPI_Import("spyke.events");
     if (!s_Events)
+        return NULL;
+
+    s_Input = PyAPI_Import("spyke.input");
+    if (!s_Input)
         return NULL;
 
     PyObject *module = PyModule_Create(&s_ModuleDef);

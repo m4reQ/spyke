@@ -32,6 +32,15 @@
             return returnVal;                                                                                   \
         }                                                                                                       \
     } while (0)
+#define CHECK_ARG_INT(arg, returnVal)                                                                              \
+    do                                                                                                             \
+    {                                                                                                              \
+        if (!PyLong_Check(arg))                                                                                    \
+        {                                                                                                          \
+            PyErr_Format(PyExc_TypeError, "Expected argument to be of type int, got: %s.", Py_TYPE(arg)->tp_name); \
+            return returnVal;                                                                                      \
+        }                                                                                                          \
+    } while (0)
 
 #ifdef __GNUC__
 #define UNUSED(x) __attribute__((unused)) x

@@ -7,7 +7,6 @@ from spyke import assets, debug
 from spyke.debug import profiling
 from spyke.graphics import renderer, window
 
-__all__ = ['Application']
 
 class Application(abc.ABC):
     @debug.profiled('application', 'initialization')
