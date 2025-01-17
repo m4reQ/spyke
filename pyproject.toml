@@ -32,7 +32,6 @@ dependencies = [
     "PyOpenAL",
     "numpy",
     "colorama",
-    "glfw",
     "Pillow",
     "pydub",
     "freetype-py",
