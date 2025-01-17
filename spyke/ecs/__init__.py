@@ -6,8 +6,6 @@ import functools
 import typing as t
 from collections import defaultdict
 
-from spyke import exceptions
-
 # TODO: We can further increase speed of `get_components` by assigning
 # each component an entity id for which it is registered. It would remove second
 # iteration over types in `get_components`.
@@ -237,7 +235,7 @@ def get_current() -> Scene:
     '''
 
     if _current_scene is None:
-        raise exceptions.SpykeException('No scene is set current.')
+        raise RuntimeError('No scene is set current.')
 
     return _current_scene
 
