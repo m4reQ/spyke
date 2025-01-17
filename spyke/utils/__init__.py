@@ -1,5 +1,4 @@
 import functools
-import logging
 import time
 import typing as t
 
@@ -95,5 +94,3 @@ def once(f: t.Callable[_Params, _Return]) -> t.Callable[_Params, _Return]:
         return f(*args, **kwargs)
 
     return inner
-
-_logger = logging.getLogger(__name__)
