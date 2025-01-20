@@ -22,18 +22,18 @@ setuptools.setup(
         setuptools.Extension(
             name='spyke.input',
             sources=[
-                'src_c/spyke/input/input.c',
-                'src_c/spyke/api.c',
-                'src_c/spyke/enum.c'],
+                'src_c/input/input.c',
+                'src_c/api.c',
+                'src_c/enum.c'],
             extra_compile_args=['/std:c17', '/W4']),
         setuptools.Extension(
             name='spyke.graphics.window',
             sources=[
-                'src_c/spyke/window/window.c',
-                'src_c/spyke/window/windowSettings.c',
-                'src_c/spyke/window/windowEvents.c',
-                'src_c/spyke/api.c',
-                'src_c/spyke/enum.c',
+                'src_c/window/window.c',
+                'src_c/window/windowSettings.c',
+                'src_c/window/windowEvents.c',
+                'src_c/api.c',
+                'src_c/enum.c',
                 GLAD_WGL_SOURCE],
             extra_compile_args=['/std:c17', '/W4'],
             libraries=['gdi32', 'user32', 'opengl32'],
@@ -41,9 +41,9 @@ setuptools.setup(
         setuptools.Extension(
             name='spyke.events',
             sources=[
-                'src_c/spyke/events/events.c',
-                'src_c/spyke/api.c',
-                'src_c/spyke/enum.c',
+                'src_c/events/events.c',
+                'src_c/api.c',
+                'src_c/enum.c',
                 STB_SOURCE],
             extra_compile_args=['/std:c17', '/W4'],
             include_dirs=[STB_INCLUDE_DIR])],
