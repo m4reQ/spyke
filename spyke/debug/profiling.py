@@ -1,11 +1,12 @@
 import dataclasses
+import atexit
 import functools
 import os
 import threading
 import time
 import typing as t
 
-from spyke import paths, runtime
+from spyke import paths
 
 _MAX_FRAMES = 400
 _HEADER = '{"traceEvents":[{}'
@@ -44,7 +45,7 @@ def initialize() -> None:
         _file.write(_HEADER)
         _file.flush()
 
-    runtime.register_dispose_function(_close_profiler)
+    atexit.register(_close_profiler)
 
 def profile(name: str,
             start: int,
