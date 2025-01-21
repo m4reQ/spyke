@@ -28,7 +28,7 @@ data_files += glob.glob(
     recursive=True)
 
 setuptools.setup(
-    data_files=[('spyke', data_files)],
+    data_files=[('Lib/site-packages/spyke', data_files)],
     ext_modules=[
         setuptools.Extension(
             name='spyke.input',
