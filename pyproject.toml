@@ -42,6 +42,22 @@ dependencies = [
 [project.urls]
 home = "https://github.com/m4reQ/spyke"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["spyke*"]
+# setuptools is dumb enough to not be able to provide support for substituting packages
+# discovered by find_packages with a corresponding package-dir
+# guess who is fully developed matured language without proper support for packaging :)
+
+[tool.setuptools]
+package-dir = {spyke = "src_py"}
+packages = [
+    "spyke",
+    "spyke.assets",
+    "spyke.assets.loaders",
+    "spyke.assets.types",
+    "spyke.audio",
+    "spyke.debug",
+    "spyke.ecs",
+    "spyke.ecs.components",
+    "spyke.enums",
+    "spyke.graphics"]
+include-package-data = true
+data-files = {"spyke/shader_sources" = ["src_py/shader_sources/*.frag", "src_py/shader_sources/*.vert"]}
