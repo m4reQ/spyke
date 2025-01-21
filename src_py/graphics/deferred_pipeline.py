@@ -12,11 +12,10 @@ from pygl.framebuffer import (Attachment, AttachmentFormat, Framebuffer,
 from pygl.shaders import Shader, ShaderStage, ShaderType, UniformType
 from pygl.vertex_array import (AttribType, VertexArray, VertexDescriptor,
                                VertexInput)
-from spyke import debug
+from spyke import debug, _data
 from spyke.graphics.frame_data import FrameData
 from spyke.graphics.pipeline import (GraphicsPipeline, PipelineInfo,
                                      PipelineSettings)
-
 
 class DeferredPipeline(GraphicsPipeline):
     _CAMERA_MATRICES_BUFFER_BINDING = 0
@@ -48,8 +47,8 @@ class DeferredPipeline(GraphicsPipeline):
 
         with debug.profiled_scope('create_shaders'):
             self._geometry_shader = Shader([
-                ShaderStage(ShaderType.VERTEX_SHADER, './spyke/graphics/shaderSources/deferred_geometry.vert'),
-                ShaderStage(ShaderType.FRAGMENT_SHADER, './spyke/graphics/shaderSources/deferred_geometry.frag')])
+                ShaderStage(ShaderType.VERTEX_SHADER, _data.get_package_data_file('shader_sources', 'deferred_geometry.vert')),
+                ShaderStage(ShaderType.FRAGMENT_SHADER, _data.get_package_data_file('shader_sources', 'deferred_geometry.frag'))])
             self._geometry_shader.set_uniform_array('uTextures', np.arange(0, settings.max_textures_per_batch, dtype=np.int32), UniformType.INT)
             self._geometry_shader.set_uniform_block_binding('uCameraMatrices', self._CAMERA_MATRICES_BUFFER_BINDING)
             self._geometry_shader.validate()

@@ -1,4 +1,3 @@
-import glm
 import imgui
 
 from pygl.textures import Texture
@@ -7,6 +6,7 @@ from spyke.assets.types.image import Image
 from spyke.ecs.components import SpriteComponent
 from spyke.graphics import renderer
 from spyke_editor.ui.inspector import Inspector
+from pygl.math import Vector4
 
 
 class SpriteComponentInspector(Inspector[SpriteComponent]):
@@ -19,7 +19,7 @@ class SpriteComponentInspector(Inspector[SpriteComponent]):
             *item.color,
             imgui.COLOR_EDIT_NONE)
         if color_changed:
-            item.color = glm.vec4(*new_color)
+            item.color = Vector4(*new_color)
 
         imgui.text_unformatted('Texture')
 
