@@ -26,12 +26,12 @@ class ALBuffer(ALObject):
 
         cls._invalid_buffer = cls(SoundFormat.Mono8, data.tobytes(), frequency)
         return cls._invalid_buffer
-    
+
     @classmethod
     def empty(cls):
         if cls._empty_buffer:
             return cls._empty_buffer
-        
+
         cls._invalid_buffer = cls(SoundFormat.Mono8, b'', 21000)
         return cls._invalid_buffer
 

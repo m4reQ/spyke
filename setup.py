@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 
 import setuptools
 from setuptools.command.build_ext import build_ext
@@ -17,7 +18,17 @@ class SpykeBuildExt(build_ext):
 
         self.debug = os.path.splitext(os.path.basename(sys.executable))[0] == 'python_d'
 
+data_files = glob.glob(
+    'src_py/shader_sources/**.frag',
+    root_dir='src_py',
+    recursive=True)
+data_files += glob.glob(
+    'src_py/shader_sources/**.vert',
+    root_dir='src_py',
+    recursive=True)
+
 setuptools.setup(
+    data_files=[('spyke', data_files)],
     ext_modules=[
         setuptools.Extension(
             name='spyke.input',
