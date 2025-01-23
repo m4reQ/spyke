@@ -9,8 +9,8 @@ from concurrent import futures
 from spyke import debug, events
 from spyke.assets.asset import Asset, AssetConfig, AssetSource
 
-# by default we allow to drop at most 5 frames while loading resources
-_DEFAULT_MAX_LOAD_TIME_PER_FRAME = (1 / 60) * 5
+# by default we allow to drop at most 1 frame while loading resources
+_DEFAULT_MAX_LOAD_TIME_PER_FRAME = (1 / 60) * 1
 _MAX_LOAD_THREADS = 4
 
 AssetType = t.TypeVar('AssetType', bound=Asset)
@@ -92,7 +92,7 @@ def process_loading_queue() -> None:
         asset, load_data = load_future.result()
         asset.post_load(load_data)
 
-        events.invoke(events.AssetLoadedEvent(asset))
+        asset_loaded_event.invoke(asset)
 
         if time.perf_counter() - load_start > _max_load_time_per_frame:
             _logger.debug('Max asset loading time exceeded. Skipping loading rest of assets queue...')
@@ -104,9 +104,12 @@ def set_max_load_time_per_frame(max_load_time_seconds: float) -> None:
 
 def _unload(asset: Asset) -> None:
     asset.unload()
-    events.invoke(events.AssetLoadedEvent(asset))
+    asset_unloaded_event.invoke(asset)
 
     _logger.info('Unloaded asset %s.', asset)
+
+asset_loaded_event = events.Event[Asset]()
+asset_unloaded_event = events.Event[Asset]()
 
 _assets = dict[uuid.UUID, Asset]()
 _logger = logging.getLogger(__name__)
