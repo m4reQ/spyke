@@ -1,8 +1,8 @@
 import ctypes as ct
 
 import numpy as np
-
 from pygl import textures
+
 from spyke import debug
 from spyke.assets.asset_config import AssetConfig
 from spyke.assets.asset_loader import AssetLoader
@@ -46,7 +46,7 @@ class DDSLoader(AssetLoader):
         assert isinstance(config, ImageConfig), 'Invalid config type provided to DDSLoader'
 
         header = _DDSHeader.from_buffer_copy(data)
-        if not header.fourcc.startswith('DXT'):
+        if not header.fourcc.startswith(b'DXT'):
             raise RuntimeError('For now DDS loader only supports DXT(1|3|5) formats.')
 
         img_data = np.frombuffer(data, dtype=np.ubyte, offset=ct.sizeof(_DDSHeader))
@@ -67,7 +67,8 @@ class DDSLoader(AssetLoader):
                 header.mipmap_count,
                 block_size,
                 internal_format),
-            img_data)
+            img_data,
+            unpack_alignment=1)
 
 def _determine_internal_format(bpp: int, fourcc: bytes) -> tuple[textures.CompressedInternalFormat, int]:
     if fourcc == b'DXT1':
@@ -77,8 +78,10 @@ def _determine_internal_format(bpp: int, fourcc: bytes) -> tuple[textures.Compre
             return (textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT1_EXT, 8)
 
         raise RuntimeError('Invalid bits per pixel for DXT1 compressed data.')
-    elif fourcc == b'DXT3' or fourcc == b'DXT5':
+    elif fourcc == b'DXT3':
         return (textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT3_EXT, 16)
+    elif fourcc == b'DXT5':
+        return (textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT5_EXT, 16)
 
     raise RuntimeError('Loader does not support DDS files with DXT10 format')
 

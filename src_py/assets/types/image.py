@@ -2,6 +2,7 @@ import dataclasses
 import typing as t
 
 from pygl import textures
+
 from spyke import debug
 from spyke.assets.asset import Asset
 from spyke.assets.asset_config import AssetConfig
@@ -11,10 +12,11 @@ from spyke.graphics import renderer
 
 @dataclasses.dataclass(eq=False)
 class Image(Asset):
-    _texture: textures.Texture = dataclasses.field(repr=False, init=False)
+    _texture: textures.Texture | None = dataclasses.field(repr=False, init=False, default=None)
 
     def unload(self):
-        self._texture.delete()
+        if self.is_loaded:
+            self._texture.delete()
 
     @debug.profiled('assets')
     def post_load(self, load_data: ImageLoadData):
@@ -22,15 +24,12 @@ class Image(Asset):
             texture = textures.Texture(load_data.specification)
 
         with debug.profiled_scope('upload_texture_data'):
-            buffer = renderer.acquire_texture_upload_buffer(
-                load_data.specification.width,
-                load_data.specification.height,
-                load_data.specification.internal_format)
+            textures.set_pixel_unpack_alignment(load_data.unpack_alignment)
 
             for info in load_data.upload_infos:
-                buffer.store(load_data.upload_data)
-                buffer.transfer()
-                texture.upload(info, None)
+                texture.upload(info, load_data.upload_data)
+
+            textures.set_pixel_unpack_alignment(4)
 
         with self._loading_lock:
             self._texture = texture
@@ -38,7 +37,10 @@ class Image(Asset):
 
     @property
     def texture(self) -> textures.Texture:
-        return self._texture
+        # FIXME
+        # Realistically user should never try to access texture if the asset is not loaded
+        # but if we stick assert here the debugger may crash, trying to display value of texture
+        return self._texture # type: ignore[return-value]
 
 @dataclasses.dataclass
 class ImageConfig(AssetConfig):
