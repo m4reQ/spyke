@@ -61,3 +61,6 @@ class Model(Asset):
     @property
     def index_count(self) -> int:
         return self._index_count
+
+    def __hash__(self) -> int:
+        return hash(self.id)

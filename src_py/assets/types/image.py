@@ -53,3 +53,6 @@ class Image(Asset):
         # Realistically user should never try to access texture if the asset is not loaded
         # but if we stick assert here the debugger may crash, trying to display value of texture
         return self._texture # type: ignore[return-value]
+
+    def __hash__(self) -> int:
+        return hash(self.id)
