@@ -6,7 +6,7 @@ layout(location=1) in vec2 aTexCoord;
 layout(location=2) in vec3 aNormal;
 // instance data
 layout(location=3) in vec4 aColor;
-layout(location=4) in uint aTextureIndex;
+layout(location=4) in float aTextureIndex;
 layout(location=5) in mat4 aTransform;
 
 out VSOut {
@@ -14,7 +14,7 @@ out VSOut {
     vec3 normal;
     vec3 worldPos;
     vec4 color;
-    uint textureIndex;
+    flat float textureIndex;
 } vsOut;
 
 layout(std140) uniform uCameraMatrices

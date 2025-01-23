@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-
 from pygl import commands
 from pygl import debug as gl_debug
 from pygl import rendering, textures
@@ -12,10 +11,12 @@ from pygl.framebuffer import (Attachment, AttachmentFormat, Framebuffer,
 from pygl.shaders import Shader, ShaderStage, ShaderType, UniformType
 from pygl.vertex_array import (AttribType, VertexArray, VertexDescriptor,
                                VertexInput)
-from spyke import debug, _data
+
+from spyke import _data, debug
 from spyke.graphics.frame_data import FrameData
 from spyke.graphics.pipeline import (GraphicsPipeline, PipelineInfo,
                                      PipelineSettings)
+
 
 class DeferredPipeline(GraphicsPipeline):
     _CAMERA_MATRICES_BUFFER_BINDING = 0
@@ -76,7 +77,7 @@ class DeferredPipeline(GraphicsPipeline):
             gl_debug.set_object_name(self._geometry_vao, 'DeferredVAO')
 
         with debug.profiled_scope('create_framebuffer'):
-            attachments = [
+            attachments: list[TextureAttachment | RenderbufferAttachment] = [
                 TextureAttachment(0, 0, AttachmentFormat.RGBA8, 0), # diffuse
                 TextureAttachment(0, 0, AttachmentFormat.RGB32F, 1, min_filter=textures.MinFilter.NEAREST, mag_filter=textures.MagFilter.NEAREST), # world pos
                 TextureAttachment(0, 0, AttachmentFormat.RGB16F, 2, min_filter=textures.MinFilter.NEAREST, mag_filter=textures.MagFilter.NEAREST), # normal
@@ -170,15 +171,15 @@ class DeferredPipeline(GraphicsPipeline):
             for batch in batches:
                 with debug.profiled_scope('render_batch'):
                     with debug.profiled_scope('transfer_instance_data'):
-                        self._instance_buffer.store(batch.instance_data[:batch._data_offset])
+                        self._instance_buffer.store(batch.instance_data[:batch.current_instance])
                         self._instance_buffer.transfer()
 
-                    textures.bind_textures(batch.batch_textures, first=1)
+                    textures.bind_textures(batch.textures, first=1)
                     rendering.draw_elements_instanced(
                         batch.draw_mode,
                         model.index_count,
                         model.elements_type, # TODO Index buffer must be able to store elements of type that match model elements
-                        batch.instance_count)
+                        batch.current_instance)
 
         commands.depth_mask(False)
         commands.disable(EnableCap.DEPTH_TEST)

@@ -5,7 +5,7 @@ in VSOut {
     vec3 normal;
     vec3 worldPos;
     vec4 color;
-    uint textureIndex;
+    flat float textureIndex;
 } vsOut;
 
 layout(location=0) out vec4 outDiffuse;
@@ -17,7 +17,7 @@ uniform sampler2D uTextures[16];
 
 void main()
 {
-    outDiffuse = vsOut.color * texture(uTextures[vsOut.textureIndex], vsOut.texCoord);
+    outDiffuse = vsOut.color * texture(uTextures[uint(vsOut.textureIndex)], vsOut.texCoord);
     outWorldPos = vsOut.worldPos;
     outNormal = normalize(vsOut.normal);
     outTexCoord = vsOut.texCoord;
