@@ -92,7 +92,7 @@ PyTypeObject PyButtonDownEventData_Type = {
 
 PyTypeObject PyCharEventData_Type = {
     PY_VAR_OBJECT_HEAD_INIT(NULL, 0),
-    .tp_name = "spyke.window.CharUpEventData",
+    .tp_name = "spyke.window.CharEventData",
     .tp_basicsize = sizeof(PyCharEventData),
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = PyType_GenericNew,
