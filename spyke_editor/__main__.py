@@ -1,15 +1,14 @@
 import os
 import sys
-
 import typing as t
 import uuid
 
 import imgui
 import numpy as np
-
 from pygl import commands, rendering
 from pygl.math import Matrix4, Vector2, Vector3, Vector4
 from pygl.rendering import ElementsType
+
 from spyke import application, assets, debug, ecs, input
 from spyke.assets.asset_source import AssetSource
 from spyke.assets.loaders.dds_loader import DDSLoader
@@ -20,13 +19,13 @@ from spyke.ecs import components
 from spyke.graphics import renderer, window
 from spyke.graphics.rectangle import Rectangle
 from spyke.input import Key, Modifier
-
 from spyke_editor import imgui_renderer
 from spyke_editor.ui.inspector_camera import CameraComponentInspector
 from spyke_editor.ui.inspector_sprite import SpriteComponentInspector
 from spyke_editor.ui.inspector_tag import TagComponentInspector
 from spyke_editor.ui.inspector_transform import TransformComponentInspector
 from spyke_editor.ui.inspector_window import InspectorWindow
+
 
 class EditorApplication(application.Application):
     def __init__(self) -> None:
@@ -53,8 +52,9 @@ class EditorApplication(application.Application):
         image_config = ImageConfig.default()
         image_config.mipmap_count = 2
 
-        self._image1 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\_DSC0322.JPG', image_config)
-        self._image2 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\_DSC0115.JPG', image_config)
+        # self._image1 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\_DSC0322.JPG', image_config)
+        # self._image2 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\_DSC0115.JPG', image_config)
+        self._image3 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\127528372_821033275340171_6978972678366438246_n.dds', image_config)
         self._quad_model = assets.add_asset(_create_quad_model())
         self._cube_model = assets.add_asset(_create_cube_model())
 
@@ -63,27 +63,27 @@ class EditorApplication(application.Application):
 
         self._scene.create_entity(
             components.TagComponent('C U B E'),
-            components.SpriteComponent(Vector4(1.0), self._cube_model, Image.get_empty_asset()),
+            components.SpriteComponent(Vector4(1.0), self._cube_model, self._image3),
             components.TransformComponent(
                 Vector3(0.0, 0.0, 0.1),
                 Vector3(0.2, 0.2, 0.2),
                 Vector3(0.0)))
 
-        self._scene.create_entity(
-            components.TagComponent('Image 1 Quad'),
-            components.SpriteComponent(Vector4(1.0), self._quad_model, Image.get_empty_asset()),
-            components.TransformComponent(
-                Vector3(-0.2, -0.2, 0.2),
-                Vector3(0.4, 0.2, 0.0),
-                Vector3(0.0)))
+        # self._scene.create_entity(
+        #     components.TagComponent('zima jasna'),
+        #     components.SpriteComponent(Vector4(1.0), self._quad_model, self._image1),
+        #     components.TransformComponent(
+        #         Vector3(-0.2, -0.2, 0.2),
+        #         Vector3(0.4, 0.2, 0.0),
+        #         Vector3(0.0)))
 
-        self._scene.create_entity(
-            components.TagComponent('Image 2 Quad'),
-            components.SpriteComponent(Vector4(1.0), self._quad_model, Image.get_empty_asset()),
-            components.TransformComponent(
-                Vector3(0.0, 0.3, 0.3),
-                Vector3(0.5, 0.5, 0.1),
-                Vector3(0.0)))
+        # self._scene.create_entity(
+        #     components.TagComponent('zima ciemna'),
+        #     components.SpriteComponent(Vector4(1.0), self._quad_model, self._image2),
+        #     components.TransformComponent(
+        #         Vector3(0.0, 0.3, 0.3),
+        #         Vector3(0.5, 0.5, 0.1),
+        #         Vector3(0.0)))
 
         camera_entity = self._scene.create_entity(
             components.TagComponent('Main Camera'),
@@ -111,8 +111,9 @@ class EditorApplication(application.Application):
 
     @debug.profiled('editor')
     def on_render(self, frametime: float) -> None:
-        self._render_scene(renderer.get_framebuffer_width(), renderer.get_framebuffer_height())
-        self._render_imgui(window.get_framebuffer_width(), window.get_framebuffer_height())
+        width, height = window.get_size()
+        self._render_scene(width, height)
+        self._render_imgui(width, height)
 
     @debug.profiled('editor', 'update')
     def _update_scene(self) -> None:
@@ -308,14 +309,13 @@ def _initialize_imgui() -> None:
     window.scroll_event.subscribe(_imgui_scroll_callback)
     window.char_event.subscribe(_imgui_char_event)
 
-# FIXME Rename invalid `CharUpEventData` to CharEventData in window.c
-def _imgui_char_event(event: window.CharUpEventData) -> None:
+def _imgui_char_event(event: window.CharEventData) -> None:
     io = imgui.get_io()
-    io.add_input_character(event.character)
+    io.add_input_character(ord(event.character))
 
 def _imgui_scroll_callback(event: window.ScrollEventData) -> None:
     io = imgui.get_io()
-    io.mouse_wheel = event.y_offset
+    io.mouse_wheel = event.delta * io.delta_time
 
 def _imgui_key_up_callback(event: window.KeyUpEventData) -> None:
     io = imgui.get_io()
@@ -343,11 +343,14 @@ def _imgui_mouse_callback(event: window.MouseMoveEventData) -> None:
 
 def _imgui_mouse_button_down_callback(event: window.ButtonDownEventData) -> None:
     io = imgui.get_io()
-    io.mouse_down[event.button] = True
+    io.mouse_down[_translate_button(event.button)] = True
 
 def _imgui_mouse_button_up_callback(event: window.ButtonUpEventData) -> None:
     io = imgui.get_io()
-    io.mouse_down[event.button] = False
+    io.mouse_down[_translate_button(event.button)] = False
+
+def _translate_button(button: input.Button) -> int:
+    return _button_map[button]
 
 def _create_quad_model() -> Model:
     model = Model(AssetSource(''), uuid.uuid4(), True)
@@ -438,6 +441,11 @@ def _initialize_assets() -> None:
 
     Image.register_loader(StandardImageLoader())
     Image.register_loader(DDSLoader())
+
+_button_map = {
+    input.Button.LEFT: 0,
+    input.Button.RIGHT: 1,
+}
 
 if __name__ == '__main__':
     app = EditorApplication()
