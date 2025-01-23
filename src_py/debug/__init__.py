@@ -1,17 +1,15 @@
 import functools
-import logging as _logging
+import logging
 import os
 import typing as t
 
 import colorama
 
 from spyke import paths
-from spyke.debug.logging import LOG_LEVEL, SpykeLogger
+from spyke.debug._logging import LOG_LEVEL, SpykeLogger
 from spyke.debug.profiling import profiled, profiled_scope
 
 __all__ = [
-    'SpykeLogger',
-    'LOG_LEVEL',
     'debug_only',
     'profiled',
     'profiled_scope',
@@ -43,12 +41,12 @@ def debug_only(func: t.Callable[_Params, None]) -> t.Callable[_Params, None]:
 def initialize() -> None:
     colorama.init()
 
-    _logging.basicConfig(level=LOG_LEVEL, handlers=[])
-    _logging.setLoggerClass(SpykeLogger)
+    logging.basicConfig(level=LOG_LEVEL, handlers=[])
+    logging.setLoggerClass(SpykeLogger)
 
     if os.path.exists(paths.LOG_FILE):
         os.remove(paths.LOG_FILE)
 
-    _logger = _logging.getLogger(__name__)
+    _logger = logging.getLogger(__name__)
     _logger.info('Spyke debug module initialized.')
 
