@@ -49,4 +49,3 @@ def initialize() -> None:
 
     _logger = logging.getLogger(__name__)
     _logger.info('Spyke debug module initialized.')
-

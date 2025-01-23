@@ -42,6 +42,7 @@ class DDSLoader(AssetLoader):
     def can_process_file_data(self, file_data: bytes) -> bool:
         return file_data.startswith(_DDS_MAGIC_VALUE)
 
+    @debug.profiled('assets')
     def load_from_binary(self, data: bytes, config: AssetConfig):
         assert isinstance(config, ImageConfig), 'Invalid config type provided to DDSLoader'
 

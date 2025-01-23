@@ -30,8 +30,12 @@ class DeferredPipeline(GraphicsPipeline):
         self._uniform_buffer: Buffer
         self._framebuffer: Framebuffer
 
+        self._model_vertex_size = 0
+
     @debug.profiled('rendering', 'init')
     def initialize(self, settings: PipelineSettings, fb_width: int, fb_height: int) -> None:
+        self._model_vertex_size = settings.model_vertex_size
+
         with debug.profiled_scope('create_buffers'):
             self._model_buffer = Buffer(settings.model_buffer_size, BufferFlags.DYNAMIC_STORAGE_BIT)
             gl_debug.set_object_name(self._model_buffer, 'ModelBuffer')
@@ -160,13 +164,16 @@ class DeferredPipeline(GraphicsPipeline):
         frame_data.white_texture.bind_to_unit(0)
 
         for model, batches in frame_data.batches.items():
-            # TODO Resize buffer to prevent overflow
-            with debug.profiled_scope('transfer_model_data'):
-                self._index_buffer.store(model.index_data)
-                self._index_buffer.transfer()
+            self._geometry_vao.bind_index_buffer(model.buffer)
+            self._geometry_vao.bind_vertex_buffer(model.buffer, 0, self._model_vertex_size, model.vertex_offset)
 
-                self._model_buffer.store(model.vertex_data)
-                self._model_buffer.transfer()
+            # TODO Resize buffer to prevent overflow
+            # with debug.profiled_scope('transfer_model_data'):
+            #     self._index_buffer.store(model.index_data)
+            #     self._index_buffer.transfer()
+
+            #     self._model_buffer.store(model.vertex_data)
+            #     self._model_buffer.transfer()
 
             for batch in batches:
                 with debug.profiled_scope('render_batch'):
@@ -178,7 +185,7 @@ class DeferredPipeline(GraphicsPipeline):
                     rendering.draw_elements_instanced(
                         batch.draw_mode,
                         model.index_count,
-                        model.elements_type, # TODO Index buffer must be able to store elements of type that match model elements
+                        model.index_type, # TODO Index buffer must be able to store elements of type that match model elements
                         batch.current_instance)
 
         commands.depth_mask(False)

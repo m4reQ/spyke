@@ -1,5 +1,5 @@
-import dataclasses
 import atexit
+import dataclasses
 import functools
 import os
 import threading
@@ -40,17 +40,33 @@ class _ScopedProfiler:
     def __exit__(self, *_) -> None:
         profile(self._name, self._start, time.perf_counter_ns(), ('unknown',))
 
-def initialize() -> None:
+def initialize(profile_filepath: str) -> None:
+    global _file
+
+    _file = open(profile_filepath, 'w+')
+
     with _write_lock:
         _file.write(_HEADER)
-        _file.flush()
 
-    atexit.register(_close_profiler)
+def shutdown() -> None:
+    global _file
+
+    if _file is None:
+        return
+
+    with _write_lock:
+        _file.write(_FOOTER)
+        _file.close()
+
+        _file = None
 
 def profile(name: str,
             start: int,
             end: int,
             categories: tuple[str, ...]) -> None:
+    if _file is None:
+        return
+
     _ProfileFrame(
         name,
         _to_microseconds(start),
@@ -60,10 +76,11 @@ def profile(name: str,
         categories).dump(_file)
 
 def update_counter(name: str, value: float) -> None:
-    if not __debug__:
+    if not __debug__ or _file is None:
         return
 
-    _file.write(_COUNTER_FORMAT.format(name, _to_microseconds(time.perf_counter_ns()) - _profiler_time_start, os.getpid(), value))
+    with _write_lock:
+        _file.write(_COUNTER_FORMAT.format(name, _to_microseconds(time.perf_counter_ns()) - _profiler_time_start, os.getpid(), value))
 
 def profiled_scope(name: str) -> _ScopedProfiler:
     return _ScopedProfiler(name)
@@ -97,15 +114,9 @@ def profiled(*categories: str) -> t.Callable[[t.Callable[_AT, _RT]], t.Callable[
 
     return outer
 
-def _close_profiler() -> None:
-    with _write_lock:
-        _file.write(_FOOTER)
-        _file.close()
-
 def _to_microseconds(time_ns: int) -> float:
     return time_ns / (10 ** 3)
 
-_file = open(paths.PROFILE_FILE, 'w+')
-_file.write(_HEADER)
+_file: t.TextIO | None = None
 _write_lock = threading.RLock()
 _profiler_time_start = _to_microseconds(time.perf_counter_ns())

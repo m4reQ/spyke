@@ -1,5 +1,3 @@
-import os
-import sys
 import typing as t
 import uuid
 
@@ -8,13 +6,19 @@ import numpy as np
 from pygl import commands, rendering
 from pygl.math import Matrix4, Vector2, Vector3, Vector4
 from pygl.rendering import ElementsType
+from pygl.textures import (InternalFormat, MagFilter, MinFilter, PixelFormat,
+                           TextureSpec, TextureTarget, UploadInfo)
 
 from spyke import application, assets, debug, ecs, input
+from spyke.assets.asset_config import AssetConfig
 from spyke.assets.asset_source import AssetSource
 from spyke.assets.loaders.dds_loader import DDSLoader
+from spyke.assets.loaders.image_load_data import ImageLoadData
+from spyke.assets.loaders.model_load_data import ModelLoadData
 from spyke.assets.loaders.standard_image_loader import StandardImageLoader
-from spyke.assets.types import Model
 from spyke.assets.types.image import Image, ImageConfig
+from spyke.assets.types.model import Model
+from spyke.debug import profiling
 from spyke.ecs import components
 from spyke.graphics import renderer, window
 from spyke.graphics.rectangle import Rectangle
@@ -52,11 +56,11 @@ class EditorApplication(application.Application):
         image_config = ImageConfig.default()
         image_config.mipmap_count = 2
 
-        # self._image1 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\_DSC0322.JPG', image_config)
-        # self._image2 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\_DSC0115.JPG', image_config)
-        self._image3 = assets.load_from_file(Image, r'C:\Users\mmize\Desktop\127528372_821033275340171_6978972678366438246_n.dds', image_config)
-        self._quad_model = assets.add_asset(_create_quad_model())
-        self._cube_model = assets.add_asset(_create_cube_model())
+        self._image1 = assets.load_from_file(Image, r'C:\Users\mmize\Pictures\unnamedfff.png', image_config)
+        self._image2 = assets.load_from_file(Image, r'C:\Users\mmize\Pictures\unnamed (1).png', image_config)
+        self._image3 = assets.load_from_file(Image, r'C:\Users\mmize\Pictures\o.dds', image_config)
+        self._quad_model = _create_quad_model()
+        self._cube_model = _create_cube_model()
 
         _initialize_imgui()
         imgui_renderer.initialize()
@@ -69,21 +73,21 @@ class EditorApplication(application.Application):
                 Vector3(0.2, 0.2, 0.2),
                 Vector3(0.0)))
 
-        # self._scene.create_entity(
-        #     components.TagComponent('zima jasna'),
-        #     components.SpriteComponent(Vector4(1.0), self._quad_model, self._image1),
-        #     components.TransformComponent(
-        #         Vector3(-0.2, -0.2, 0.2),
-        #         Vector3(0.4, 0.2, 0.0),
-        #         Vector3(0.0)))
+        self._scene.create_entity(
+            components.TagComponent('zima jasna'),
+            components.SpriteComponent(Vector4(1.0), self._quad_model, self._image1),
+            components.TransformComponent(
+                Vector3(-0.2, -0.2, 0.2),
+                Vector3(0.4, 0.2, 0.0),
+                Vector3(0.0)))
 
-        # self._scene.create_entity(
-        #     components.TagComponent('zima ciemna'),
-        #     components.SpriteComponent(Vector4(1.0), self._quad_model, self._image2),
-        #     components.TransformComponent(
-        #         Vector3(0.0, 0.3, 0.3),
-        #         Vector3(0.5, 0.5, 0.1),
-        #         Vector3(0.0)))
+        self._scene.create_entity(
+            components.TagComponent('zima ciemna'),
+            components.SpriteComponent(Vector4(1.0), self._quad_model, self._image2),
+            components.TransformComponent(
+                Vector3(0.0, 0.3, 0.3),
+                Vector3(0.5, 0.5, 0.1),
+                Vector3(0.0)))
 
         camera_entity = self._scene.create_entity(
             components.TagComponent('Main Camera'),
@@ -352,90 +356,98 @@ def _imgui_mouse_button_up_callback(event: window.ButtonUpEventData) -> None:
 def _translate_button(button: input.Button) -> int:
     return _button_map[button]
 
-def _create_quad_model() -> Model:
-    model = Model(AssetSource(''), uuid.uuid4(), True)
-    model._vertex_data = np.array([
-        0.0, 0.0, 0.0,  0.0, 0.0,  0.0, 0.0, 1.0,
-        1.0, 0.0, 0.0,  1.0, 0.0,  0.0, 0.0, 1.0,
-        1.0, 1.0, 0.0,  1.0, 1.0,  0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0,  0.0, 1.0,  0.0, 0.0, 1.0],
-        dtype=np.float32)
-    model._index_data = np.array([0, 1, 2, 2, 3, 0], dtype=np.uint8)
-    model._vertex_count = 4
-    model._index_count = 6
-    model._elements_type = ElementsType.UNSIGNED_BYTE
+def _create_quad_model() -> uuid.UUID:
+    data = ModelLoadData(
+        np.array([0, 1, 2, 2, 3, 0], dtype=np.uint8),
+        6,
+        np.array([
+            0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
+            1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            dtype=np.float32),
+        4,
+        ElementsType.UNSIGNED_BYTE)
 
-    return model
+    return assets.load_from_data(Model, data, AssetConfig.default())
 
-def _create_cube_model() -> Model:
-    model = Model(AssetSource(''), uuid.uuid4(), True)
-    model._vertex_data = np.array([
-        0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0,
-        1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0,
-        0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+def _create_cube_model() -> uuid.UUID:
+    data = ModelLoadData(
+        np.array([
+            0, 1, 2, 2, 3, 0,
+            4, 5, 6, 6, 7, 4,
+            8, 9, 10, 10, 11, 8,
+            12, 13, 14, 14, 15, 12,
+            16, 17, 18, 18, 19, 16,
+            20, 21, 22, 22, 23, 20],
+            dtype=np.uint8),
+        36,
+        np.array([
+            0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0,
 
-        1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0,
-        0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
-        0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, -1.0,
-        1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0,
+            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0,
+            0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
+            0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, -1.0,
+            1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0,
 
-        0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 1.0, 0.0, -1.0, 0.0, 0.0,
-        0.0, 1.0, 1.0, 1.0, 1.0, -1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 1.0, 0.0, -1.0, 0.0, 0.0,
+            0.0, 1.0, 1.0, 1.0, 1.0, -1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0,
 
-        1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0,
-        1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-        1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+            1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+            1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0,
+            1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+            1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0,
 
-        0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-        1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-        1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+            0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+            1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+            1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0,
+            0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
 
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0,
-        1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0,
-        1.0, 0.0, 1.0, 1.0, 1.0, 0.0, -1.0, 0.0,
-        0.0, 0.0, 1.0, 0.0, 1.0, 0.0, -1.0, 0.0],
-        dtype=np.float32)
-    model._index_data = np.array([
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        8, 9, 10, 10, 11, 8,
-        12, 13, 14, 14, 15, 12,
-        16, 17, 18, 18, 19, 16,
-        20, 21, 22, 22, 23, 20],
-        dtype=np.uint8)
-    model._vertex_count = 24
-    model._index_count = 36
-    model._elements_type = ElementsType.UNSIGNED_BYTE
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+            1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+            1.0, 0.0, 1.0, 1.0, 1.0, 0.0, -1.0, 0.0,
+            0.0, 0.0, 1.0, 0.0, 1.0, 0.0, -1.0, 0.0],
+            dtype=np.float32),
+        24,
+        ElementsType.UNSIGNED_BYTE)
 
-    return model
+    return assets.load_from_data(Model, data, AssetConfig.default())
 
-def _create_empty_image() -> Image:
-    empty_image = Image(AssetSource(''), uuid.uuid4(), True)
-    empty_image._texture = renderer.get_white_texture()
+def _create_empty_model() -> uuid.UUID:
+    data = ModelLoadData(
+        np.empty((0, ), dtype=np.uint8),
+        0,
+        np.empty((0, ), dtype=np.float32),
+        0,
+        ElementsType.UNSIGNED_BYTE)
 
-    return empty_image
+    return assets.load_from_data(Model, data, AssetConfig.default())
 
-def _create_empty_model() -> Model:
-    empty_model = Model(AssetSource(''), uuid.uuid4(), True)
-    empty_model._vertex_data = np.empty((0, ), dtype=np.float32)
-    empty_model._index_data = np.empty((0, ), dtype=np.uint8)
-    empty_model._vertex_count = 0
-    empty_model._index_count = 0
-    empty_model._elements_type = ElementsType.UNSIGNED_BYTE
+def _create_empty_image() -> uuid.UUID:
+    data = ImageLoadData(
+        TextureSpec(
+            TextureTarget.TEXTURE_2D,
+            1,
+            1,
+            InternalFormat.RGBA8,
+            min_filter=MinFilter.NEAREST,
+            mag_filter=MagFilter.NEAREST),
+        [UploadInfo(PixelFormat.RGBA, 1, 1, generate_mipmap=False)],
+        np.array([255, 255, 255, 255], dtype=np.uint8))
 
-    return empty_model
+    return assets.load_from_data(Image, data, ImageConfig.default())
 
 def _initialize_assets() -> None:
-    empty_image = _create_empty_image()
+    empty_image = assets.get(Image, _create_empty_image())
     Image.register_empty_asset(empty_image)
     assets.add_asset(empty_image)
 
-    empty_model = _create_empty_model()
+    empty_model = assets.get(Model, _create_empty_model())
     Model.register_empty_asset(empty_model)
     assets.add_asset(empty_model)
 
@@ -448,5 +460,9 @@ _button_map = {
 }
 
 if __name__ == '__main__':
+    profiling.initialize('./spyke_profile.json')
+
     app = EditorApplication()
     app.run()
+
+    profiling.shutdown()

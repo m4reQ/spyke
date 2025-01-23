@@ -34,7 +34,9 @@ class Application(abc.ABC):
 
     @debug.profiled('application', 'initialization')
     def _load(self) -> None:
-        window.initialize(self._window_settings)
+        with debug.profiled_scope('intialize_window'):
+            window.initialize(self._window_settings)
+
         renderer.initialize(window.get_width(), window.get_height())
 
         self.on_load()
@@ -70,8 +72,6 @@ class Application(abc.ABC):
         assets.unload_all()
         renderer.shutdown()
         window.shutdown()
-
-        profiling._close_profiler()
 
     def _update_counters(self) -> None:
         if not __debug__:
