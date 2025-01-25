@@ -2,13 +2,13 @@ import ctypes as ct
 import logging
 
 import numpy as np
-
 import pygl
 import pygl.vertex_array
 from pygl import buffers, commands
 from pygl import debug as gl_debug
 from pygl import sync, textures
 from pygl.math import Matrix4, Vector4
+
 from spyke import debug
 from spyke.assets.types.model import Model
 from spyke.graphics.deferred_pipeline import DeferredPipeline
@@ -121,10 +121,11 @@ def render(model: Model,
            texture: textures.Texture | None = None) -> None:
     assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
 
-    batch_list = _frame_data.batches[model]
-    for batch in batch_list:
-        if batch.try_add_instance(transform, color, texture):
-            return
+    with debug.profiled_scope('find_existing_batch'):
+        batch_list = _frame_data.batches[model]
+        for batch in batch_list:
+            if batch.try_add_instance(transform, color, texture):
+                return
 
     new_batch = _create_new_batch()
     add_succeeded = new_batch.try_add_instance(transform, color, texture)

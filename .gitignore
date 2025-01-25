@@ -10,3 +10,5 @@ cached_wheels
 **/*.log
 
 imgui.ini
+
+**/*.pyd

@@ -24,9 +24,7 @@ class DeferredPipeline(GraphicsPipeline):
     def __init__(self) -> None:
         self._geometry_shader: Shader
         self._geometry_vao: VertexArray
-        self._model_buffer: Buffer
         self._instance_buffer: Buffer
-        self._index_buffer: Buffer
         self._uniform_buffer: Buffer
         self._framebuffer: Framebuffer
 
@@ -37,14 +35,8 @@ class DeferredPipeline(GraphicsPipeline):
         self._model_vertex_size = settings.model_vertex_size
 
         with debug.profiled_scope('create_buffers'):
-            self._model_buffer = Buffer(settings.model_buffer_size, BufferFlags.DYNAMIC_STORAGE_BIT)
-            gl_debug.set_object_name(self._model_buffer, 'ModelBuffer')
-
             self._instance_buffer = Buffer(settings.instance_buffer_size, BufferFlags.DYNAMIC_STORAGE_BIT)
             gl_debug.set_object_name(self._instance_buffer, 'InstanceBuffer')
-
-            self._index_buffer = Buffer(settings.index_buffer_size, BufferFlags.DYNAMIC_STORAGE_BIT)
-            gl_debug.set_object_name(self._index_buffer, 'IndexBuffer')
 
             self._uniform_buffer = Buffer(settings.uniform_buffer_size, BufferFlags.DYNAMIC_STORAGE_BIT)
             self._uniform_buffer.bind_base(BufferBaseTarget.UNIFORM_BUFFER, self._CAMERA_MATRICES_BUFFER_BINDING)
@@ -63,7 +55,7 @@ class DeferredPipeline(GraphicsPipeline):
             self._geometry_vao = VertexArray(
                 layout=[
                     VertexInput(
-                        buffer=self._model_buffer,
+                        buffer=None,
                         stride=settings.model_vertex_size,
                         descriptors=[
                             VertexDescriptor(self._geometry_shader.resources['aPosition'], AttribType.FLOAT, 3),
@@ -76,8 +68,7 @@ class DeferredPipeline(GraphicsPipeline):
                             VertexDescriptor(self._geometry_shader.resources['aColor'], AttribType.FLOAT, 4),
                             VertexDescriptor(self._geometry_shader.resources['aTextureIndex'], AttribType.FLOAT, 1),
                             VertexDescriptor(self._geometry_shader.resources['aTransform'], AttribType.FLOAT, 4, 4)],
-                        divisor=1)],
-                element_buffer=self._index_buffer)
+                        divisor=1)])
             gl_debug.set_object_name(self._geometry_vao, 'DeferredVAO')
 
         with debug.profiled_scope('create_framebuffer'):
@@ -95,9 +86,7 @@ class DeferredPipeline(GraphicsPipeline):
         _logger.info('Created deferred rendering pipeline.')
 
     def reset_buffers(self) -> None:
-        self._model_buffer.reset_offset()
         self._instance_buffer.reset_offset()
-        self._index_buffer.reset_offset()
         self._uniform_buffer.reset_offset()
 
     def get_output_texture_id(self) -> int:
@@ -126,13 +115,11 @@ class DeferredPipeline(GraphicsPipeline):
     def destroy(self):
         self._geometry_shader.delete()
         self._geometry_vao.delete()
-        self._model_buffer.delete()
         self._instance_buffer.delete()
-        self._index_buffer.delete()
         self._framebuffer.delete()
 
     def _create_pipeline_info(self) -> PipelineInfo:
-        buffers_size = self._model_buffer.size + self._instance_buffer.size + self._index_buffer.size + self._uniform_buffer.size
+        buffers_size = self._instance_buffer.size + self._uniform_buffer.size
 
         diffuse_pixel_size = 4
         world_pos_pixel_size = 3 * 4
@@ -147,9 +134,10 @@ class DeferredPipeline(GraphicsPipeline):
     def _execute_geometry_pass(self, frame_data: FrameData) -> None:
         commands.disable(EnableCap.BLEND)
         commands.enable(EnableCap.CULL_FACE)
+        commands.cull_face(commands.CullFace.BACK)
         commands.enable(commands.EnableCap.DEPTH_TEST)
-        commands.depth_mask(True)
         commands.front_face(commands.FrontFace.CW)
+        commands.depth_mask(True)
 
         commands.clear_color(
             frame_data.clear_color.r,
@@ -167,14 +155,6 @@ class DeferredPipeline(GraphicsPipeline):
             self._geometry_vao.bind_index_buffer(model.buffer)
             self._geometry_vao.bind_vertex_buffer(model.buffer, 0, self._model_vertex_size, model.vertex_offset)
 
-            # TODO Resize buffer to prevent overflow
-            # with debug.profiled_scope('transfer_model_data'):
-            #     self._index_buffer.store(model.index_data)
-            #     self._index_buffer.transfer()
-
-            #     self._model_buffer.store(model.vertex_data)
-            #     self._model_buffer.transfer()
-
             for batch in batches:
                 with debug.profiled_scope('render_batch'):
                     with debug.profiled_scope('transfer_instance_data'):
@@ -185,7 +165,7 @@ class DeferredPipeline(GraphicsPipeline):
                     rendering.draw_elements_instanced(
                         batch.draw_mode,
                         model.index_count,
-                        model.index_type, # TODO Index buffer must be able to store elements of type that match model elements
+                        model.index_type,
                         batch.current_instance)
 
         commands.depth_mask(False)

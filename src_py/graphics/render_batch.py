@@ -3,6 +3,8 @@ from pygl.math import Matrix4, Vector4
 from pygl.rendering import DrawMode
 from pygl.textures import Texture
 
+from spyke import debug
+
 InstanceDtype = np.dtype([
     ('color', np.float32, (4,)),
     ('texture_idx', np.float32),
@@ -21,6 +23,7 @@ class RenderBatch:
         self.instance_data = np.empty((max_instance_count,), dtype=InstanceDtype)
 
     # TODO Materials to store color and texture inside them
+    @debug.profiled('rendering')
     def try_add_instance(self,
                          transform: Matrix4,
                          color: Vector4,

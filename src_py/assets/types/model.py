@@ -27,11 +27,17 @@ class Model(Asset):
 
     @debug.profiled('assets')
     def post_load(self, load_data: ModelLoadData) -> None:
-        # TODO Allow for immutable pygl buffers
-        buffer = Buffer(load_data.vertex_data_size + load_data.index_data_size, BufferFlags.DYNAMIC_STORAGE_BIT)
-        buffer.store(load_data.index_data)
-        buffer.store(load_data.vertex_data)
-        buffer.transfer()
+        # due to the limitation of pygl buffer we have to first concatenate index data and vertex data
+        # on the CPU and then upload it to OpenGL
+        # Because of this when loading data we should use one buffer in the first place
+
+        # TODO Change this ugly hack for empty models to something reasonable
+        if len(load_data.index_data) == 0 or len(load_data.vertex_data) == 0:
+            buffer = Buffer(0, BufferFlags.NONE)
+        else:
+            # TODO Converting index and vertex data to separate bytes objects and then concatenating them wastes resources and is slow
+            data = load_data.index_data.tobytes() + load_data.vertex_data.tobytes()
+            buffer = Buffer(len(data), BufferFlags.NONE, data)
 
         with self._loading_lock:
             self._vertex_count = load_data.vertex_count
