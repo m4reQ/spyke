@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import logging
 import typing as t
 
-from openal import al
 import numpy as np
-import logging
+from openal import al
 
-from spyke.enums import SoundFormat
-from spyke.audio import ALObject
 from spyke import debug
+from spyke.audio import ALObject
+from spyke.enums import SoundFormat
 
 _logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class ALBuffer(ALObject):
         cls._invalid_buffer = cls(SoundFormat.Mono8, b'', 21000)
         return cls._invalid_buffer
 
-    @debug.profiled('audio')
+    @debug.profiled
     def __init__(self, _format: SoundFormat, data: bytes, sample_rate: int):
         super().__init__()
 
@@ -46,6 +46,6 @@ class ALBuffer(ALObject):
 
         _logger.debug('%s created succesfully (data size: %.3fkB).', self, self.size / 1000.0)
 
-    @debug.profiled('audio')
+    @debug.profiled
     def _dispose(self) -> None:
         al.alDeleteBuffers(1, self._id)

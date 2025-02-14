@@ -30,7 +30,7 @@ class DeferredPipeline(GraphicsPipeline):
 
         self._model_vertex_size = 0
 
-    @debug.profiled('rendering', 'init')
+    @debug.profiled
     def initialize(self, settings: PipelineSettings, fb_width: int, fb_height: int) -> None:
         self._model_vertex_size = settings.model_vertex_size
 
@@ -44,8 +44,8 @@ class DeferredPipeline(GraphicsPipeline):
 
         with debug.profiled_scope('create_shaders'):
             self._geometry_shader = Shader([
-                ShaderStage(ShaderType.VERTEX_SHADER, _data.get_package_data_file('shader_sources', 'deferred_geometry.vert')),
-                ShaderStage(ShaderType.FRAGMENT_SHADER, _data.get_package_data_file('shader_sources', 'deferred_geometry.frag'))])
+                ShaderStage(ShaderType.VERTEX_SHADER, _data.get_package_data_file('data', 'shaders', 'deferred_geometry.vert')),
+                ShaderStage(ShaderType.FRAGMENT_SHADER, _data.get_package_data_file('data', 'shaders', 'deferred_geometry.frag'))])
             self._geometry_shader.set_uniform_array('uTextures', np.arange(0, settings.max_textures_per_batch, dtype=np.int32), UniformType.INT)
             self._geometry_shader.set_uniform_block_binding('uCameraMatrices', self._CAMERA_MATRICES_BUFFER_BINDING)
             self._geometry_shader.validate()
@@ -92,7 +92,7 @@ class DeferredPipeline(GraphicsPipeline):
     def get_output_texture_id(self) -> int:
         return self._framebuffer.get_attachment_id(0)
 
-    @debug.profiled('rendering')
+    @debug.profiled
     def render(self, frame_data: FrameData) -> None:
         self._framebuffer.resize(frame_data.frame_width, frame_data.frame_height)
 
@@ -130,11 +130,11 @@ class DeferredPipeline(GraphicsPipeline):
 
         return PipelineInfo(buffers_size, attachments_size)
 
-    @debug.profiled('rendering')
+    @debug.profiled
     def _execute_geometry_pass(self, frame_data: FrameData) -> None:
         commands.disable(EnableCap.BLEND)
         commands.enable(EnableCap.CULL_FACE)
-        commands.cull_face(commands.CullFace.BACK)
+        commands.cull_face(commands.CullFace.FRONT)
         commands.enable(commands.EnableCap.DEPTH_TEST)
         commands.front_face(commands.FrontFace.CW)
         commands.depth_mask(True)
@@ -171,7 +171,7 @@ class DeferredPipeline(GraphicsPipeline):
         commands.depth_mask(False)
         commands.disable(EnableCap.DEPTH_TEST)
 
-    @debug.profiled('rendering')
+    @debug.profiled
     def _execute_light_pass(self) -> None:
         commands.enable(EnableCap.BLEND)
         commands.blend_equation(BlendEquation.FUNC_ADD)

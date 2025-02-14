@@ -1,13 +1,29 @@
 import dataclasses
 
+import numpy as np
 from pygl.buffers import Buffer, BufferFlags
 from pygl.rendering import ElementsType
 
 from spyke import debug
 from spyke.assets.asset import Asset
 from spyke.assets.asset_config import AssetConfig
-from spyke.assets.loaders.model_load_data import ModelLoadData
 
+
+@dataclasses.dataclass(slots=True)
+class ModelLoadData:
+    index_data: np.ndarray
+    index_count: int
+    vertex_data: np.ndarray
+    vertex_count: int
+    index_type: ElementsType
+
+    @property
+    def vertex_data_size(self) -> int:
+        return self.vertex_data.nbytes
+
+    @property
+    def index_data_size(self) -> int:
+        return self.index_data.nbytes
 
 @dataclasses.dataclass(eq=False)
 class Model(Asset):
@@ -25,7 +41,7 @@ class Model(Asset):
     def load_from_data(self, data: ModelLoadData, config: AssetConfig):
         self.post_load(data)
 
-    @debug.profiled('assets')
+    @debug.profiled
     def post_load(self, load_data: ModelLoadData) -> None:
         # due to the limitation of pygl buffer we have to first concatenate index data and vertex data
         # on the CPU and then upload it to OpenGL

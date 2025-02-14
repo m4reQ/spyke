@@ -23,8 +23,11 @@ static void PyEvent_Dealloc(PyEvent *self)
     Py_TYPE(self)->tp_free(self);
 }
 
-static PyObject *PyEvent_New(PyTypeObject *cls, PyObject *UNUSED(args), PyObject *UNUSED(kwargs))
+static PyObject *PyEvent_New(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 {
+    (void)args;
+    (void)kwargs;
+
     PyEvent *self = (PyEvent *)cls->tp_alloc(cls, 1);
     self->handlers = NULL;
 
@@ -86,8 +89,10 @@ static PyObject *PyEvent_Invoke(PyEvent *self, PyObject *eventData)
     Py_RETURN_NONE;
 }
 
-static PyObject *PyEvent_ClearHandlers(PyEvent *self, PyObject *UNUSED(args))
+static PyObject *PyEvent_ClearHandlers(PyEvent *self, PyObject *args)
 {
+    (void)args;
+
     for (size_t i = 0; i < arrlenu(self->handlers); i++)
         Py_DecRef(self->handlers[i].pyCallback);
 
@@ -127,13 +132,9 @@ static PyModuleDef s_ModuleDef = {
 PyMODINIT_FUNC PyInit_events()
 {
     PyObject *module = PyModule_Create(&s_ModuleDef);
-    if (!module)
-        return NULL;
-
-    if (PyModule_AddType(module, &s_EventType))
-        return NULL;
-
-    if (!PyAPI_Add(module, &s_API))
+    if (!module ||
+        !PyAPI_Add(module, &s_API) ||
+        PyModule_AddType(module, &s_EventType))
         return NULL;
 
     return module;

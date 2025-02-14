@@ -1,11 +1,11 @@
 import imgui
 
-from spyke.ecs.components.camera import CameraComponent, CameraType
+from spyke.graphics.camera import Camera
 from spyke_editor.ui.inspector import Inspector
 
 _DRAG_SPEED_SLOW = 0.001
 
-class CameraComponentInspector(Inspector[CameraComponent]):
+class CameraComponentInspector(Inspector):
     def __init__(self):
         super().__init__()
 
@@ -16,7 +16,7 @@ class CameraComponentInspector(Inspector[CameraComponent]):
     def get_supported_types(self) -> tuple[type]:
         return (CameraComponent,)
 
-    def render(self, item: CameraComponent) -> None:
+    def render(self, item) -> None:
         if imgui.begin_combo('Type', item.type.name):
             for type_name, camera_type in self._camera_types.items():
                 _, is_selected = imgui.selectable(type_name)
@@ -60,3 +60,13 @@ class CameraComponentInspector(Inspector[CameraComponent]):
         if view_h_changed:
             item.viewport.height = new_view_h
             item._needs_recalculate = True
+
+        imgui.text_unformatted('Z-clip')
+
+        z_near_changed, new_z_near = imgui.drag_float('Near', item.z_clip[0], _DRAG_SPEED_SLOW)
+        if z_near_changed:
+            item.z_clip = (new_z_near, item.z_clip[1])
+
+        z_far_changed, new_z_far = imgui.drag_float('Far', item.z_clip[1], _DRAG_SPEED_SLOW)
+        if z_far_changed:
+            item.z_clip = (item.z_clip[0], new_z_far)

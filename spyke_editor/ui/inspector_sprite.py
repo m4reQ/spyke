@@ -2,8 +2,7 @@ import imgui
 
 from pygl.textures import Texture
 from spyke import assets
-from spyke.assets.types.image import Image
-from spyke.ecs.components import SpriteComponent
+from spyke.ecs import SpriteComponent
 from spyke.graphics import renderer
 from spyke_editor.ui.inspector import Inspector
 from pygl.math import Vector4
@@ -27,7 +26,7 @@ class SpriteComponentInspector(Inspector[SpriteComponent]):
         if item.image_id is None:
             texture = renderer.get_white_texture()
         else:
-            image = assets.get_or_empty(Image, item.image_id)
+            image = assets.get_or_empty(assets.Image, item.image_id)
             if image.is_loaded:
                 texture = image.texture
             else:

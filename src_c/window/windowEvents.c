@@ -1,37 +1,44 @@
 #include "windowEvents.h"
 
-static PyObject *PyResizeEventData_GetSize(PyResizeEventData *self, void *UNUSED(closure))
+static PyObject *PyResizeEventData_GetSize(PyResizeEventData *self, void *closure)
 {
+    (void)closure;
     return PyTuple_Pack(2, PyLong_FromUnsignedLong(self->width), PyLong_FromUnsignedLong(self->height));
 }
 
-static PyObject *PyButtonUpEventData_GetPosition(PyButtonDownEventData *self, void *UNUSED(closure))
+static PyObject *PyButtonUpEventData_GetPosition(PyButtonDownEventData *self, void *closure)
 {
+    (void)closure;
     return PyTuple_Pack(2, PyLong_FromUnsignedLong(self->x), PyLong_FromUnsignedLong(self->y));
 }
 
-static PyObject *PyButtonDownEventData_GetPosition(PyButtonDownEventData *self, void *UNUSED(closure))
+static PyObject *PyButtonDownEventData_GetPosition(PyButtonDownEventData *self, void *closure)
 {
+    (void)closure;
     return PyTuple_Pack(2, PyLong_FromUnsignedLong(self->x), PyLong_FromUnsignedLong(self->y));
 }
 
-static PyObject *PyCharEventData_GetCharacter(PyCharEventData *self, void *UNUSED(closure))
+static PyObject *PyCharEventData_GetCharacter(PyCharEventData *self, void *closure)
 {
+    (void)closure;
     return PyUnicode_FromOrdinal(self->character);
 }
 
-static PyObject *PyScrollEventData_GetPosition(PyScrollEventData *self, void *UNUSED(closure))
+static PyObject *PyScrollEventData_GetPosition(PyScrollEventData *self, void *closure)
 {
+    (void)closure;
     return PyTuple_Pack(2, PyLong_FromUnsignedLong(self->x), PyLong_FromUnsignedLong(self->y));
 }
 
-static PyObject *PyMouseMoveEventData_GetPosition(PyMouseMoveEventData *self, void *UNUSED(closure))
+static PyObject *PyMouseMoveEventData_GetPosition(PyMouseMoveEventData *self, void *closure)
 {
+    (void)closure;
     return PyTuple_Pack(2, PyLong_FromUnsignedLong(self->x), PyLong_FromUnsignedLong(self->y));
 }
 
-static PyObject *PyMoveEventData_GetPosition(PyMoveEventData *self, void *UNUSED(closure))
+static PyObject *PyMoveEventData_GetPosition(PyMoveEventData *self, void *closure)
 {
+    (void)closure;
     return PyTuple_Pack(2, PyLong_FromUnsignedLong(self->x), PyLong_FromUnsignedLong(self->y));
 }
 

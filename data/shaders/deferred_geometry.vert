@@ -31,5 +31,5 @@ void main()
     vsOut.color = aColor;
     vsOut.textureIndex = aTextureIndex;
 
-    gl_Position = aTransform * view * projection * vec4(aPosition, 1.0);
+    gl_Position = projection * view * aTransform * vec4(aPosition, 1.0);
 }

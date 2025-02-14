@@ -1,16 +1,16 @@
 import ctypes as ct
 import logging
+import uuid
 
 import numpy as np
 import pygl
-import pygl.vertex_array
 from pygl import buffers, commands
 from pygl import debug as gl_debug
 from pygl import sync, textures
 from pygl.math import Matrix4, Vector4
 
 from spyke import debug
-from spyke.assets.types.model import Model
+from spyke.assets import Model
 from spyke.graphics.deferred_pipeline import DeferredPipeline
 from spyke.graphics.frame_data import FrameData
 from spyke.graphics.pipeline import GraphicsPipeline, PipelineSettings
@@ -41,7 +41,33 @@ class UniformData:
     LENGTH = 4 * 4 * 2
     SIZE = LENGTH * _FLOAT_SIZE
 
-@debug.profiled('renderer', 'initialization')
+class TextureUploadBuffer:
+    def __init__(self, initial_size: int) -> None:
+        self.initial_size = initial_size
+        self.buffer: buffers.Buffer
+        self.upload_finished_sync: sync.Sync
+
+    def initialize(self) -> None:
+        self.buffer = buffers.Buffer(self.initial_size, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
+        self.upload_finished_sync = sync.Sync()
+
+    def is_available(self) -> bool:
+        return self.upload_finished_sync.is_signaled()
+
+    def wait_until_available(self) -> None:
+        self.upload_finished_sync.wait()
+
+    def upload_data(self, data: bytes) -> None:
+        self.buffer.store(data)
+
+    def signal_upload_finished(self) -> None:
+        self.upload_finished_sync.set()
+
+    def delete(self) -> None:
+        self.buffer.delete()
+        self.upload_finished_sync.delete()
+
+@debug.profiled
 def initialize(width: int, height: int) -> None:
     global _frame_data
 
@@ -51,7 +77,7 @@ def initialize(width: int, height: int) -> None:
         _enable_debug_output()
 
     _create_white_texture()
-    _create_texture_upload_buffer(_INITIAL_TEXTURE_UPLOAD_BUFFER_SIZE)
+    # _create_texture_upload_buffers(_INITIAL_TEXTURE_UPLOAD_BUFFER_SIZE)
 
     pipeline_settings = PipelineSettings(
         MAX_MODEL_VERTICES * ModelVertex.SIZE,
@@ -71,8 +97,8 @@ def shutdown() -> None:
     DEFERRED_PIPELINE.destroy()
 
     _white_texture.delete()
-    _texture_upload_buffer.delete()
-    _texture_upload_sync.delete()
+    for buffer in _texture_upload_buffers:
+        buffer.delete()
 
 def get_framebuffer_color_texture_id() -> int:
     '''
@@ -83,44 +109,39 @@ def get_framebuffer_color_texture_id() -> int:
     return _current_pipeline.get_output_texture_id()
 
 def get_framebuffer_width() -> int:
-    assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
     return _frame_data.frame_width
 
 def get_framebuffer_height() -> int:
-    assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
     return _frame_data.frame_height
 
 def get_white_texture() -> textures.Texture:
     return _white_texture
 
-@debug.profiled('graphics', 'rendering')
+@debug.profiled
 def begin_frame(pipeline: GraphicsPipeline) -> None:
     global _current_pipeline
 
     _current_pipeline = pipeline
-
-@debug.profiled('graphics', 'rendering')
-def end_frame() -> None:
-    assert _current_pipeline is not None, 'Cannot render frame: no pipeline bound'
-    assert _frame_data is not None, 'Cannot render frame: no frame data, renderer not initialized properly'
-
-    _current_pipeline.render(_frame_data)
     _frame_data.reset()
 
-@debug.profiled('graphics', 'rendering')
+@debug.profiled
+def end_frame() -> None:
+    assert _current_pipeline is not None, 'Cannot render frame: no pipeline bound'
+
+    _current_pipeline.render(_frame_data)
+
+@debug.profiled
 def resize(width: int, height: int) -> None:
     assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
 
     _frame_data.frame_width = width
     _frame_data.frame_height = height
 
-@debug.profiled('graphics', 'rendering')
+@debug.profiled
 def render(model: Model,
            transform: Matrix4,
            color: Vector4,
            texture: textures.Texture | None = None) -> None:
-    assert _frame_data is not None, 'Frame data not present: renderer not initialized properly'
-
     with debug.profiled_scope('find_existing_batch'):
         batch_list = _frame_data.batches[model]
         for batch in batch_list:
@@ -133,36 +154,17 @@ def render(model: Model,
 
     batch_list.append(new_batch)
 
-@debug.profiled('rendering')
-def acquire_texture_upload_buffer(texture_width: int, texture_height: int, texture_format: textures.InternalFormat) -> buffers.Buffer:
-    texture_size = _calculate_texture_byte_size(texture_width, texture_height, texture_format)
-
-    if _texture_upload_buffer.size < texture_size:
-        _texture_upload_buffer.delete()
-        _texture_upload_sync.delete()
-        _create_texture_upload_buffer(texture_size)
-
-    _texture_upload_buffer.bind(buffers.BindTarget.PIXEL_UNPACK_BUFFER)
-    return _texture_upload_buffer
-
 def set_camera_transform(view: Matrix4, projection: Matrix4) -> None:
-    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
-
     _frame_data.camera_view = view
     _frame_data.camera_projection = projection
 
 def set_polygon_mode(mode: commands.PolygonMode) -> None:
-    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
-
     _frame_data.polygon_mode = mode
 
 def set_clear_color(color: Vector4) -> None:
-    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
-
     _frame_data.clear_color = color
 
 def get_clear_color() -> Vector4:
-    assert _frame_data is not None, 'Renderer not initialized: frame data is None'
     return _frame_data.clear_color
 
 def _calculate_texture_byte_size(width: int, height: int, format: textures.InternalFormat) -> int:
@@ -320,7 +322,7 @@ def _pygl_log_callback(log_level: int, msg: str) -> None:
         case gl_debug.LogLevel.ERROR:
             _logger.error(msg)
 
-@debug.profiled('graphics', 'setup')
+@debug.profiled
 def _enable_debug_output():
     gl_debug.set_log_callback(_pygl_log_callback)
     gl_debug.enable(_opengl_debug_callback)
@@ -331,7 +333,7 @@ def _enable_debug_output():
         gl_debug.DebugSeverity.DEBUG_SEVERITY_NOTIFICATION,
         'Testing OpenGL debug output..')
 
-@debug.profiled('graphics', 'rendering')
+@debug.profiled
 def _create_white_texture() -> None:
     global _white_texture
 
@@ -350,19 +352,20 @@ def _create_white_texture() -> None:
     if __debug__:
         gl_debug.set_object_name(_white_texture, 'WhiteTexture')
 
-@debug.profiled('graphics', 'rendering')
-def _create_texture_upload_buffer(initial_size: int) -> None:
-    global _texture_upload_buffer, _texture_upload_sync
+@debug.profiled
+def _create_texture_upload_buffers(count: int, initial_size: int) -> None:
+    for i in range(count):
+        buffer = TextureUploadBuffer(initial_size)
+        gl_debug.set_object_name(buffer.buffer, f'TextureUploadBuffer_{i}')
 
-    _texture_upload_buffer = buffers.Buffer(initial_size, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
-    gl_debug.set_object_name(_texture_upload_buffer, 'TextureUploadBuffer')
-
-    _texture_upload_sync = sync.Sync()
-    gl_debug.set_object_name(_texture_upload_buffer, 'TextureUploadSync')
+        _texture_upload_buffers.append(buffer)
+        _textures_loaded_notify[buffer] = list()
 
 _logger = logging.getLogger(__name__)
 _white_texture: textures.Texture
-_texture_upload_buffer: buffers.Buffer
-_texture_upload_sync: sync.Sync
+_frame_data: FrameData
 _current_pipeline: GraphicsPipeline | None = None
-_frame_data: FrameData | None = None
+
+_texture_upload_buffers = list[TextureUploadBuffer]()
+_textures_loaded_notify = dict[TextureUploadBuffer, list[uuid.UUID]]()
+_texture_uploads = list[tuple[bytes, list[textures.UploadInfo]]]()

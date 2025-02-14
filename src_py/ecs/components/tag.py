@@ -1,6 +1,6 @@
 import dataclasses
 
-from spyke.ecs import Component
+from spyke.ecs.components.component import Component
 
 
 @dataclasses.dataclass(eq=False)

@@ -6,8 +6,7 @@ from pygl import textures
 from spyke import debug
 from spyke.assets.asset_config import AssetConfig
 from spyke.assets.asset_loader import AssetLoader
-from spyke.assets.loaders.image_load_data import ImageLoadData
-from spyke.assets.types.image import ImageConfig
+from spyke.assets.image import ImageConfig, ImageLoadData
 
 _DDS_MAGIC_VALUE = b'DDS '
 
@@ -42,14 +41,12 @@ class DDSLoader(AssetLoader):
     def can_process_file_data(self, file_data: bytes) -> bool:
         return file_data.startswith(_DDS_MAGIC_VALUE)
 
-    @debug.profiled('assets')
+    @debug.profiled
     def load_from_binary(self, data: bytes, config: AssetConfig):
         assert isinstance(config, ImageConfig), 'Invalid config type provided to DDSLoader'
 
+        # at this point loader should not get invalid magic value
         header = _DDSHeader.from_buffer_copy(data)
-        if not header.fourcc.startswith(b'DXT'):
-            raise RuntimeError('For now DDS loader only supports DXT(1|3|5) formats.')
-
         img_data = np.frombuffer(data, dtype=np.ubyte, offset=ct.sizeof(_DDSHeader))
         internal_format, block_size = _determine_internal_format(header.bits_per_pixel, header.fourcc)
 
@@ -86,7 +83,7 @@ def _determine_internal_format(bpp: int, fourcc: bytes) -> tuple[textures.Compre
 
     raise RuntimeError('Loader does not support DDS files with DXT10 format')
 
-@debug.profiled('resources', 'initialization')
+@debug.profiled
 def _create_upload_infos(width: int,
                         height: int,
                         mipmaps: int,

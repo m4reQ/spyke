@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "spyke"
 version = "0.0.1"
@@ -27,37 +23,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Typing :: Typed"
 ]
-dependencies = [
-    "PyOgg",
-    "PyOpenAL",
-    "numpy",
-    "colorama",
-    "Pillow",
-    "pydub",
-    "freetype-py",
-    "psutil",
-    "pygl @ git+https://github.com/m4reQ/pygl@private_0.0.1"
-]
 
 [project.urls]
 home = "https://github.com/m4reQ/spyke"
-
-# setuptools is dumb enough to not be able to provide support for substituting packages
-# discovered by find_packages with a corresponding package-dir
-# guess who is fully developed matured language without proper support for packaging :)
-
-[tool.setuptools]
-package-dir = {spyke = "src_py"}
-packages = [
-    "spyke",
-    "spyke.assets",
-    "spyke.assets.loaders",
-    "spyke.assets.types",
-    "spyke.audio",
-    "spyke.debug",
-    "spyke.ecs",
-    "spyke.ecs.components",
-    "spyke.enums",
-    "spyke.graphics"]
-include-package-data = true
-data-files = {"spyke/shader_sources" = ["src_py/shader_sources/*.frag", "src_py/shader_sources/*.vert"]}

@@ -1,16 +1,17 @@
 import enum
+import typing as t
 
 from spyke.events import Event
 
 class WindowFlags(enum.IntFlag):
-    DEFAULT: int
-    RESIZABLE: int
-    FULLSCREEN: int
-    BORDERLESS: int
-    TRANSPARENT_FRAMEBUFFER: int
-    CURSOR_HIDDEN: int
-    ENABLE_VSYNC: int
-    ALLOW_FILE_DROP: int
+    DEFAULT = t.cast(int, ...)
+    RESIZABLE = t.cast(int, ...)
+    FULLSCREEN = t.cast(int, ...)
+    BORDERLESS = t.cast(int, ...)
+    TRANSPARENT_FRAMEBUFFER = t.cast(int, ...)
+    CURSOR_HIDDEN = t.cast(int, ...)
+    ENABLE_VSYNC = t.cast(int, ...)
+    ALLOW_FILE_DROP = t.cast(int, ...)
 
 class ResizeEventData:
     width: int

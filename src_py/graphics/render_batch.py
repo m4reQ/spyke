@@ -23,7 +23,7 @@ class RenderBatch:
         self.instance_data = np.empty((max_instance_count,), dtype=InstanceDtype)
 
     # TODO Materials to store color and texture inside them
-    @debug.profiled('rendering')
+    @debug.profiled
     def try_add_instance(self,
                          transform: Matrix4,
                          color: Vector4,

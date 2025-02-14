@@ -1,6 +1,7 @@
 from pygl import debug as gl_debug
 from pygl.buffers import Buffer, BufferFlags
 from pygl.sync import Sync
+
 from spyke import debug
 
 
@@ -11,7 +12,7 @@ class RingBuffer:
         self._next_buffer = 0
         self._count = count
 
-    @debug.profiled('rendering', 'sync')
+    @debug.profiled
     def acquire_next_buffer(self, timeout: int = 0) -> Buffer:
         self._syncs[self._next_buffer].wait(timeout)
         buf = self._buffers[self._next_buffer]
@@ -20,7 +21,7 @@ class RingBuffer:
 
         return buf
 
-    @debug.profiled('rendering', 'sync')
+    @debug.profiled
     def lock_acquired_buffer(self) -> None:
         self._syncs[(self._next_buffer - 1) % self._count].set()
 
@@ -42,11 +43,11 @@ class RingBuffer:
             gl_debug.set_object_name(sync, f'{name}_sync_{i}')
 
     @property
-    def buffers(self) -> tuple[Buffer]:
+    def buffers(self) -> tuple[Buffer, ...]:
         return self._buffers
 
     @property
-    def syncs(self) -> tuple[Sync]:
+    def syncs(self) -> tuple[Sync, ...]:
         return self._syncs
 
     @property

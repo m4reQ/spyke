@@ -80,8 +80,10 @@ static void PyInput_API_UpdateMousePos(uint16_t x, uint16_t y)
     s_MouseY = y;
 }
 
-static PyObject *PyInput_IsKeyDown(PyObject *UNUSED(self), PyObject *key)
+static PyObject *PyInput_IsKeyDown(PyObject *self, PyObject *key)
 {
+    (void)self;
+
     bool result;
     if (IsKeyDown(key, &result))
         return PyBool_FromLong(result);
@@ -89,8 +91,10 @@ static PyObject *PyInput_IsKeyDown(PyObject *UNUSED(self), PyObject *key)
     return NULL;
 }
 
-static PyObject *PyInput_IsKeyUp(PyObject *UNUSED(self), PyObject *key)
+static PyObject *PyInput_IsKeyUp(PyObject *self, PyObject *key)
 {
+    (void)self;
+
     bool result;
     if (IsKeyDown(key, &result))
         return PyBool_FromLong(!result);
@@ -98,8 +102,10 @@ static PyObject *PyInput_IsKeyUp(PyObject *UNUSED(self), PyObject *key)
     return NULL;
 }
 
-static PyObject *PyInput_IsButtonUp(PyObject *UNUSED(self), PyObject *button)
+static PyObject *PyInput_IsButtonUp(PyObject *self, PyObject *button)
 {
+    (void)self;
+
     bool result;
     if (IsButtonDown(button, &result))
         return PyBool_FromLong(!result);
@@ -107,8 +113,10 @@ static PyObject *PyInput_IsButtonUp(PyObject *UNUSED(self), PyObject *button)
     return NULL;
 }
 
-static PyObject *PyInput_IsButtonDown(PyObject *UNUSED(self), PyObject *button)
+static PyObject *PyInput_IsButtonDown(PyObject *self, PyObject *button)
 {
+    (void)self;
+
     bool result;
     if (IsButtonDown(button, &result))
         return PyBool_FromLong(result);
@@ -116,36 +124,53 @@ static PyObject *PyInput_IsButtonDown(PyObject *UNUSED(self), PyObject *button)
     return NULL;
 }
 
-static PyObject *PyInput_GetMouseX(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyInput_GetMouseX(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     return PyLong_FromUnsignedLong(s_MouseX);
 }
 
-static PyObject *PyInput_GetMouseY(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyInput_GetMouseY(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     return PyLong_FromUnsignedLong(s_MouseY);
 }
 
-static PyObject *PyInput_GetMousePosition(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyInput_GetMousePosition(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     return PyTuple_Pack(2, PyInput_GetMouseX(NULL, NULL), PyInput_GetMouseY(NULL, NULL));
 }
 
-static PyObject *PyInput_GetModifiers(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyInput_GetModifiers(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     return PyLong_FromLong(s_ActiveModifiers);
 }
 
-static PyObject *PyInput_IsModifierActive(PyObject *UNUSED(self), PyObject *modifier)
+static PyObject *PyInput_IsModifierActive(PyObject *self, PyObject *modifier)
 {
+    (void)self;
+
     CHECK_ARG_INT(modifier, NULL);
 
     const uint8_t _modifier = (uint8_t)PyLong_AsUnsignedLong(modifier);
     return PyBool_FromLong((s_ActiveModifiers & _modifier) == _modifier);
 }
 
-static PyObject *PyInput_BeginTextInput(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyInput_BeginTextInput(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     if (s_TextInputActive)
         Py_RETURN_NONE;
 
@@ -155,13 +180,19 @@ static PyObject *PyInput_BeginTextInput(PyObject *UNUSED(self), PyObject *UNUSED
     Py_RETURN_NONE;
 }
 
-static PyObject *PyInput_GetTextInput(PyObject *UNUSED(self), PyObject *args)
+static PyObject *PyInput_GetTextInput(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     return PyUnicode_FromWideChar(s_TextBuffer, s_TextBufferOffset);
 }
 
-static PyObject *PyInput_EndTextInput(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyInput_EndTextInput(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     if (s_TextInputActive)
     {
         s_TextBuffer[s_TextBufferOffset] = '\0';
@@ -171,14 +202,20 @@ static PyObject *PyInput_EndTextInput(PyObject *UNUSED(self), PyObject *UNUSED(a
     return PyInput_GetTextInput(NULL, NULL);
 }
 
-static PyObject *PyInput_ClearTextInput(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyInput_ClearTextInput(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     s_TextBufferOffset = 0;
     Py_RETURN_NONE;
 }
 
-static PyObject *PyInput_IsTextInputActive(PyObject *UNUSED(self), PyObject *args)
+static PyObject *PyInput_IsTextInputActive(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     return PyBool_FromLong(s_TextInputActive);
 }
 

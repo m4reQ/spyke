@@ -1,7 +1,8 @@
 import dataclasses
 
 from pygl.math import Matrix4, Quaternion, Vector3
-from spyke.ecs import Component
+
+from spyke.ecs.components.component import Component
 
 
 @dataclasses.dataclass(repr=False, slots=True, eq=False)
@@ -10,6 +11,8 @@ class TransformComponent(Component):
     _position: Vector3
     _scale: Vector3
     _rotation: Quaternion
+    _rotation_hint: Vector3 = dataclasses.field(init=False)
+    _needs_recalculate: bool = dataclasses.field(init=False)
 
     def __init__(self,
                  position: Vector3,

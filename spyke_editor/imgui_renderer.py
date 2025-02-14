@@ -1,7 +1,7 @@
 import imgui
+from pygl import (buffers, commands, math, rendering, shaders, textures,
+                  vertex_array)
 
-from pygl import (buffers, commands, context, math, rendering, shaders,
-                  textures, vertex_array)
 from spyke import debug
 
 _VERTEX_BUFFER_SIZE = imgui.VERTEX_SIZE * 64 * 1024
@@ -41,14 +41,14 @@ void main() {
 }
 '''
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def initialize() -> None:
     _create_shader()
     _create_buffers()
     _create_vertex_array()
     _create_font_texture()
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def shutdown() -> None:
     _shader.delete()
     _vertex_array.delete()
@@ -56,11 +56,15 @@ def shutdown() -> None:
     _index_buffer.delete()
     _font_texture.delete()
 
-@debug.profiled('editor', 'imgui')
-def render(draw_data) -> None:
+@debug.profiled
+def render(draw_data, clear_color: tuple[float, float, float, float]) -> None:
     io = imgui.get_io()
     fb_width = int(io.display_size[0] * io.display_fb_scale[0])
     fb_height = int(io.display_size[1] * io.display_fb_scale[1])
+
+    commands.scissor(0, 0, fb_width, fb_height)
+    commands.clear_color(*clear_color)
+    rendering.clear(rendering.ClearMask.COLOR_BUFFER_BIT)
 
     draw_data.scale_clip_rects(*io.display_fb_scale)
 
@@ -76,11 +80,11 @@ def render(draw_data) -> None:
     current_vertex_offset = 0
     current_index_offset = 0
 
-    # with debug.profiled_scope('map_buffers'):
-    #     _vertex_buffer.map()
-    #     _index_buffer.map()
-
     with debug.profiled_scope('prepare_command_lists'):
+        # with debug.profiled_scope('map_buffers'):
+        #     _vertex_buffer.map()
+        #     _index_buffer.map()
+
         for commands_list in draw_data.commands_lists:
             _vertex_buffer.store_address(commands_list.vtx_buffer_data, commands_list.vtx_buffer_size * imgui.VERTEX_SIZE)
             _index_buffer.store_address(commands_list.idx_buffer_data, commands_list.idx_buffer_size * imgui.INDEX_SIZE)
@@ -122,7 +126,7 @@ def render(draw_data) -> None:
 
                 list_idx_offset += cmd.elem_count * imgui.INDEX_SIZE
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def _setup_gl_state(width: int, height: int) -> None:
     commands.enable(commands.EnableCap.BLEND)
     commands.enable(commands.EnableCap.SCISSOR_TEST)
@@ -140,7 +144,7 @@ def _setup_gl_state(width: int, height: int) -> None:
 
     commands.viewport(0, 0, width, height)
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def _calculate_gui_projection(display_pos: tuple[int, int], display_size: tuple[int, int]) -> math.Matrix4:
     return math.Matrix4.ortho(
         display_pos[0],
@@ -148,7 +152,7 @@ def _calculate_gui_projection(display_pos: tuple[int, int], display_size: tuple[
         display_pos[1] + display_size[1],
         display_pos[1])
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def _create_shader() -> None:
     global _shader
 
@@ -156,14 +160,14 @@ def _create_shader() -> None:
         shaders.ShaderStage(shaders.ShaderType.VERTEX_SHADER, _VERTEX_SHADER_SRC, True),
         shaders.ShaderStage(shaders.ShaderType.FRAGMENT_SHADER, _FRAGMENT_SHADER_SRC, True)])
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def _create_buffers() -> None:
     global _vertex_buffer, _index_buffer
 
     _vertex_buffer = buffers.Buffer(_VERTEX_BUFFER_SIZE, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
     _index_buffer = buffers.Buffer(_INDEX_BUFFER_SIZE, buffers.BufferFlags.DYNAMIC_STORAGE_BIT)
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def _create_vertex_array() -> None:
     global _vertex_array
 
@@ -177,7 +181,7 @@ def _create_vertex_array() -> None:
                 vertex_array.VertexDescriptor(_shader.resources['Color'], vertex_array.AttribType.UNSIGNED_BYTE, 4, is_normalized=True)])],
         _index_buffer)
 
-@debug.profiled('editor', 'imgui')
+@debug.profiled
 def _create_font_texture() -> None:
     global _font_texture
 

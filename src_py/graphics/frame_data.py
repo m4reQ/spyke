@@ -4,7 +4,8 @@ from collections import defaultdict
 from pygl.commands import PolygonMode
 from pygl.math import Matrix4, Vector4
 from pygl.textures import Texture
-from spyke.assets.types.model import Model
+
+from spyke.assets import Model
 from spyke.graphics.render_batch import RenderBatch
 
 

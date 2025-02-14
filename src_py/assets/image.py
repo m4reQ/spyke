@@ -1,13 +1,20 @@
 import dataclasses
 import typing as t
 
+import numpy as np
 from pygl import textures
 
 from spyke import debug
 from spyke.assets.asset import Asset
 from spyke.assets.asset_config import AssetConfig
-from spyke.assets.loaders.image_load_data import ImageLoadData
 
+
+@dataclasses.dataclass
+class ImageLoadData:
+    specification: textures.TextureSpec
+    upload_infos: list[textures.UploadInfo]
+    upload_data: np.ndarray
+    unpack_alignment: t.Literal[1, 2, 4, 8] = 4
 
 @dataclasses.dataclass
 class ImageConfig(AssetConfig):
@@ -30,7 +37,7 @@ class Image(Asset):
         if self.is_loaded:
             self._texture.delete()
 
-    @debug.profiled('assets')
+    @debug.profiled
     def post_load(self, load_data: ImageLoadData):
         with debug.profiled_scope('create_texture'):
             texture = textures.Texture(load_data.specification)
