@@ -1,12 +1,11 @@
 import dataclasses
 
 import numpy as np
-from pygl.buffers import Buffer, BufferFlags
-from pygl.rendering import ElementsType
 
 from spyke import debug
 from spyke.assets.asset import Asset
 from spyke.assets.asset_config import AssetConfig
+from spyke.graphics import gl
 
 
 @dataclasses.dataclass(slots=True)
@@ -15,7 +14,7 @@ class ModelLoadData:
     index_count: int
     vertex_data: np.ndarray
     vertex_count: int
-    index_type: ElementsType
+    index_type: gl.ElementsType
 
     @property
     def vertex_data_size(self) -> int:
@@ -30,9 +29,9 @@ class Model(Asset):
     _vertex_count: int = 0
     _vertex_offset: int = 0
     _index_count: int = 0
-    _index_type: ElementsType = ElementsType.UNSIGNED_BYTE
+    _index_type: gl.ElementsType = gl.ElementsType.UNSIGNED_BYTE
 
-    _buffer: Buffer | None = dataclasses.field(repr=False, init=False, default=None)
+    _buffer: gl.Buffer | None = dataclasses.field(repr=False, init=False, default=None)
 
     def unload(self):
         if self.is_loaded:
@@ -43,17 +42,17 @@ class Model(Asset):
 
     @debug.profiled
     def post_load(self, load_data: ModelLoadData) -> None:
-        # due to the limitation of pygl buffer we have to first concatenate index data and vertex data
+        # due to the limitation of how buffers are designed we have to first concatenate index data and vertex data
         # on the CPU and then upload it to OpenGL
         # Because of this when loading data we should use one buffer in the first place
 
         # TODO Change this ugly hack for empty models to something reasonable
         if len(load_data.index_data) == 0 or len(load_data.vertex_data) == 0:
-            buffer = Buffer(0, BufferFlags.NONE)
+            buffer = gl.Buffer(0, gl.BufferFlag.NONE)
         else:
             # TODO Converting index and vertex data to separate bytes objects and then concatenating them wastes resources and is slow
             data = load_data.index_data.tobytes() + load_data.vertex_data.tobytes()
-            buffer = Buffer(len(data), BufferFlags.NONE, data)
+            buffer = gl.Buffer(len(data), gl.BufferFlag.NONE, data)
 
         with self._loading_lock:
             self._vertex_count = load_data.vertex_count
@@ -65,11 +64,11 @@ class Model(Asset):
             self.is_loaded = True
 
     @property
-    def buffer(self) -> Buffer:
+    def buffer(self) -> gl.Buffer:
         return self._buffer # type: ignore[return-value]
 
     @property
-    def index_type(self) -> ElementsType:
+    def index_type(self) -> gl.ElementsType:
         return self._index_type
 
     @property

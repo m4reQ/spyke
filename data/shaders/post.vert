@@ -1,19 +1,24 @@
 #version 450 core
-const int VERTICES_PER_INSTANCE = 4;
 
-layout(location = 0) in vec3 aPosition;
-layout(location = 1) in vec2 aTexCoord;
+const vec2 c_Positions[] = {
+    vec2(0.0, 0.0),
+    vec2(0.0, 1.0),
+    vec2(1.0, 1.0),
+    vec2(1.0, 1.0),
+    vec2(1.0, 0.0),
+    vec2(0.0, 0.0)};
+const vec2 c_TexCoords[] = {
+    vec2(0.0, 1.0),
+    vec2(0.0, 0.0),
+    vec2(1.0, 0.0),
+    vec2(1.0, 0.0),
+    vec2(1.0, 1.0),
+    vec2(0.0, 1.0)};
 
-out vec2 vTexCoord;
-
-layout (std140) uniform uMatrices
-{
-    mat4 viewProjection;
-};
+out vec2 vsTexCoord;
 
 void main()
 {
-    vTexCoord = aTexCoord;
-
-    gl_Position = viewProjection * vec4(aPosition, 1.0f);
+    vsTexCoord = c_TexCoords[gl_VertexID];
+    gl_Position = vec4(c_Positions[gl_VertexID], 0.0, 1.0);
 }

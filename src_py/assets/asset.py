@@ -26,9 +26,13 @@ class Asset:
         _logger.debug('Registered loader %s for asset of type %s.', type(loader).__name__, cls.__name__)
 
     @classmethod
-    def get_empty_asset(cls) -> uuid.UUID:
+    def get_empty_asset(cls) -> t.Self:
         assert cls.__empty_asset is not None, 'Empty asset not initialized'
-        return cls.__empty_asset.id
+        return cls.__empty_asset
+
+    @classmethod
+    def get_empty_asset_id(cls) -> uuid.UUID:
+        return cls.get_empty_asset().id
 
     @classmethod
     def register_empty_asset(cls, asset: t.Self) -> None:

@@ -1,19 +1,16 @@
-from pygl import debug as gl_debug
-from pygl.buffers import Buffer, BufferFlags
-from pygl.sync import Sync
-
 from spyke import debug
+from spyke.graphics import gl
 
 
 class RingBuffer:
-    def __init__(self, size: int, flags: BufferFlags, count: int) -> None:
-        self._buffers = tuple(Buffer(size, flags) for _ in range(count))
-        self._syncs = tuple(Sync() for _ in range(count))
+    def __init__(self, size: int, flags: gl.BufferFlag, count: int) -> None:
+        self._buffers = tuple(gl.Buffer(size, flags) for _ in range(count))
+        self._syncs = tuple(gl.Sync() for _ in range(count))
         self._next_buffer = 0
         self._count = count
 
     @debug.profiled
-    def acquire_next_buffer(self, timeout: int = 0) -> Buffer:
+    def acquire_next_buffer(self, timeout: int = 0) -> gl.Buffer:
         self._syncs[self._next_buffer].wait(timeout)
         buf = self._buffers[self._next_buffer]
 
@@ -24,6 +21,9 @@ class RingBuffer:
     @debug.profiled
     def lock_acquired_buffer(self) -> None:
         self._syncs[(self._next_buffer - 1) % self._count].set()
+
+    def is_next_buffer_available(self) -> bool:
+        return self._syncs[self._next_buffer].is_signaled()
 
     def reset_buffer_index(self) -> None:
         self._next_buffer = 0
@@ -37,17 +37,17 @@ class RingBuffer:
 
     def set_debug_name(self, name: str) -> None:
         for i, buf in enumerate(self._buffers):
-            gl_debug.set_object_name(buf, f'{name}_{i}')
+            gl.set_object_name(buf, f'{name}_{i}')
 
         for i, sync in enumerate(self._syncs):
-            gl_debug.set_object_name(sync, f'{name}_sync_{i}')
+            gl.set_object_name(sync, f'{name}_sync_{i}')
 
     @property
-    def buffers(self) -> tuple[Buffer, ...]:
+    def buffers(self) -> tuple[gl.Buffer, ...]:
         return self._buffers
 
     @property
-    def syncs(self) -> tuple[Sync, ...]:
+    def syncs(self) -> tuple[gl.Sync, ...]:
         return self._syncs
 
     @property

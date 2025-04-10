@@ -1,12 +1,12 @@
 import ctypes as ct
 
 import numpy as np
-from pygl import textures
 
 from spyke import debug
 from spyke.assets.asset_config import AssetConfig
 from spyke.assets.asset_loader import AssetLoader
 from spyke.assets.image import ImageConfig, ImageLoadData
+from spyke.graphics import gl
 
 _DDS_MAGIC_VALUE = b'DDS '
 
@@ -51,8 +51,8 @@ class DDSLoader(AssetLoader):
         internal_format, block_size = _determine_internal_format(header.bits_per_pixel, header.fourcc)
 
         return ImageLoadData(
-            textures.TextureSpec(
-                textures.TextureTarget.TEXTURE_2D,
+            gl.TextureSpec(
+                gl.TextureTarget.TEXTURE_2D,
                 header.width,
                 header.height,
                 internal_format,
@@ -68,18 +68,18 @@ class DDSLoader(AssetLoader):
             img_data,
             unpack_alignment=1)
 
-def _determine_internal_format(bpp: int, fourcc: bytes) -> tuple[textures.CompressedInternalFormat, int]:
+def _determine_internal_format(bpp: int, fourcc: bytes) -> tuple[gl.CompressedInternalFormat, int]:
     if fourcc == b'DXT1':
         if bpp == 24:
-            return (textures.CompressedInternalFormat.COMPRESSED_RGB_S3TC_DXT1_EXT, 8)
+            return (gl.CompressedInternalFormat.COMPRESSED_RGB_S3TC_DXT1_EXT, 8)
         elif bpp == 32:
-            return (textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT1_EXT, 8)
+            return (gl.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT1_EXT, 8)
 
         raise RuntimeError('Invalid bits per pixel for DXT1 compressed data.')
     elif fourcc == b'DXT3':
-        return (textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT3_EXT, 16)
+        return (gl.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT3_EXT, 16)
     elif fourcc == b'DXT5':
-        return (textures.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT5_EXT, 16)
+        return (gl.CompressedInternalFormat.COMPRESSED_RGBA_S3TC_DXT5_EXT, 16)
 
     raise RuntimeError('Loader does not support DDS files with DXT10 format')
 
@@ -88,8 +88,8 @@ def _create_upload_infos(width: int,
                         height: int,
                         mipmaps: int,
                         block_size: int,
-                        internal_format: textures.CompressedInternalFormat) -> list[textures.UploadInfo]:
-    infos = list[textures.UploadInfo]()
+                        internal_format: gl.CompressedInternalFormat) -> list[gl.TextureUploadInfo]:
+    infos = list[gl.TextureUploadInfo]()
     offset = 0
     w = width
     h = height
@@ -99,7 +99,7 @@ def _create_upload_infos(width: int,
 
         size = ((w + 3) // 4) * ((h + 3) // 4) * block_size
 
-        info = textures.UploadInfo(
+        info = gl.TextureUploadInfo(
             internal_format,
             w,
             h,

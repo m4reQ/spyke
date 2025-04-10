@@ -2,33 +2,33 @@ import dataclasses
 import typing as t
 
 import numpy as np
-from pygl import textures
 
 from spyke import debug
 from spyke.assets.asset import Asset
 from spyke.assets.asset_config import AssetConfig
+from spyke.graphics import gl, renderer
 
 
 @dataclasses.dataclass
 class ImageLoadData:
-    specification: textures.TextureSpec
-    upload_infos: list[textures.UploadInfo]
+    specification: gl.TextureSpec
+    upload_infos: list[gl.TextureUploadInfo]
     upload_data: np.ndarray
     unpack_alignment: t.Literal[1, 2, 4, 8] = 4
 
 @dataclasses.dataclass
 class ImageConfig(AssetConfig):
-    min_filter: textures.MinFilter
-    mag_filter: textures.MagFilter
+    min_filter: gl.MinFilter
+    mag_filter: gl.MagFilter
     mipmap_count: int
 
     @classmethod
     def default(cls) -> t.Self:
-        return cls(textures.MinFilter.LINEAR_MIPMAP_LINEAR, textures.MagFilter.LINEAR, 4)
+        return cls(gl.MinFilter.LINEAR_MIPMAP_LINEAR, gl.MagFilter.LINEAR, 4)
 
 @dataclasses.dataclass(eq=False)
 class Image(Asset):
-    _texture: textures.Texture | None = dataclasses.field(repr=False, init=False, default=None)
+    _texture: gl.Texture | None = dataclasses.field(repr=False, init=False, default=None)
 
     def load_from_data(self, data: ImageLoadData, config: AssetConfig):
         self.post_load(data)
@@ -40,22 +40,14 @@ class Image(Asset):
     @debug.profiled
     def post_load(self, load_data: ImageLoadData):
         with debug.profiled_scope('create_texture'):
-            texture = textures.Texture(load_data.specification)
+            texture = gl.Texture(load_data.specification)
 
-        with debug.profiled_scope('upload_texture_data'):
-            textures.set_pixel_unpack_alignment(load_data.unpack_alignment)
+        renderer.upload_texture(self, load_data.upload_data, load_data.upload_infos)
 
-            for info in load_data.upload_infos:
-                texture.upload(info, load_data.upload_data)
-
-            textures.set_pixel_unpack_alignment(4)
-
-        with self._loading_lock:
-            self._texture = texture
-            self.is_loaded = True
+        self._texture = texture
 
     @property
-    def texture(self) -> textures.Texture:
+    def texture(self) -> gl.Texture:
         # FIXME
         # Realistically user should never try to access texture if the asset is not loaded
         # but if we stick assert here the debugger may crash, trying to display value of texture
