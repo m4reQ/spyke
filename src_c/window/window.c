@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <Windows.h>
 #include <glad/wgl.h>
+#include <ShlObj.h>
 #include "windowSettings.h"
 #include "windowEvents.h"
 #include "../api.h"
@@ -494,8 +495,12 @@ static bool LoadWGL(void)
     return true;
 }
 
-static HGLRC CreateOpenGLContext(bool transparentFramebuffer)
+static HGLRC CreateOpenGLContext(bool transparentFramebuffer, bool requireDepthStencil)
 {
+    const int depthBits = requireDepthStencil ? 24 : 0;
+    const int stencilBits = requireDepthStencil ? 8 : 0;
+    const int alphaBits = transparentFramebuffer ? 8 : 0;
+    const int colorBits = transparentFramebuffer ? 24 : 32;
     const int pixelFormatAttribs[] =
         {
             WGL_DRAW_TO_WINDOW_ARB,
@@ -507,13 +512,13 @@ static HGLRC CreateOpenGLContext(bool transparentFramebuffer)
             WGL_PIXEL_TYPE_ARB,
             WGL_TYPE_RGBA_ARB,
             WGL_COLOR_BITS_ARB,
-            24,
+            colorBits,
             WGL_ALPHA_BITS_ARB,
-            (transparentFramebuffer ? 8 : 0),
+            alphaBits,
             WGL_DEPTH_BITS_ARB,
-            24,
+            depthBits,
             WGL_STENCIL_BITS_ARB,
-            8,
+            stencilBits,
             0,
         };
 
@@ -566,8 +571,9 @@ static HGLRC CreateOpenGLContext(bool transparentFramebuffer)
     return glContext;
 }
 
-static PyObject *PyWindow_Initialize(PyObject *UNUSED(self), PyWindowSettings *settings)
+static PyObject *PyWindow_Initialize(PyObject *self, PyWindowSettings *settings)
 {
+    (void)self;
     CHECK_ARG_TYPE(settings, &PyWindowSettings_Type, NULL);
 
     s_IsInitializing = true;
@@ -603,7 +609,9 @@ static PyObject *PyWindow_Initialize(PyObject *UNUSED(self), PyWindowSettings *s
         return NULL;
     }
 
-    s_GLContext = CreateOpenGLContext(FLAG_IS_SET(settings->flags, WND_FLAGS_TRANSPARENT_FRAMEBUFFER));
+    s_GLContext = CreateOpenGLContext(
+        FLAG_IS_SET(settings->flags, WND_FLAGS_TRANSPARENT_FRAMEBUFFER),
+        FLAG_IS_SET(settings->flags, WND_FLAGS_REQUIRE_DEPTH_STENCIL));
     if (!s_GLContext)
         return NULL; // error already set
 
@@ -620,8 +628,11 @@ static PyObject *PyWindow_Initialize(PyObject *UNUSED(self), PyWindowSettings *s
     Py_RETURN_NONE;
 }
 
-static PyObject *PyWindowShutdown(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowShutdown(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
+
     if (s_GLContext)
     {
         wglMakeCurrent(NULL, NULL);
@@ -647,57 +658,74 @@ static PyObject *PyWindowShutdown(PyObject *UNUSED(self), PyObject *UNUSED(args)
     Py_RETURN_NONE;
 }
 
-static PyObject *PyWindowGetWidth(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowGetWidth(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyLong_FromUnsignedLong(GetWidth());
 }
 
-static PyObject *PyWindowGetHeight(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowGetHeight(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyLong_FromUnsignedLong(GetHeight());
 }
 
-static PyObject *PyWindowGetSize(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowGetSize(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyTuple_Pack(2, PyWindowGetWidth(NULL, NULL), PyWindowGetHeight(NULL, NULL));
 }
 
-static PyObject *PyWindowGetX(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowGetX(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyLong_FromUnsignedLong(s_WindowRect.left);
 }
 
-static PyObject *PyWindowGetY(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowGetY(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyLong_FromUnsignedLong(s_WindowRect.top);
 }
 
-static PyObject *PyWindowGetPosition(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowGetPosition(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyTuple_Pack(2, PyWindowGetX(NULL, NULL), PyWindowGetY(NULL, NULL));
 }
 
-static PyObject *PyWindowIsVisible(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowIsVisible(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyBool_FromLong(s_IsVisible);
 }
 
-static PyObject *PyWindowShouldClose(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindowShouldClose(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     return PyBool_FromLong(s_ShouldClose);
 }
 
-static PyObject *PyWindowSetTitle(PyObject *UNUSED(self), PyObject *title)
+static PyObject *PyWindowSetTitle(PyObject *self, PyObject *title)
 {
+    (void)self;
     CHECK_ARG_STRING(title, NULL);
-
     SetWindowTextA(s_Handle, PyUnicode_AsUTF8(title));
-
     Py_RETURN_NONE;
 }
 
-static PyObject *PyWindowResize(PyObject *UNUSED(self), PyObject **args, Py_ssize_t argsCount)
+static PyObject *PyWindowResize(PyObject *self, PyObject **args, Py_ssize_t argsCount)
 {
+    (void)self;
+
     uint32_t width, height;
     if (!_PyArg_ParseStack(args, argsCount, "II", &width, &height))
         return NULL;
@@ -707,10 +735,12 @@ static PyObject *PyWindowResize(PyObject *UNUSED(self), PyObject **args, Py_ssiz
     Py_RETURN_NONE;
 }
 
-static PyObject *PyWindowMove(PyObject *UNUSED(self), PyObject **args, Py_ssize_t argsCount)
+static PyObject *PyWindowMove(PyObject *self, PyObject *const *args, Py_ssize_t nArgs)
 {
+    (void)self;
+
     uint32_t x, y;
-    if (!_PyArg_ParseStack(args, argsCount, "II", &x, &y))
+    if (!_PyArg_ParseStack(args, nArgs, "II", &x, &y))
         return NULL;
 
     SetWindowPos(s_Handle, NULL, 0, 0, x, y, SWP_NOSIZE);
@@ -718,8 +748,10 @@ static PyObject *PyWindowMove(PyObject *UNUSED(self), PyObject **args, Py_ssize_
     Py_RETURN_NONE;
 }
 
-static PyObject *PyWindow_SwapBuffers(PyObject *UNUSED(self), PyObject *UNUSED(args))
+static PyObject *PyWindow_SwapBuffers(PyObject *self, PyObject *args)
 {
+    (void)self;
+    (void)args;
     SwapBuffers(s_DeviceContext);
     Py_RETURN_NONE;
 }
@@ -737,6 +769,48 @@ static PyObject *PyWindow_ProcessEvents(PyObject *UNUSED(self), PyObject *UNUSED
     }
 
     Py_RETURN_NONE;
+}
+
+static int CALLBACK BrowseCallback(HWND win, UINT msg, LPARAM lParam, LPARAM data)
+{
+    if (msg == BFFM_INITIALIZED)
+        SendMessageA(win, BFFM_SETSELECTION, TRUE, data);
+
+    return 0;
+}
+
+static PyObject *PyWindow_get_open_directory(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    (void)self;
+
+    static char *kwNames[] = {"window_title", "initial_dir", NULL};
+    const char *initialDir = NULL;
+    const char *windowTitle = NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ss", kwNames, &windowTitle, &initialDir))
+        return NULL;
+
+    BROWSEINFOA browseInfo = {
+        .hwndOwner = s_Handle,
+        .lpszTitle = windowTitle,
+        .ulFlags = BIF_NEWDIALOGSTYLE | BIF_RETURNONLYFSDIRS,
+        .lParam = initialDir,
+    };
+
+    LPITEMIDLIST itemList = SHBrowseForFolderA(&browseInfo);
+    if (itemList == NULL)
+        Py_RETURN_NONE;
+
+    char resultPath[MAX_PATH] = {0};
+    SHGetPathFromIDListA(itemList, resultPath);
+
+    IMalloc *allocatedMem = NULL;
+    if (SUCCEEDED(SHGetMalloc(&allocatedMem)))
+    {
+        allocatedMem->lpVtbl->Free(allocatedMem, itemList);
+        allocatedMem->lpVtbl->Release(allocatedMem);
+    }
+
+    return PyUnicode_FromString(resultPath);
 }
 
 static PyModuleDef s_ModuleDef = {
@@ -759,6 +833,8 @@ static PyModuleDef s_ModuleDef = {
         {"move", (PyCFunction)PyWindowMove, METH_FASTCALL, NULL},
         {"swap_buffers", PyWindow_SwapBuffers, METH_NOARGS, NULL},
         {"process_events", PyWindow_ProcessEvents, METH_NOARGS, NULL},
+        // {"get_open_filename", PyWindow_get_open_directory, METH_VARARGS | METH_KEYWORDS, NULL},
+        {"get_open_directory", PyWindow_get_open_directory, METH_VARARGS | METH_KEYWORDS, NULL},
         {0},
     },
 };
@@ -789,6 +865,7 @@ PyMODINIT_FUNC PyInit_window()
         {"CURSOR_HIDDEN", WND_FLAGS_CURSOR_HIDDEN},
         {"ENABLE_VSYNC", WND_FLAGS_ENABLE_VSYNC},
         {"ALLOW_FILE_DROP", WND_FLAGS_ALLOW_FILE_DROP},
+        {"REQUIRE_DEPTH_STENCIL", WND_FLAGS_REQUIRE_DEPTH_STENCIL},
         {0},
     };
     if (!PyEnum_Add(module, "WindowFlags", windowFlagsValues, false))

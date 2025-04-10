@@ -1,8 +1,5 @@
 #pragma once
 #include "../utils.h"
-#include "../api.h"
-
-#define Math_ImportAPI() (MathAPI *)PyAPI_Import("spyke.math")
 
 typedef struct
 {
@@ -24,8 +21,5 @@ typedef struct
     float far;
 } PyViewport3D;
 
-typedef struct
-{
-    PyTypeObject *pyViewport2DType;
-    PyTypeObject *pyViewport3DType;
-} MathAPI;
+extern PyTypeObject PyViewport2D_Type;
+extern PyTypeObject PyViewport3D_Type;

@@ -23,6 +23,16 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Typing :: Typed"
 ]
+dependencies = [
+    "PyOgg",
+    "PyOpenAL",
+    "numpy",
+    "colorama",
+    "Pillow",
+    "pydub",
+    "freetype-py",
+    "psutil"
+]
 
 [project.urls]
 home = "https://github.com/m4reQ/spyke"

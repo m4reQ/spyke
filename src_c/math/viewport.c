@@ -1,7 +1,4 @@
-#include "spyke_math.h"
-
-static PyTypeObject PyViewport2DType;
-static PyTypeObject PyViewport3DType;
+#include "viewport.h"
 
 static int PyViewport2D_Init(PyViewport2D *self, PyObject *args, PyObject *kwargs)
 {
@@ -17,8 +14,8 @@ static PyViewport3D *PyViewport2D_ToViewport3D(PyViewport2D *self, PyObject *arg
 {
     (void)args;
 
-    PyViewport3D *result = PyObject_New(PyViewport3D, &PyViewport3DType);
-    result = (PyViewport3D *)PyObject_Init(result, &PyViewport3DType);
+    PyViewport3D *result = PyObject_New(PyViewport3D, &PyViewport3D_Type);
+    result = (PyViewport3D *)PyObject_Init((PyObject *)result, &PyViewport3D_Type);
 
     result->left = self->left;
     result->right = self->right;
@@ -44,8 +41,8 @@ static PyViewport2D *PyViewport3D_ToViewport2D(PyViewport3D *self, PyObject *arg
 {
     (void)args;
 
-    PyViewport2D *result = PyObject_New(PyViewport2D, &PyViewport2DType);
-    result = (PyViewport2D *)PyObject_Init(result, &PyViewport2DType);
+    PyViewport2D *result = PyObject_New(PyViewport2D, &PyViewport2D_Type);
+    result = (PyViewport2D *)PyObject_Init(result, &PyViewport2D_Type);
 
     result->left = self->left;
     result->right = self->right;
@@ -55,7 +52,7 @@ static PyViewport2D *PyViewport3D_ToViewport2D(PyViewport3D *self, PyObject *arg
     return result;
 }
 
-static PyTypeObject PyViewport2DType = {
+PyTypeObject PyViewport2D_Type = {
     PY_VAR_OBJECT_HEAD_INIT(NULL, 0),
     .tp_name = "spyke.math.Viewport2D",
     .tp_basicsize = sizeof(PyViewport2D),
@@ -75,7 +72,7 @@ static PyTypeObject PyViewport2DType = {
     },
 };
 
-static PyTypeObject PyViewport3DType = {
+PyTypeObject PyViewport3D_Type = {
     PY_VAR_OBJECT_HEAD_INIT(NULL, 0),
     .tp_name = "spyke.math.Viewport3D",
     .tp_basicsize = sizeof(PyViewport3D),
@@ -96,25 +93,3 @@ static PyTypeObject PyViewport3DType = {
         {0},
     },
 };
-
-static PyModuleDef s_ModuleDef = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "spyke.math",
-};
-
-static MathAPI s_API = {
-    .pyViewport2DType = &PyViewport2DType,
-    .pyViewport3DType = &PyViewport3DType,
-};
-
-PyMODINIT_FUNC PyInit_math()
-{
-    PyObject *module = PyModule_Create(&s_ModuleDef);
-    if (!module ||
-        !PyAPI_Add(module, &s_API) ||
-        PyModule_AddType(module, &PyViewport2DType) ||
-        PyModule_AddType(module, &PyViewport3DType))
-        return NULL;
-
-    return module;
-}

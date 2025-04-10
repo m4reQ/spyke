@@ -9,7 +9,7 @@ import zipfile
 
 from packaging import tags
 
-CMAKE_CONFIG = 'RelWithDebInfo'
+CMAKE_CONFIG = 'Release'
 DIST_DIR = './dist'
 BUILD_DIR = './build'
 WHL_DIR = '.'
@@ -19,16 +19,7 @@ with open('./pyproject.toml', 'rb') as f:
 
 project_name = config['project']['name']
 project_version = config['project']['version']
-dependencies = [
-    'PyOgg',
-    'PyOpenAL',
-    'numpy',
-    'colorama',
-    'Pillow',
-    'pydub',
-    'freetype-py',
-    'psutil']
-    # 'pygl @ git+https://github.com/m4reQ/pygl@private_0.0.1']
+dependencies = config['project']['dependencies']
 
 retcode = subprocess.call(('cmake', '-S', '.', '-B', BUILD_DIR))
 if retcode != 0:

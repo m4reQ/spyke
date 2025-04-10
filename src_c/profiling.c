@@ -1,5 +1,6 @@
 #pragma once
 #include <stdio.h>
+#include <stdbool.h>
 #include "utils.h"
 
 #ifdef _WIN32
@@ -18,6 +19,11 @@ static FILE *s_ProfileFile;
 static HANDLE s_WriteMutex;
 static uint64_t s_ProfileBeginTs;
 static uint64_t s_ClockResolution;
+
+static bool IsProfilingEnabled(void)
+{
+    return s_ProfileFile != NULL;
+}
 
 static void AcquireWriteMutex(void)
 {
@@ -58,15 +64,15 @@ static PyObject *PyProfiling_BeginFrame(PyObject *self, PyObject *args)
     (void)self;
     (void)args;
 
-    if (!s_ProfileFile)
-        Py_RETURN_NONE;
-
-    return PyLong_FromUnsignedLongLong(GetNow());
+    return IsProfilingEnabled() ? PyLong_FromUnsignedLongLong(GetNow()) : Py_NewRef(Py_None);
 }
 
 static PyObject *PyProfiling_EndFrame(PyObject *self, PyObject *const *args, Py_ssize_t argsCount)
 {
     (void)self;
+
+    if (!IsProfilingEnabled())
+        Py_RETURN_NONE;
 
     uint64_t startTimestamp;
     const char *funcName;
@@ -74,15 +80,7 @@ static PyObject *PyProfiling_EndFrame(PyObject *self, PyObject *const *args, Py_
         return NULL;
 
     AcquireWriteMutex();
-
-    if (!s_ProfileFile)
-    {
-        ReleaseWriteMutex();
-        Py_RETURN_NONE;
-    }
-
     fprintf(s_ProfileFile, FRAME_FORMAT, funcName, DurationToUs(s_ProfileBeginTs, startTimestamp), DurationToUs(startTimestamp, GetNow()), GetCurrentThreadId());
-
     ReleaseWriteMutex();
 
     Py_RETURN_NONE;
@@ -92,17 +90,13 @@ static PyObject *PyProfiling_EmitEvent(PyObject *self, PyObject *eventName)
 {
     (void)self;
 
+    if (!IsProfilingEnabled())
+        Py_RETURN_NONE;
+
     CHECK_ARG_STRING(eventName, NULL);
 
     AcquireWriteMutex();
-    if (!s_ProfileFile)
-    {
-        ReleaseWriteMutex();
-        Py_RETURN_NONE;
-    }
-
     fprintf(s_ProfileFile, EVENT_FORMAT, PyUnicode_AsUTF8(eventName), DurationToUs(s_ProfileBeginTs, GetNow()));
-
     ReleaseWriteMutex();
 
     Py_RETURN_NONE;
@@ -112,20 +106,16 @@ static PyObject *PyProfiling_UpdateCounter(PyObject *self, PyObject *const *args
 {
     (void)self;
 
+    if (!IsProfilingEnabled())
+        Py_RETURN_NONE;
+
     double value;
     const char *counterName;
     if (!_PyArg_ParseStack(args, argsCount, "ds", &value, &counterName))
         return NULL;
 
     AcquireWriteMutex();
-    if (!s_ProfileFile)
-    {
-        ReleaseWriteMutex();
-        Py_RETURN_NONE;
-    }
-
     fprintf(s_ProfileFile, COUNTER_FORMAT, counterName, DurationToUs(s_ProfileBeginTs, GetNow()), value);
-
     ReleaseWriteMutex();
 
     Py_RETURN_NONE;
@@ -136,7 +126,9 @@ static PyObject *PyProfiling_EndSession(PyObject *self, PyObject *args)
     (void)self;
     (void)args;
 
-    EndSession();
+    if (IsProfilingEnabled())
+        EndSession();
+
     Py_RETURN_NONE;
 }
 
@@ -146,7 +138,7 @@ static PyObject *PyProfiling_BeginSession(PyObject *self, PyObject *filepath)
 
     CHECK_ARG_STRING(filepath, NULL);
 
-    if (s_ProfileFile)
+    if (IsProfilingEnabled())
         EndSession();
 
     const errno_t openResult = fopen_s(&s_ProfileFile, PyUnicode_AsUTF8(filepath), "w+");
@@ -160,12 +152,20 @@ static PyObject *PyProfiling_BeginSession(PyObject *self, PyObject *filepath)
     Py_RETURN_NONE;
 }
 
+static PyObject *PyProfiling_IsProfilingEnabled(PyObject *self, PyObject *args)
+{
+    (void)self;
+    (void)args;
+
+    return PyBool_FromLong(IsProfilingEnabled());
+}
+
 static void PyProfiling_Free(PyObject *self)
 {
     (void)self;
 
     CloseHandle(s_WriteMutex);
-    if (s_ProfileFile)
+    if (IsProfilingEnabled())
         EndSession();
 }
 
@@ -180,6 +180,7 @@ static PyModuleDef s_ModuleDef = {
         {"end_profiling_frame", (PyCFunction)PyProfiling_EndFrame, METH_FASTCALL, NULL},
         {"emit_profiling_event", PyProfiling_EmitEvent, METH_O, NULL},
         {"update_profiling_counter", (PyCFunction)PyProfiling_UpdateCounter, METH_FASTCALL, NULL},
+        {"is_profiling_enabled", (PyCFunction)PyProfiling_IsProfilingEnabled, METH_NOARGS, NULL},
         {0},
     },
     .m_size = -1,

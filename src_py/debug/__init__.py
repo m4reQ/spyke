@@ -6,10 +6,11 @@ import colorama
 
 from spyke import paths
 
-from ._logging import LOG_LEVEL, SpykeLogger
+from ._logging import SpykeLogger
 from .profiling import (begin_profiling_frame, begin_profiling_session,
                         emit_profiling_event, end_profiling_frame,
-                        end_profiling_session, update_profiling_counter)
+                        end_profiling_session, is_profiling_enabled,
+                        update_profiling_counter)
 
 __all__ = [
     'debug_only',
@@ -20,7 +21,8 @@ __all__ = [
     'end_profiling_session',
     'begin_profiling_session',
     'end_profiling_frame',
-    'update_profiling_counter']
+    'update_profiling_counter',
+    'is_profiling_enabled']
 
 TParams = t.ParamSpec('TParams')
 TReturn = t.TypeVar('TReturn')
@@ -35,7 +37,8 @@ class _ProfiledScope:
         return self
 
     def __exit__(self, *_) -> None:
-        end_profiling_frame(self._start, self._name)
+        if self._start is not None:
+            end_profiling_frame(self._start, self._name)
 
 def profiled_scope(name: str) -> _ProfiledScope:
     return _ProfiledScope(name)
@@ -50,7 +53,8 @@ def profiled(func: t.Callable[TParams, TReturn]) -> t.Callable[TParams, TReturn]
     def inner(*args: TParams.args, **kwargs: TParams.kwargs) -> TReturn:
         start = begin_profiling_frame()
         res = func(*args, **kwargs)
-        end_profiling_frame(start, f'{func.__module__}:{func.__qualname__}')
+        if start is not None:
+            end_profiling_frame(start, f'{func.__module__}:{func.__qualname__}')
 
         return res
 
@@ -71,8 +75,6 @@ def debug_only(func: t.Callable[TParams, None]) -> t.Callable[TParams, None]:
 
 def initialize() -> None:
     colorama.init()
-
-    logging.basicConfig(level=LOG_LEVEL, handlers=[])
     logging.setLoggerClass(SpykeLogger)
 
     if os.path.exists(paths.LOG_FILE):
