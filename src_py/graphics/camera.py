@@ -1,29 +1,27 @@
 import abc
 
-from pygl.math import Matrix4
-
-from spyke.math import Viewport3D
+from spyke import math
 
 
 class Camera(abc.ABC):
-    def __init__(self, viewport: Viewport3D) -> None:
+    def __init__(self, viewport: math.Viewport3D) -> None:
         self.viewport = viewport
 
     @property
-    def view(self) -> Matrix4:
-        return Matrix4.identity()
+    def view(self) -> math.Matrix4:
+        return math.Matrix4.identity()
 
     @property
     @abc.abstractmethod
-    def projection(self) -> Matrix4: ...
+    def projection(self) -> math.Matrix4: ...
 
 class OrthographicCamera(Camera):
-    def __init__(self, viewport: Viewport3D) -> None:
+    def __init__(self, viewport: math.Viewport3D) -> None:
         super().__init__(viewport)
 
     @property
-    def projection(self) -> Matrix4:
-        return Matrix4.ortho(
+    def projection(self) -> math.Matrix4:
+        return math.Matrix4.ortho(
             self.viewport.left,
             self.viewport.right,
             self.viewport.bottom,
@@ -32,15 +30,15 @@ class OrthographicCamera(Camera):
             self.viewport.far)
 
 class PerspectiveCamera(Camera):
-    def __init__(self, viewport: Viewport3D, fov: float, aspect_ratio: float) -> None:
+    def __init__(self, viewport: math.Viewport3D, fov: float, aspect_ratio: float) -> None:
         super().__init__(viewport)
 
         self.fov = fov
         self.aspect_ratio = aspect_ratio
 
     @property
-    def projection(self) -> Matrix4:
-        return Matrix4.perspective(
+    def projection(self) -> math.Matrix4:
+        return math.Matrix4.perspective(
             self.fov,
             self.aspect_ratio,
             self.viewport.near,

@@ -1,9 +1,10 @@
-from spyke.ecs.scene import Scene
 from spyke.ecs.components.component import Component
-from spyke.ecs.components.tag import TagComponent
+from spyke.ecs.components.light import LightComponent
 from spyke.ecs.components.sprite import SpriteComponent
+from spyke.ecs.components.tag import TagComponent
 from spyke.ecs.components.text import TextComponent
 from spyke.ecs.components.transform import TransformComponent
+from spyke.ecs.scene import Scene
 
 __all__ = (
     'set_current_scene',
@@ -13,6 +14,7 @@ __all__ = (
     'SpriteComponent',
     'TextComponent',
     'TransformComponent',
+    'LightComponent',
     'Scene')
 
 # TODO: We can further increase speed of `get_components` by assigning
