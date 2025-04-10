@@ -21,7 +21,7 @@ bool PyEnum_Add(PyObject *module, const char *enumName, const EnumValue values[]
     }
 
     PyObject *valuesDict = PyDict_New();
-    EnumValue *enumValue = values;
+    const EnumValue *enumValue = values;
 
     while (true)
     {

@@ -1,61 +1,101 @@
+import base64
+import hashlib
+import itertools
 import os
-import sys
-import glob
+import pathlib
+import subprocess
+import tomllib
+import zipfile
 
-import setuptools
-from setuptools.command.build_ext import build_ext
+from packaging import tags
 
-GLAD_WGL_SOURCE = 'vendor/glad/src/wgl.c'
-GLAD_GL_SOURCE = 'vendor/glad/src/gl.c'
-GLAD_INCLUDE_DIR = 'vendor/glad/include'
+CMAKE_CONFIG = 'Release'
+DIST_DIR = './dist'
+BUILD_DIR = './build'
+WHL_DIR = '.'
 
-STB_SOURCE = 'vendor/stb/impl.c'
-STB_INCLUDE_DIR = 'vendor/stb'
+with open('./pyproject.toml', 'rb') as f:
+    config = tomllib.load(f)
 
-class SpykeBuildExt(build_ext):
-    def __init__(self, dist):
-        super().__init__(dist)
+project_name = config['project']['name']
+project_version = config['project']['version']
+dependencies = config['project']['dependencies']
 
-        self.debug = os.path.splitext(os.path.basename(sys.executable))[0] == 'python_d'
+retcode = subprocess.call(('cmake', '-S', '.', '-B', BUILD_DIR))
+if retcode != 0:
+    raise RuntimeError('Failed to run cmake configure.')
 
-data_files = glob.glob(
-    'src_py/shader_sources/**.frag',
-    root_dir='src_py',
-    recursive=True)
-data_files += glob.glob(
-    'src_py/shader_sources/**.vert',
-    root_dir='src_py',
-    recursive=True)
+retcode = subprocess.call(('cmake', '--build', BUILD_DIR, '--config', CMAKE_CONFIG))
+if retcode != 0:
+    raise RuntimeError('Failed to run cmake build.')
 
-setuptools.setup(
-    data_files=[('spyke', data_files)],
-    ext_modules=[
-        setuptools.Extension(
-            name='spyke.input',
-            sources=[
-                'src_c/input/input.c',
-                'src_c/api.c',
-                'src_c/enum.c'],
-            extra_compile_args=['/std:c17', '/W4']),
-        setuptools.Extension(
-            name='spyke.graphics.window',
-            sources=[
-                'src_c/window/window.c',
-                'src_c/window/windowSettings.c',
-                'src_c/window/windowEvents.c',
-                'src_c/api.c',
-                'src_c/enum.c',
-                GLAD_WGL_SOURCE],
-            extra_compile_args=['/std:c17', '/W4'],
-            libraries=['gdi32', 'user32', 'opengl32'],
-            include_dirs=[GLAD_INCLUDE_DIR]),
-        setuptools.Extension(
-            name='spyke.events',
-            sources=[
-                'src_c/events/events.c',
-                'src_c/api.c',
-                'src_c/enum.c',
-                STB_SOURCE],
-            extra_compile_args=['/std:c17', '/W4'],
-            include_dirs=[STB_INCLUDE_DIR])],
-    cmdclass={'build_ext': SpykeBuildExt})
+retcode = subprocess.call(('cmake', '--install', BUILD_DIR, '--config', CMAKE_CONFIG))
+if retcode != 0:
+    raise RuntimeError('Failed to run cmake install.')
+
+dist_info_dir = os.path.join(DIST_DIR, f'{project_name}-{project_version}.dist-info')
+if not os.path.exists(dist_info_dir):
+    os.mkdir(dist_info_dir)
+
+# top_level.txt
+with open(os.path.join(dist_info_dir, 'top_level.txt'), 'w+') as f:
+    f.write(f'{project_name}\n')
+
+# METADATA
+with open(config['project']['readme']['file'], 'r') as f:
+    description_lines = f.readlines()
+
+with open(os.path.join(dist_info_dir, 'METADATA'), 'w+') as f:
+    f.write('Metadata-Version: 2.2\n')
+    f.write(f'Name: {project_name}\n')
+    f.write(f'Version: {project_version}\n')
+    f.write(f'Summary: {config['project']['description']}\n')
+    f.write(f'Home-page: {config['project']['urls']['home']}\n')
+    f.write(f'Requires-Python: {config['project']['requires-python']}\n')
+
+    for author in config['project']['authors']:
+        f.write(f'Author: {author['name']}\n')
+
+    for classifier in config['project']['classifiers']:
+        f.write(f'Classifier: {classifier}\n')
+
+    for dependency in dependencies:
+        f.write(f'Requires-Dist: {dependency}\n')
+
+    f.write(f'Description-Content-Type: {config['project']['readme']['content-type']}\n')
+    f.write(f'Description: {description_lines[0]}')
+    for descr_line in description_lines[1:]:
+        f.write(f'       |{descr_line}')
+
+# WHEEL
+whl_tag = str(next(tags.cpython_tags()))
+with open(os.path.join(dist_info_dir, 'WHEEL'), 'w+') as f:
+    f.write('Wheel-Version: 1.0\n')
+    f.write('Generator: yomama (6.9.420)\n')
+    f.write('Root-Is-Purelib: false\n')
+    f.write(f'Tag: {whl_tag}\n')
+
+# RECORD
+record_filepath = os.path.join(dist_info_dir, 'RECORD')
+with open(record_filepath, 'w+') as f:
+    directories = itertools.chain(
+        pathlib.Path(DIST_DIR, project_name).rglob('*'),
+        pathlib.Path(DIST_DIR, 'data').rglob('*'),
+        pathlib.Path(dist_info_dir).rglob('*'))
+    for file in directories:
+        if file.is_dir():
+            continue
+
+        if file.name == 'RECORD':
+            f.write(f'{file.relative_to(DIST_DIR).as_posix()},,\n')
+            continue
+
+        content = file.read_bytes()
+        length = len(content)
+        sha = base64.urlsafe_b64encode(hashlib.sha256(content).digest()).decode().removesuffix('=')
+        f.write(f'{file.relative_to(DIST_DIR).as_posix()},sha256={sha},{length}\n')
+
+whl_filename = os.path.join(WHL_DIR, f'{project_name}-{project_version}-{whl_tag}.whl')
+with zipfile.ZipFile(whl_filename, 'w', compresslevel=9) as whl:
+    for file in pathlib.Path(DIST_DIR).rglob('*'):
+        whl.write(file, arcname=file.relative_to(DIST_DIR))

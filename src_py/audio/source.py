@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import logging
+
 import glm
+from openal import ALint, ALuint, al
 
-from openal import al, ALuint, ALint
-
-from spyke.audio import ALObject
-from spyke.audio import ALBuffer
-from spyke.enums import SourceState
 from spyke import debug
+from spyke.audio import ALBuffer, ALObject
+from spyke.enums import SourceState
 
 _logger = logging.getLogger(__name__)
 
 class SoundSource(ALObject):
-    @debug.profiled('audio')
+    @debug.profiled
     def __init__(self):
         super().__init__()
 
@@ -66,7 +65,7 @@ class SoundSource(ALObject):
 
         return SourceState(state.value)
 
-    @debug.profiled('audio')
+    @debug.profiled
     def _dispose(self) -> None:
         al.alSourcei(self.id, al.AL_BUFFER, 0)
         al.alDeleteSources(1, self._id)

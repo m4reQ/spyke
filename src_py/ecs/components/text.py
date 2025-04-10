@@ -1,14 +1,13 @@
 import dataclasses
 from uuid import UUID
 
-from pygl.math import Vector4
-
-from spyke.ecs import Component
+from spyke import math
+from spyke.ecs.components.component import Component
 
 
 @dataclasses.dataclass
 class TextComponent(Component):
     text: str
     size: int
-    color: Vector4
+    color: math.Vector4
     font_id: UUID

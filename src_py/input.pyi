@@ -1,162 +1,163 @@
 import enum
+import typing as t
 
 class Key(enum.IntEnum):
-    NUM_0: int
-    NUM_1: int
-    NUM_2: int
-    NUM_3: int
-    NUM_4: int
-    NUM_5: int
-    NUM_6: int
-    NUM_7: int
-    NUM_8: int
-    NUM_9: int
-    A: int
-    B: int
-    C: int
-    D: int
-    E: int
-    F: int
-    G: int
-    H: int
-    I: int
-    J: int
-    K: int
-    L: int
-    M: int
-    N: int
-    O: int
-    P: int
-    Q: int
-    R: int
-    S: int
-    T: int
-    U: int
-    V: int
-    W: int
-    X: int
-    Y: int
-    Z: int
-    CANCEL: int
-    BACK: int
-    TAB: int
-    CLEAR: int
-    RETURN: int
-    SHIFT: int
-    CONTROL: int
-    MENU: int
-    PAUSE: int
-    CAPITAL: int
-    KANA: int
-    HANGUL: int
-    IME_ON: int
-    JUNJA: int
-    FINAL: int
-    HANJA: int
-    KANJI: int
-    IME_OFF: int
-    ESCAPE: int
-    CONVERT: int
-    NONCONVERT: int
-    ACCEPT: int
-    MODECHANGE: int
-    SPACE: int
-    PRIOR: int
-    NEXT: int
-    END: int
-    HOME: int
-    LEFT: int
-    UP: int
-    RIGHT: int
-    DOWN: int
-    SELECT: int
-    PRINT: int
-    EXECUTE: int
-    SNAPSHOT: int
-    INSERT: int
-    DELETE: int
-    HELP: int
-    LWIN: int
-    RWIN: int
-    APPS: int
-    SLEEP: int
-    NUMPAD0: int
-    NUMPAD1: int
-    NUMPAD2: int
-    NUMPAD3: int
-    NUMPAD4: int
-    NUMPAD5: int
-    NUMPAD6: int
-    NUMPAD7: int
-    NUMPAD8: int
-    NUMPAD9: int
-    MULTIPLY: int
-    ADD: int
-    SEPARATOR: int
-    SUBTRACT: int
-    DECIMAL: int
-    DIVIDE: int
-    F1: int
-    F2: int
-    F3: int
-    F4: int
-    F5: int
-    F6: int
-    F7: int
-    F8: int
-    F9: int
-    F10: int
-    F11: int
-    F12: int
-    F13: int
-    F14: int
-    F15: int
-    F16: int
-    F17: int
-    F18: int
-    F19: int
-    F20: int
-    F21: int
-    F22: int
-    F23: int
-    F24: int
-    NUMLOCK: int
-    SCROLL: int
-    LSHIFT: int
-    RSHIFT: int
-    LCONTROL: int
-    RCONTROL: int
-    LMENU: int
-    RMENU: int
-    BROWSER_BACK: int
-    BROWSER_FORWARD: int
-    BROWSER_REFRESH: int
-    BROWSER_STOP: int
-    BROWSER_SEARCH: int
-    BROWSER_FAVORITES: int
-    BROWSER_HOME: int
-    VOLUME_MUTE: int
-    VOLUME_DOWN: int
-    VOLUME_UP: int
-    MEDIA_NEXT_TRACK: int
-    MEDIA_PREV_TRACK: int
-    MEDIA_STOP: int
-    MEDIA_PLAY_PAUSE: int
-    LAUNCH_MAIL: int
-    LAUNCH_MEDIA_SELECT: int
-    LAUNCH_APP1: int
-    LAUNCH_APP2: int
+    NUM_0 = t.cast(int, ...)
+    NUM_1 = t.cast(int, ...)
+    NUM_2 = t.cast(int, ...)
+    NUM_3 = t.cast(int, ...)
+    NUM_4 = t.cast(int, ...)
+    NUM_5 = t.cast(int, ...)
+    NUM_6 = t.cast(int, ...)
+    NUM_7 = t.cast(int, ...)
+    NUM_8 = t.cast(int, ...)
+    NUM_9 = t.cast(int, ...)
+    A = t.cast(int, ...)
+    B = t.cast(int, ...)
+    C = t.cast(int, ...)
+    D = t.cast(int, ...)
+    E = t.cast(int, ...)
+    F = t.cast(int, ...)
+    G = t.cast(int, ...)
+    H = t.cast(int, ...)
+    I = t.cast(int, ...)
+    J = t.cast(int, ...)
+    K = t.cast(int, ...)
+    L = t.cast(int, ...)
+    M = t.cast(int, ...)
+    N = t.cast(int, ...)
+    O = t.cast(int, ...)
+    P = t.cast(int, ...)
+    Q = t.cast(int, ...)
+    R = t.cast(int, ...)
+    S = t.cast(int, ...)
+    T = t.cast(int, ...)
+    U = t.cast(int, ...)
+    V = t.cast(int, ...)
+    W = t.cast(int, ...)
+    X = t.cast(int, ...)
+    Y = t.cast(int, ...)
+    Z = t.cast(int, ...)
+    CANCEL = t.cast(int, ...)
+    BACK = t.cast(int, ...)
+    TAB = t.cast(int, ...)
+    CLEAR = t.cast(int, ...)
+    RETURN = t.cast(int, ...)
+    SHIFT = t.cast(int, ...)
+    CONTROL = t.cast(int, ...)
+    MENU = t.cast(int, ...)
+    PAUSE = t.cast(int, ...)
+    CAPITAL = t.cast(int, ...)
+    KANA = t.cast(int, ...)
+    HANGUL = t.cast(int, ...)
+    IME_ON = t.cast(int, ...)
+    JUNJA = t.cast(int, ...)
+    FINAL = t.cast(int, ...)
+    HANJA = t.cast(int, ...)
+    KANJI = t.cast(int, ...)
+    IME_OFF = t.cast(int, ...)
+    ESCAPE = t.cast(int, ...)
+    CONVERT = t.cast(int, ...)
+    NONCONVERT = t.cast(int, ...)
+    ACCEPT = t.cast(int, ...)
+    MODECHANGE = t.cast(int, ...)
+    SPACE = t.cast(int, ...)
+    PRIOR = t.cast(int, ...)
+    NEXT = t.cast(int, ...)
+    END = t.cast(int, ...)
+    HOME = t.cast(int, ...)
+    LEFT = t.cast(int, ...)
+    UP = t.cast(int, ...)
+    RIGHT = t.cast(int, ...)
+    DOWN = t.cast(int, ...)
+    SELECT = t.cast(int, ...)
+    PRINT = t.cast(int, ...)
+    EXECUTE = t.cast(int, ...)
+    SNAPSHOT = t.cast(int, ...)
+    INSERT = t.cast(int, ...)
+    DELETE = t.cast(int, ...)
+    HELP = t.cast(int, ...)
+    LWIN = t.cast(int, ...)
+    RWIN = t.cast(int, ...)
+    APPS = t.cast(int, ...)
+    SLEEP = t.cast(int, ...)
+    NUMPAD0 = t.cast(int, ...)
+    NUMPAD1 = t.cast(int, ...)
+    NUMPAD2 = t.cast(int, ...)
+    NUMPAD3 = t.cast(int, ...)
+    NUMPAD4 = t.cast(int, ...)
+    NUMPAD5 = t.cast(int, ...)
+    NUMPAD6 = t.cast(int, ...)
+    NUMPAD7 = t.cast(int, ...)
+    NUMPAD8 = t.cast(int, ...)
+    NUMPAD9 = t.cast(int, ...)
+    MULTIPLY = t.cast(int, ...)
+    ADD = t.cast(int, ...)
+    SEPARATOR = t.cast(int, ...)
+    SUBTRACT = t.cast(int, ...)
+    DECIMAL = t.cast(int, ...)
+    DIVIDE = t.cast(int, ...)
+    F1 = t.cast(int, ...)
+    F2 = t.cast(int, ...)
+    F3 = t.cast(int, ...)
+    F4 = t.cast(int, ...)
+    F5 = t.cast(int, ...)
+    F6 = t.cast(int, ...)
+    F7 = t.cast(int, ...)
+    F8 = t.cast(int, ...)
+    F9 = t.cast(int, ...)
+    F10 = t.cast(int, ...)
+    F11 = t.cast(int, ...)
+    F12 = t.cast(int, ...)
+    F13 = t.cast(int, ...)
+    F14 = t.cast(int, ...)
+    F15 = t.cast(int, ...)
+    F16 = t.cast(int, ...)
+    F17 = t.cast(int, ...)
+    F18 = t.cast(int, ...)
+    F19 = t.cast(int, ...)
+    F20 = t.cast(int, ...)
+    F21 = t.cast(int, ...)
+    F22 = t.cast(int, ...)
+    F23 = t.cast(int, ...)
+    F24 = t.cast(int, ...)
+    NUMLOCK = t.cast(int, ...)
+    SCROLL = t.cast(int, ...)
+    LSHIFT = t.cast(int, ...)
+    RSHIFT = t.cast(int, ...)
+    LCONTROL = t.cast(int, ...)
+    RCONTROL = t.cast(int, ...)
+    LMENU = t.cast(int, ...)
+    RMENU = t.cast(int, ...)
+    BROWSER_BACK = t.cast(int, ...)
+    BROWSER_FORWARD = t.cast(int, ...)
+    BROWSER_REFRESH = t.cast(int, ...)
+    BROWSER_STOP = t.cast(int, ...)
+    BROWSER_SEARCH = t.cast(int, ...)
+    BROWSER_FAVORITES = t.cast(int, ...)
+    BROWSER_HOME = t.cast(int, ...)
+    VOLUME_MUTE = t.cast(int, ...)
+    VOLUME_DOWN = t.cast(int, ...)
+    VOLUME_UP = t.cast(int, ...)
+    MEDIA_NEXT_TRACK = t.cast(int, ...)
+    MEDIA_PREV_TRACK = t.cast(int, ...)
+    MEDIA_STOP = t.cast(int, ...)
+    MEDIA_PLAY_PAUSE = t.cast(int, ...)
+    LAUNCH_MAIL = t.cast(int, ...)
+    LAUNCH_MEDIA_SELECT = t.cast(int, ...)
+    LAUNCH_APP1 = t.cast(int, ...)
+    LAUNCH_APP2 = t.cast(int, ...)
 
 class Button(enum.IntEnum):
-    X1: int
-    X2: int
-    LEFT: int
-    RIGHT: int
-    MIDDLE: int
+    X1 = t.cast(int, ...)
+    X2 = t.cast(int, ...)
+    LEFT = t.cast(int, ...)
+    RIGHT = t.cast(int, ...)
+    MIDDLE = t.cast(int, ...)
 
 class Modifier(enum.IntFlag):
-    CONTROL: int
-    SHIFT: int
+    CONTROL = t.cast(int, ...)
+    SHIFT = t.cast(int, ...)
 
 def is_key_down(key: Key | str, /) -> bool: ...
 def is_key_up(key: Key | str, /) -> bool: ...

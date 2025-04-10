@@ -8,6 +8,7 @@ from spyke.graphics.frame_data import FrameData
 class PipelineInfo:
     buffers_memory_size: int = 0
     attachments_memory_size: int = 0
+    framebuffer_attachments: dict[str, int] = dataclasses.field(default_factory=lambda: {'default': 0})
 
 @dataclasses.dataclass(slots=True)
 class PipelineSettings:
@@ -18,8 +19,10 @@ class PipelineSettings:
 
     model_vertex_size: int
     instance_vertex_size: int
+    light_data_size: int
 
     max_textures_per_batch: int
+    max_lights: int
 
 class GraphicsPipeline(abc.ABC):
     def __init__(self) -> None:
@@ -30,7 +33,7 @@ class GraphicsPipeline(abc.ABC):
         return self._info
 
     @abc.abstractmethod
-    def get_output_texture_id(self) -> int:
+    def get_framebuffer_attachment_id(self, index: int) -> int:
         pass
 
     @abc.abstractmethod
@@ -38,7 +41,7 @@ class GraphicsPipeline(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def render(self, frame_data: FrameData) -> None:
+    def execute(self, frame_data: FrameData) -> None:
         pass
 
     @abc.abstractmethod

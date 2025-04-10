@@ -1,16 +1,18 @@
 import enum
+import typing as t
 
 from spyke.events import Event
 
 class WindowFlags(enum.IntFlag):
-    DEFAULT: int
-    RESIZABLE: int
-    FULLSCREEN: int
-    BORDERLESS: int
-    TRANSPARENT_FRAMEBUFFER: int
-    CURSOR_HIDDEN: int
-    ENABLE_VSYNC: int
-    ALLOW_FILE_DROP: int
+    DEFAULT = t.cast(int, ...)
+    RESIZABLE = t.cast(int, ...)
+    FULLSCREEN = t.cast(int, ...)
+    BORDERLESS = t.cast(int, ...)
+    TRANSPARENT_FRAMEBUFFER = t.cast(int, ...)
+    CURSOR_HIDDEN = t.cast(int, ...)
+    ENABLE_VSYNC = t.cast(int, ...)
+    ALLOW_FILE_DROP = t.cast(int, ...)
+    REQUIRE_DEPTH_STENCIL = t.cast(int, ...)
 
 class ResizeEventData:
     width: int
@@ -125,3 +127,4 @@ def resize(width: int, height: int, /) -> None: ...
 def move(x: int, y: int, /) -> None: ...
 def swap_buffers() -> None: ...
 def process_events() -> None: ...
+def get_open_directory(window_title: str | None = None, initial_dir: str | None = None) -> str | None: ...

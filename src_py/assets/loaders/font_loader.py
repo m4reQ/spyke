@@ -5,8 +5,8 @@ import typing as t
 import freetype as ft
 import glm
 import numpy as np
-
 from pygl import textures
+
 from spyke import debug, utils
 from spyke.graphics.glyph import Glyph
 from spyke.resources.types import Font
@@ -40,7 +40,7 @@ class FontLoader(LoaderBase[Font, _FontData]):
     __supported_extensions__ = ['.ttf', '.otf']
 
     @staticmethod
-    @debug.profiled('resources', 'io')
+    @debug.profiled
     def load_from_file(filepath: str) -> _FontData:
         face = ft.Face(filepath)
         assert face.is_scalable, 'Cannot load non scalable fonts'
@@ -114,7 +114,7 @@ class FontLoader(LoaderBase[Font, _FontData]):
             face.size.x_ppem)
 
     @staticmethod
-    @debug.profiled('resources', 'initialization')
+    @debug.profiled
     def finalize_loading(resource: Font, loading_data: _FontData) -> None:
         texture = _create_texture(loading_data.texture_specification)
         _upload_texture_data(texture, loading_data.texture_upload_info, loading_data.texture_upload_data)
@@ -126,13 +126,13 @@ class FontLoader(LoaderBase[Font, _FontData]):
             resource.base_size = loading_data.base_size
             resource.is_loaded = True
 
-@debug.profiled('resources', 'initialization')
+@debug.profiled
 def _upload_texture_data(texture: textures.Texture, info: textures.UploadInfo, data: np.ndarray) -> None:
     textures.set_pixel_unpack_alignment(1)
     texture.upload(info, data)
     textures.set_pixel_unpack_alignment(4)
 
-@debug.profiled('resources', 'initialization')
+@debug.profiled
 def _create_texture(spec: textures.TextureSpec) -> textures.Texture:
     return textures.Texture(spec)
 

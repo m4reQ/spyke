@@ -3,13 +3,11 @@ import io
 import numpy as np
 from PIL import Image as PILImage
 
-from pygl import textures
 from spyke import debug
 from spyke.assets.asset_config import AssetConfig
 from spyke.assets.asset_loader import AssetLoader
-from spyke.assets.types.image import ImageConfig
-
-from .image_load_data import ImageLoadData
+from spyke.assets.image import ImageConfig, ImageLoadData
+from spyke.graphics import gl
 
 _PNG_MAGIC_VALUE = b'\x89PNG\r\n\x1a\n'
 _JPG_MAGIC_VALUES = b'\xff\xd8\xff' # i don't know if it's enough to just check those 3 bytes...
@@ -22,7 +20,7 @@ class StandardImageLoader(AssetLoader):
     def can_process_file_data(self, file_data: bytes) -> bool:
         return file_data.startswith((_PNG_MAGIC_VALUE, _JPG_MAGIC_VALUES))
 
-    @debug.profiled('assets', 'io')
+    @debug.profiled
     def load_from_binary(self, data: bytes, config: AssetConfig) -> ImageLoadData:
         assert isinstance(config, ImageConfig), 'Invalid type of config provided to StandardImageLoader'
 
@@ -37,21 +35,22 @@ class StandardImageLoader(AssetLoader):
             img_data = _load_image_data(img)
 
         return ImageLoadData(
-            textures.TextureSpec(
-                textures.TextureTarget.TEXTURE_2D,
+            gl.TextureSpec(
+                gl.TextureTarget.TEXTURE_2D,
                 width,
                 height,
                 _image_mode_to_internal_format(mode, bits),
                 mipmaps=config.mipmap_count,
                 min_filter=config.min_filter,
                 mag_filter=config.mag_filter),
-            [textures.UploadInfo(
+            [gl.TextureUploadInfo(
                 _image_mode_to_pixel_format(mode),
                 width,
                 height)],
-            img_data)
+            img_data,
+            unpack_alignment=1)
 
-@debug.profiled('resources', 'io')
+@debug.profiled
 def _load_image_data(img: PILImage.Image) -> np.ndarray:
     img.load()
 
@@ -70,22 +69,24 @@ def _load_image_data(img: PILImage.Image) -> np.ndarray:
 
     return data
 
-def _image_mode_to_pixel_format(mode: str) -> textures.PixelFormat:
+def _image_mode_to_pixel_format(mode: str) -> gl.PixelFormat:
     match mode.lower():
         case 'rgba':
-            return textures.PixelFormat.RGBA
+            return gl.PixelFormat.RGBA
         case 'rgb':
-            return textures.PixelFormat.RGB
+            return gl.PixelFormat.RGB
         case invalid:
             raise ValueError(f'Invalid image mode: {invalid}')
 
-def _image_mode_to_internal_format(mode: str, bits: int) -> textures.InternalFormat:
-    match mode.lower(), bits:
+def _image_mode_to_internal_format(mode: str, bits: int) -> gl.InternalFormat:
+    mode = mode.lower()
+
+    match mode, bits:
         case 'rgba', 8:
-            return textures.InternalFormat.RGBA8
+            return gl.InternalFormat.RGBA8
         case 'rgba', 16:
-            return textures.InternalFormat.RGBA16
+            return gl.InternalFormat.RGBA16
         case 'rgb', 8:
-            return textures.InternalFormat.RGB8
-        case invalid_mode, invalid_bits:
-            raise ValueError(f'Invalid mode and bits combination: {invalid_mode}, {invalid_bits}')
+            return gl.InternalFormat.RGB8
+
+    raise ValueError(f'Invalid mode and bits combination: {mode}, {bits}')
