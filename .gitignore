@@ -17,3 +17,6 @@ imgui.ini
 **/dist*
 
 **/*.whl
+
+**/tests_manual
+**/shadercache
