@@ -382,9 +382,9 @@ static PyObject *PyTexture_set_debug_name(PyTexture *self, PyObject *name)
     CHECK_ARG_STRING(name, NULL);
 
     Py_ssize_t nameLength = 0;
-    const char *name = PyUnicode_AsUTF8AndSize(name, &nameLength);
+    const char *nameStr = PyUnicode_AsUTF8AndSize(name, &nameLength);
 
-    glObjectLabel(GL_TEXTURE, self->id, nameLength, name);
+    glObjectLabel(GL_TEXTURE, self->id, nameLength, nameStr);
 
     Py_RETURN_NONE;
 }

@@ -12,8 +12,13 @@
 #define GLM_ZERO MACRO_CONCAT(MACRO_CONCAT(GLM_VEC, VEC_LEN), ZERO)
 #define GLM_ONE MACRO_CONCAT(MACRO_CONCAT(GLM_VEC, VEC_LEN), ONE)
 #define VECTOR_INIT_FUNC MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _init)
+#define VECTOR_STR_FUNC MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _str)
+#define VECTOR_RICH_COMPARE_FUNC MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _richcompare)
+#define VECTOR_CHECK_ZERO MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _check_zero)
 
 static int VECTOR_INIT_FUNC(PY_TYPE_NAME *self, PyObject *args, PyObject *kwargs);
+static PyObject *VECTOR_STR_FUNC(PY_TYPE_NAME *self);
+static bool VECTOR_CHECK_ZERO(PY_TYPE_NAME *self);
 
 static float GetVectorLengthSquared(PY_TYPE_NAME *self)
 {
@@ -224,19 +229,33 @@ static PY_TYPE_NAME *PyVector_nb_true_divide(PY_TYPE_NAME *self, PyObject *other
 
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
+        if (VECTOR_CHECK_ZERO(other))
+        {
+            PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+            return NULL;
+        }
+
         GLM_CALL_FUNC(div, self->data, ((PY_TYPE_NAME *)other)->data, new->data);
         return new;
     }
 
-    PyObject *otherFloat = PyNumber_Float(other);
-    if (otherFloat == NULL)
+    other = PyNumber_Float(other);
+    if (other == NULL)
     {
         Py_DECREF(new);
         return (PY_TYPE_NAME *)&_Py_NotImplementedStruct;
     }
 
-    GLM_CALL_FUNC(divs, self->data, (float)PyFloat_AS_DOUBLE(otherFloat), new->data);
-    Py_DECREF(otherFloat);
+    float value = (float)PyFloat_AS_DOUBLE(other);
+    if (value == 0.0f)
+    {
+        PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+        Py_DECREF(other);
+        return NULL;
+    }
+
+    GLM_CALL_FUNC(divs, self->data, value, new->data);
+    Py_DECREF(other);
     return new;
 }
 
@@ -244,16 +263,30 @@ static PY_TYPE_NAME *PyVector_nb_inplace_true_divide(PY_TYPE_NAME *self, PyObjec
 {
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
+        if (VECTOR_CHECK_ZERO(other))
+        {
+            PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+            return NULL;
+        }
+
         GLM_CALL_FUNC(div, self->data, ((PY_TYPE_NAME *)other)->data, self->data);
         return (PY_TYPE_NAME *)Py_NewRef(self);
     }
 
-    PyObject *otherFloat = PyNumber_Float(other);
-    if (otherFloat == NULL)
+    other = PyNumber_Float(other);
+    if (other == NULL)
         return (PY_TYPE_NAME *)&_Py_NotImplementedStruct;
 
-    GLM_CALL_FUNC(divs, self->data, (float)PyFloat_AS_DOUBLE(otherFloat), self->data);
-    Py_DECREF(otherFloat);
+    float value = (float)PyFloat_AS_DOUBLE(other);
+    if (value == 0.0f)
+    {
+        PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+        Py_DECREF(other);
+        return NULL;
+    }
+
+    GLM_CALL_FUNC(divs, self->data, value, self->data);
+    Py_DECREF(other);
     return (PY_TYPE_NAME *)Py_NewRef(self);
 }
 
@@ -263,24 +296,37 @@ static PY_TYPE_NAME *PyVector_nb_remainder(PY_TYPE_NAME *self, PyObject *other)
 
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
+        if (VECTOR_CHECK_ZERO(other))
+        {
+            PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+            return NULL;
+        }
+
         for (Py_ssize_t i = 0; i < VEC_LEN; i++)
             new->data[i] = fmodf(self->data[i], ((PY_TYPE_NAME *)other)->data[i]);
 
         return new;
     }
 
-    PyObject *otherFloat = PyNumber_Float(other);
-    if (otherFloat == NULL)
+    other = PyNumber_Float(other);
+    if (other == NULL)
     {
         Py_DECREF(new);
         return (PY_TYPE_NAME *)&_Py_NotImplementedStruct;
     }
 
-    float divisor = (float)PyFloat_AS_DOUBLE(otherFloat);
-    for (Py_ssize_t i = 0; i < VEC_LEN; i++)
-        new->data[i] = fmodf(self->data[i], divisor);
+    float value = (float)PyFloat_AS_DOUBLE(other);
+    if (value == 0.0f)
+    {
+        PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+        Py_DECREF(other);
+        return NULL;
+    }
 
-    Py_DECREF(otherFloat);
+    for (Py_ssize_t i = 0; i < VEC_LEN; i++)
+        new->data[i] = fmodf(self->data[i], value);
+
+    Py_DECREF(other);
     return new;
 }
 
@@ -288,21 +334,34 @@ static PY_TYPE_NAME *PyVector_nb_inplace_remainder(PY_TYPE_NAME *self, PyObject 
 {
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
+        if (VECTOR_CHECK_ZERO(other))
+        {
+            PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+            return NULL;
+        }
+
         for (Py_ssize_t i = 0; i < VEC_LEN; i++)
             self->data[i] = fmodf(self->data[i], ((PY_TYPE_NAME *)other)->data[i]);
 
         return (PY_TYPE_NAME *)Py_NewRef(self);
     }
 
-    PyObject *otherFloat = PyNumber_Float(other);
-    if (otherFloat == NULL)
+    other = PyNumber_Float(other);
+    if (other == NULL)
         return (PY_TYPE_NAME *)&_Py_NotImplementedStruct;
 
-    float divisor = (float)PyFloat_AS_DOUBLE(otherFloat);
-    for (Py_ssize_t i = 0; i < VEC_LEN; i++)
-        self->data[i] = fmodf(self->data[i], divisor);
+    float value = (float)PyFloat_AS_DOUBLE(other);
+    if (value == 0.0f)
+    {
+        PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+        Py_DECREF(other);
+        return NULL;
+    }
 
-    Py_DECREF(otherFloat);
+    for (Py_ssize_t i = 0; i < VEC_LEN; i++)
+        self->data[i] = fmodf(self->data[i], value);
+
+    Py_DECREF(other);
     return (PY_TYPE_NAME *)Py_NewRef(self);
 }
 
@@ -450,6 +509,7 @@ static PY_TYPE_NAME *PyVector_unit_x(PyTypeObject *cls, PyObject *args)
 
     PY_TYPE_NAME *new = PyObject_New(PY_TYPE_NAME, cls);
     new = (PY_TYPE_NAME *)PyObject_Init((PyObject *)new, cls);
+    GLM_CALL_FUNC(zero, new->data);
     new->data[0] = 1.0f;
 
     return new;
@@ -461,6 +521,7 @@ static PY_TYPE_NAME *PyVector_unit_y(PyTypeObject *cls, PyObject *args)
 
     PY_TYPE_NAME *new = PyObject_New(PY_TYPE_NAME, cls);
     new = (PY_TYPE_NAME *)PyObject_Init((PyObject *)new, cls);
+    GLM_CALL_FUNC(zero, new->data);
     new->data[1] = 1.0f;
 
     return new;
@@ -473,6 +534,7 @@ static PY_TYPE_NAME *PyVector_unit_z(PyTypeObject *cls, PyObject *args)
 
     PY_TYPE_NAME *new = PyObject_New(PY_TYPE_NAME, cls);
     new = (PY_TYPE_NAME *)PyObject_Init((PyObject *)new, cls);
+    GLM_CALL_FUNC(zero, new->data);
     new->data[2] = 1.0f;
 
     return new;
@@ -486,11 +548,38 @@ static PY_TYPE_NAME *PyVector_unit_w(PyTypeObject *cls, PyObject *args)
 
     PY_TYPE_NAME *new = PyObject_New(PY_TYPE_NAME, cls);
     new = (PY_TYPE_NAME *)PyObject_Init((PyObject *)new, cls);
+    GLM_CALL_FUNC(zero, new->data);
     new->data[3] = 1.0f;
 
     return new;
 }
 #endif
+
+static PyObject *PyVector_richcompare(PY_TYPE_NAME *self, PY_TYPE_NAME *other, int func)
+{
+    switch (func)
+    {
+    case Py_EQ:
+        if (self == other)
+            Py_RETURN_TRUE;
+
+        if (!PyObject_IsInstance((PyObject *)other, (PyObject *)Py_TYPE(self)))
+            Py_RETURN_NOTIMPLEMENTED;
+
+        return PyBool_FromLong(GLM_CALL_FUNC(eqv, self->data, other->data));
+    case Py_NE:
+        if (self != other)
+            Py_RETURN_TRUE;
+
+        if (!PyObject_IsInstance((PyObject *)other, (PyObject *)Py_TYPE(self)))
+            Py_RETURN_NOTIMPLEMENTED;
+
+        return PyBool_FromLong(!GLM_CALL_FUNC(eqv, self->data, other->data));
+    }
+
+    PyErr_SetString(PyExc_TypeError, "Vector types do not support less than or greater than comparisons.");
+    return NULL;
+}
 
 PyTypeObject PY_TYPE_OBJECT_NAME = {
     PY_VAR_OBJECT_HEAD_INIT(NULL, 0),
@@ -499,6 +588,8 @@ PyTypeObject PY_TYPE_OBJECT_NAME = {
     .tp_name = MACRO_CONCAT("spyke.math.Vector", MACRO_STRINGIFY(VEC_LEN)),
     .tp_new = PyType_GenericNew,
     .tp_init = (initproc)VECTOR_INIT_FUNC,
+    .tp_str = (reprfunc)VECTOR_STR_FUNC,
+    .tp_richcompare = (richcmpfunc)PyVector_richcompare,
     .tp_iter = (getiterfunc)PyVector_Iter,
     .tp_as_buffer = &(PyBufferProcs){
         .bf_getbuffer = (getbufferproc)PyVector_bf_getbuffer,
