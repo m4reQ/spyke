@@ -111,7 +111,7 @@ static PyTypeObject s_EventType = {
     .tp_methods = (PyMethodDef[]){
         {"__class_getitem__", Py_GenericAlias, METH_O | METH_CLASS, NULL},
         {"subscribe", (PyCFunction)PyEvent_Subscribe, METH_FASTCALL | METH_KEYWORDS, NULL},
-        {"unsubscribe", (PyCFunction)PyEvent_Subscribe, METH_O, NULL},
+        {"unsubscribe", (PyCFunction)PyEvent_Unsubscribe, METH_O, NULL},
         {"invoke", (PyCFunction)PyEvent_Invoke, METH_O, NULL},
         {"clear_handlers", (PyCFunction)PyEvent_ClearHandlers, METH_NOARGS, NULL},
         {0},
