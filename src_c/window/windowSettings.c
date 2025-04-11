@@ -4,15 +4,17 @@
 static int PyWindowSettings_Init(PyWindowSettings *self, PyObject *args, PyObject *kwargs)
 {
     self->flags = WND_FLAGS_DEFAULT;
+    self->useDebugContext = false;
     if (!PyArg_ParseTupleAndKeywords(
             args,
             kwargs,
-            "IIU|I",
-            (char *[]){"width", "height", "title", "flags", NULL},
+            "IIU|Ip",
+            (char *[]){"width", "height", "title", "flags", "use_debug_context", NULL},
             &self->width,
             &self->height,
             &self->pyTitle,
-            &self->flags))
+            &self->flags,
+            &self->useDebugContext))
         return -1;
 
     Py_IncRef(self->pyTitle);
@@ -39,6 +41,7 @@ PyTypeObject PyWindowSettings_Type = {
         {"height", Py_T_UINT, offsetof(PyWindowSettings, height), 0, NULL},
         {"title", Py_T_OBJECT_EX, offsetof(PyWindowSettings, pyTitle), 0, NULL},
         {"flags", Py_T_UINT, offsetof(PyWindowSettings, flags), 0, NULL},
+        {"use_debug_context", Py_T_BOOL, offsetof(PyWindowSettings, useDebugContext), 0, NULL},
         {0},
     },
 };

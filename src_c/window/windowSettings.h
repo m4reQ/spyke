@@ -1,5 +1,6 @@
 #pragma once
 #include "../utils.h"
+#include <stdbool.h>
 #include <Python.h>
 
 typedef enum
@@ -22,6 +23,7 @@ typedef struct
     uint32_t height;
     PyObject *pyTitle;
     WindowFlags flags;
+    bool useDebugContext;
 } PyWindowSettings;
 
 extern PyTypeObject PyWindowSettings_Type;

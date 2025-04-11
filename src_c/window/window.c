@@ -495,7 +495,7 @@ static bool LoadWGL(void)
     return true;
 }
 
-static HGLRC CreateOpenGLContext(bool transparentFramebuffer, bool requireDepthStencil)
+static HGLRC CreateOpenGLContext(bool transparentFramebuffer, bool requireDepthStencil, bool useDebugContext)
 {
     const int depthBits = requireDepthStencil ? 24 : 0;
     const int stencilBits = requireDepthStencil ? 8 : 0;
@@ -549,9 +549,6 @@ static HGLRC CreateOpenGLContext(bool transparentFramebuffer, bool requireDepthS
         return NULL;
     }
 
-    // ugly hack because python api doesnt expose this anywhere except Py_DebugFlag which is deprecated
-    const bool optimizationEnabled = _PyInterpreterState_GetConfig(PyInterpreterState_Get())->parser_debug;
-
     const int glAttribs[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB,
         4,
@@ -560,7 +557,7 @@ static HGLRC CreateOpenGLContext(bool transparentFramebuffer, bool requireDepthS
         WGL_CONTEXT_PROFILE_MASK_ARB,
         WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
         WGL_CONTEXT_FLAGS_ARB,
-        WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | (optimizationEnabled ? WGL_CONTEXT_DEBUG_BIT_ARB : 0),
+        WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | (useDebugContext ? WGL_CONTEXT_DEBUG_BIT_ARB : 0),
         0,
     };
 
@@ -611,7 +608,8 @@ static PyObject *PyWindow_Initialize(PyObject *self, PyWindowSettings *settings)
 
     s_GLContext = CreateOpenGLContext(
         FLAG_IS_SET(settings->flags, WND_FLAGS_TRANSPARENT_FRAMEBUFFER),
-        FLAG_IS_SET(settings->flags, WND_FLAGS_REQUIRE_DEPTH_STENCIL));
+        FLAG_IS_SET(settings->flags, WND_FLAGS_REQUIRE_DEPTH_STENCIL),
+        settings->useDebugContext);
     if (!s_GLContext)
         return NULL; // error already set
 

@@ -93,12 +93,14 @@ class WindowSettings:
     height: int
     title: str
     flags: int
+    use_debug_context: bool
 
     def __init__(self,
                  width: int,
                  height: int,
                  title: str,
-                 flags: WindowFlags = WindowFlags.DEFAULT) -> None: ...
+                 flags: WindowFlags = WindowFlags.DEFAULT,
+                 use_debug_context: bool = False) -> None: ...
 
 resize_event: Event[ResizeEventData]
 move_event: Event[MoveEventData]
