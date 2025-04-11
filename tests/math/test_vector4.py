@@ -130,11 +130,23 @@ def test_vector4_imod_by_zero():
     with pytest.raises(ZeroDivisionError):
         v %= 0
 
-def test_vector4_single_value_constructor():
-    v = Vector4(9.0)
-    assert v == Vector4(9.0, 9.0, 9.0, 9.0)
+def test_vector4_float_constructor():
+    v = Vector4(5.0)
+    assert v == Vector4(5.0, 5.0, 5.0, 5.0)
 
-def test_vector4_four_value_constructor():
+def test_vector4_tuple_constructor():
+    v = Vector4((1.0, 2.0, 3.0, 4.0))
+    assert v == Vector4(1.0, 2.0, 3.0, 4.0)
+
+def test_vector4_list_constructor():
+    v = Vector4([1.0, 2.0, 3.0, 4.0])
+    assert v == Vector4(1.0, 2.0, 3.0, 4.0)
+
+def test_vector4_buffer_constructor():
+    v = Vector4(b'\x00\x00\x80?\x00\x00\x00@\x00\x00@@\x00\x00\x80@')
+    assert v == Vector4(1.0, 2.0, 3.0, 4.0)
+
+def test_vector4_multi_value_constructor():
     v = Vector4(1.0, 2.0, 3.0, 4.0)
     assert v.x == 1.0 and v.y == 2.0 and v.z == 3.0 and v.w == 4.0
 

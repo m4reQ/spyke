@@ -134,11 +134,23 @@ def test_vector3_imod_by_zero():
     with pytest.raises(ZeroDivisionError):
         v %= 0
 
-def test_vector3_single_value_constructor():
-    v = Vector3(7.0)
-    assert v == Vector3(7.0, 7.0, 7.0)
+def test_vector3_float_constructor():
+    v = Vector3(5.0)
+    assert v == Vector3(5.0, 5.0, 5.0)
 
-def test_vector3_three_value_constructor():
+def test_vector3_tuple_constructor():
+    v = Vector3((1.0, 2.0, 3.0))
+    assert v == Vector3(1.0, 2.0, 3.0)
+
+def test_vector3_list_constructor():
+    v = Vector3([1.0, 2.0, 3.0])
+    assert v == Vector3(1.0, 2.0, 3.0)
+
+def test_vector3_buffer_constructor():
+    v = Vector3(b'\x00\x00\x80?\x00\x00\x00@\x00\x00@@')
+    assert v == Vector3(1.0, 2.0, 3.0)
+
+def test_vector3_multi_value_constructor():
     v = Vector3(1.0, 2.0, 3.0)
     assert v.x == 1.0 and v.y == 2.0 and v.z == 3.0
 

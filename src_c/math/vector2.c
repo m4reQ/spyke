@@ -1,29 +1,10 @@
 #define VEC_LEN 2
 #include "vectorTemplate.h"
 
-static int PyVector2_init(PyVector2 *self, PyObject *args, PyObject *kwargs)
+static int PyVector2_init_multiple_args(PyVector2 *self, PyObject *args)
 {
-    (void)kwargs;
-    const Py_ssize_t nArgs = PyTuple_GET_SIZE(args);
-    if (nArgs == 1)
-    {
-        PyObject *valueObj = PyTuple_GET_ITEM(args, 0);
-        CHECK_ARG_FLOAT(valueObj, -1);
-
-        float value = (float)PyFloat_AS_DOUBLE(valueObj);
-        self->data[0] = value;
-        self->data[1] = value;
-    }
-    else if (nArgs == 2)
-    {
-        if (!PyArg_ParseTuple(args, "ff", &self->data[0], &self->data[1]))
-            return -1;
-    }
-    else
-    {
-        PyErr_Format(PyExc_ValueError, "Expected 1 or 2 arguments, got: %d.", nArgs);
+    if (!PyArg_ParseTuple(args, "ff", &self->data[0], &self->data[1]))
         return -1;
-    }
 
     return 0;
 }

@@ -1,5 +1,6 @@
 // Do not add include guard to this file
 #include "vector.h"
+#include "vectorUtils.h"
 
 #ifndef VEC_LEN
 #error "Vector template: VEC_LEN not defined"
@@ -11,14 +12,14 @@
 #define GLM_CALL_FUNC(func, ...) MACRO_CONCAT(MACRO_CONCAT(glm_, GLM_TYPE_NAME), MACRO_CONCAT(_, func))(##__VA_ARGS__)
 #define GLM_ZERO MACRO_CONCAT(MACRO_CONCAT(GLM_VEC, VEC_LEN), ZERO)
 #define GLM_ONE MACRO_CONCAT(MACRO_CONCAT(GLM_VEC, VEC_LEN), ONE)
-#define VECTOR_INIT_FUNC MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _init)
+#define VECTOR_INIT_MULTI_ARGS_FUNC MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _init_multiple_args)
 #define VECTOR_STR_FUNC MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _str)
 #define VECTOR_RICH_COMPARE_FUNC MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _richcompare)
 #define VECTOR_CHECK_ZERO MACRO_CONCAT(MACRO_CONCAT(PyVector, VEC_LEN), _check_zero)
 
-static int VECTOR_INIT_FUNC(PY_TYPE_NAME *self, PyObject *args, PyObject *kwargs);
 static PyObject *VECTOR_STR_FUNC(PY_TYPE_NAME *self);
 static bool VECTOR_CHECK_ZERO(PY_TYPE_NAME *self);
+static int VECTOR_INIT_MULTI_ARGS_FUNC(PY_TYPE_NAME *self, PyObject *args);
 
 static float GetVectorLengthSquared(PY_TYPE_NAME *self)
 {
@@ -38,6 +39,22 @@ static bool CheckTypeSelf(PyObject *other)
     }
 
     return true;
+}
+
+static int PyVector_init(_PyVectorAbstract *self, PyObject *args, PyObject *kwargs)
+{
+    (void)kwargs;
+
+    const Py_ssize_t nArgs = PyTuple_GET_SIZE(args);
+
+    if (nArgs == 1)
+        return PyVector_init_one_arg(self->data, PyTuple_GET_ITEM(args, 0), VEC_LEN);
+
+    if (nArgs == VEC_LEN)
+        return VECTOR_INIT_MULTI_ARGS_FUNC((PY_TYPE_NAME *)self, args);
+
+    PyErr_Format(PyExc_ValueError, "Expected 1 or %d arguments, got: %d.", VEC_LEN, nArgs);
+    return -1;
 }
 
 #pragma region tp_as_buffer
@@ -229,7 +246,7 @@ static PY_TYPE_NAME *PyVector_nb_true_divide(PY_TYPE_NAME *self, PyObject *other
 
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
-        if (VECTOR_CHECK_ZERO(other))
+        if (VECTOR_CHECK_ZERO((PY_TYPE_NAME *)other))
         {
             PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
             return NULL;
@@ -263,7 +280,7 @@ static PY_TYPE_NAME *PyVector_nb_inplace_true_divide(PY_TYPE_NAME *self, PyObjec
 {
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
-        if (VECTOR_CHECK_ZERO(other))
+        if (VECTOR_CHECK_ZERO((PY_TYPE_NAME *)other))
         {
             PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
             return NULL;
@@ -296,7 +313,7 @@ static PY_TYPE_NAME *PyVector_nb_remainder(PY_TYPE_NAME *self, PyObject *other)
 
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
-        if (VECTOR_CHECK_ZERO(other))
+        if (VECTOR_CHECK_ZERO((PY_TYPE_NAME *)other))
         {
             PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
             return NULL;
@@ -334,7 +351,7 @@ static PY_TYPE_NAME *PyVector_nb_inplace_remainder(PY_TYPE_NAME *self, PyObject 
 {
     if (PyObject_IsInstance(other, (PyObject *)&PY_TYPE_OBJECT_NAME))
     {
-        if (VECTOR_CHECK_ZERO(other))
+        if (VECTOR_CHECK_ZERO((PY_TYPE_NAME *)other))
         {
             PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
             return NULL;
@@ -587,7 +604,7 @@ PyTypeObject PY_TYPE_OBJECT_NAME = {
     .tp_basicsize = sizeof(PY_TYPE_NAME),
     .tp_name = MACRO_CONCAT("spyke.math.Vector", MACRO_STRINGIFY(VEC_LEN)),
     .tp_new = PyType_GenericNew,
-    .tp_init = (initproc)VECTOR_INIT_FUNC,
+    .tp_init = (initproc)PyVector_init,
     .tp_str = (reprfunc)VECTOR_STR_FUNC,
     .tp_richcompare = (richcmpfunc)PyVector_richcompare,
     .tp_iter = (getiterfunc)PyVector_Iter,

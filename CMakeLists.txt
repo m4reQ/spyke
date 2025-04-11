@@ -21,6 +21,7 @@ Python_add_library(
     math MODULE
     "src_c/math/math.c"
     "src_c/math/vectorIter.c"
+    "src_c/math/vectorUtils.c"
     "src_c/math/vector2.c"
     "src_c/math/vector3.c"
     "src_c/math/vector4.c"
