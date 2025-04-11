@@ -34,7 +34,11 @@ static size_t GetIndex(PyObject *index)
         if (!PyLong_Check(m))
             goto invalid_index_type;
 
-        idx = PyLong_AsSize_t(n) * MAT_LEN + PyLong_AsSize_t(m);
+        idx = PyLong_AsSize_t(m) * MAT_LEN + PyLong_AsSize_t(n);
+    }
+    else
+    {
+        goto invalid_index_type;
     }
 
     if (idx >= MAT_LEN * MAT_LEN)
@@ -86,11 +90,41 @@ static Py_ssize_t PyMatrix_mp_length(PY_TYPE_NAME *self)
 
 static PyObject *PyMatrix_mp_subscript(PY_TYPE_NAME *self, PyObject *index)
 {
-    size_t idx = GetIndex(index);
-    if (idx == (size_t)-1)
-        return NULL;
+    float value;
 
-    return PyFloat_FromDouble((double)((float *)self->data)[idx]);
+    const Py_ssize_t idx = PyLong_AsSsize_t(index);
+    if (!PyErr_Occurred())
+    {
+        if (idx >= MAT_LEN * MAT_LEN)
+        {
+            PyErr_Format(PyExc_IndexError, "Index outside of bounds for matrix %dx%d: %zu.", MAT_LEN, MAT_LEN, idx);
+            return NULL;
+        }
+
+        value = ((float *)self->data)[idx];
+        goto success;
+    }
+
+    PyErr_Clear();
+
+    Py_ssize_t m, n;
+    if (PyArg_ParseTuple(index, "nn", &m, &n))
+    {
+        if (m >= MAT_LEN || n >= MAT_LEN)
+        {
+            PyErr_Format(PyExc_IndexError, "Index outside of bounds for matrix %dx%d: %zux%zu.", MAT_LEN, MAT_LEN, m, n);
+            return NULL;
+        }
+
+        value = self->data[m][n];
+        goto success;
+    }
+
+    PyErr_Format(PyExc_IndexError, "Invalid index for Matrix" MACRO_STRINGIFY(MAT_LEN) ": %d", idx);
+    return NULL;
+
+success:
+    return PyFloat_FromDouble((double)value);
 }
 
 static int PyMatrix_ass_subscript(PY_TYPE_NAME *self, PyObject *index, PyObject *value)
@@ -98,15 +132,45 @@ static int PyMatrix_ass_subscript(PY_TYPE_NAME *self, PyObject *index, PyObject 
     PyObject *valueFloat = PyNumber_Float(value);
     if (valueFloat == NULL)
     {
-        PyErr_Format(PyExc_TypeError, "Matrix value must be float, not: %s.", Py_TYPE(value)->tp_name);
+        PyErr_Format(PyExc_TypeError, "Matrix value must be convertible to float, not: %s.", Py_TYPE(value)->tp_name);
         return -1;
     }
 
-    size_t idx = GetIndex(index);
-    if (idx == (size_t)-1)
-        return -1;
+    float _value = (float)PyFloat_AS_DOUBLE(valueFloat);
+    Py_DecRef(valueFloat);
 
-    ((float *)self->data)[idx] = (float)PyFloat_AS_DOUBLE(valueFloat);
+    const Py_ssize_t idx = PyLong_AsSsize_t(index);
+    if (!PyErr_Occurred())
+    {
+        if (idx >= MAT_LEN * MAT_LEN)
+        {
+            PyErr_Format(PyExc_IndexError, "Index outside of bounds for matrix %dx%d: %zu.", MAT_LEN, MAT_LEN, idx);
+            return -1;
+        }
+
+        ((float *)self->data)[idx] = _value;
+        goto success;
+    }
+
+    PyErr_Clear();
+
+    Py_ssize_t m, n;
+    if (PyArg_ParseTuple(index, "nn", &m, &n))
+    {
+        if (m >= MAT_LEN || n >= MAT_LEN)
+        {
+            PyErr_Format(PyExc_IndexError, "Index outside of bounds for matrix %dx%d: %zux%zu.", MAT_LEN, MAT_LEN, m, n);
+            return -1;
+        }
+
+        self->data[m][n] = _value;
+        goto success;
+    }
+
+    PyErr_Format(PyExc_IndexError, "Invalid index for Matrix" MACRO_STRINGIFY(MAT_LEN) ": %d", idx);
+    return -1;
+
+success:
     return 0;
 }
 #pragma endregion
@@ -435,7 +499,6 @@ static PY_TYPE_NAME *PyMatrix_identity(PyTypeObject *cls, PyObject *args, PyObje
 
     PY_TYPE_NAME *new = PyObject_New(PY_TYPE_NAME, cls);
     new = (PY_TYPE_NAME *)PyObject_Init((PyObject *)new, cls);
-
     GLM_CALL_FUNC(identity, new->data);
 
     return new;
