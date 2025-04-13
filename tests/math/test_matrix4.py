@@ -1,6 +1,8 @@
+import struct
+
 import pytest
 
-from spyke.math import Matrix4, Vector3
+from spyke.math import Matrix3, Matrix4, Vector3, Vector4
 
 
 def test_matrix4_identity():
@@ -86,3 +88,36 @@ def test_matrix4_rotate_vector():
 def test_matrix4_rotate_axis_angle():
     m = Matrix4.identity()
     m.rotate(90, Vector3(0, 1, 0))
+
+def test_matrix4_constructor_buffer():
+    data = struct.pack('16f', *(float(i) for i in range(16)))
+    m = Matrix4(data)
+
+    assert all(m[i] == pytest.approx(float(i)) for i in range(16))
+
+def test_matrix4_constructor_list():
+    data = [float(i) for i in range(16)]
+    m = Matrix4(data)
+
+    assert all(m[i] == pytest.approx(float(i)) for i in range(16))
+
+def test_matrix4_constructor_tuple():
+    data = tuple(float(i) for i in range(16))
+    m = Matrix4(data)
+
+    assert all(m[i] == pytest.approx(float(i)) for i in range(16))
+
+def test_matrix4_constructor_topleft():
+    topleft = Matrix3.identity()
+    m = Matrix4(topleft)
+
+    assert m[0, 0] == 1.0 and m[1, 1] == 1.0 and m[2, 2] == 1.0
+
+def test_matrix4_constructor_vectors():
+    m = Matrix4(
+        Vector4(1.0, 0.0, 0.0, 0.0),
+        Vector4(0.0, 2.0, 0.0, 0.0),
+        Vector4(0.0, 0.0, 3.0, 0.0),
+        Vector4(0.0, 0.0, 0.0, 4.0))
+
+    assert m[0, 0] == 1.0 and m[1, 1] == 2.0 and m[2, 2] == 3.0 and m[3, 3] == 4.0

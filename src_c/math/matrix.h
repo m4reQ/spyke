@@ -5,7 +5,7 @@
 typedef struct
 {
     PY_OBJECT_HEAD;
-    float data[];
+    CGLM_ALIGN_MAT float data[];
 } _PyMatrixAbstract;
 
 typedef struct

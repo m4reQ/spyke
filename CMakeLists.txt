@@ -28,6 +28,7 @@ Python_add_library(
     "src_c/math/matrix2.c"
     "src_c/math/matrix3.c"
     "src_c/math/matrix4.c"
+    "src_c/math/matrixUtils.c"
     "src_c/math/viewport.c")
 target_link_libraries(math PRIVATE cglm)
 Python_add_library(profiling MODULE "src_c/profiling.c")

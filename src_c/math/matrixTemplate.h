@@ -1,9 +1,18 @@
 // Do not add include guard to this file
 #include "matrix.h"
+#include "matrixUtils.h"
 #include "vector.h"
 
 #ifndef MAT_LEN
 #error "Matrix template: MAT_LEN not defined"
+#endif
+
+#if MAT_LEN == 2 && !defined(TOPLEFT_MATRIX_PY_TYPE)
+#define TOPLEFT_MATRIX_PY_TYPE NULL
+#endif
+
+#if !defined(TOPLEFT_MATRIX_PY_TYPE)
+#error "Matrix tempate: TOPLEFT_MATRIX_PY_TYPE not defined"
 #endif
 
 #define GLM_TYPE_NAME MACRO_CONCAT(mat, MAT_LEN)
@@ -13,45 +22,22 @@
 #define GLM_ZERO MACRO_CONCAT(MACRO_CONCAT(GLM_MAT, MAT_LEN), ZERO)
 #define GLM_ONE MACRO_CONCAT(MACRO_CONCAT(GLM_MAT, MAT_LEN), ONE)
 #define GLM_IDENTITY MACRO_CONCAT(MACRO_CONCAT(GLM_MAT, MAT_LEN), IDENTITY)
+#define MATRIX_INIT_MULTI_ARGS_FUNC MACRO_CONCAT(PY_TYPE_NAME, _init_multiple_args)
 
-static size_t GetIndex(PyObject *index)
+static int MATRIX_INIT_MULTI_ARGS_FUNC(float *matrixData, PyObject *args);
+
+static int PyMatrix_init(PY_TYPE_NAME *self, PyObject *args, PyObject *kwargs)
 {
-    size_t idx = 0;
-    if (PyLong_Check(index))
-    {
-        idx = PyLong_AsSize_t(index);
-    }
-    else if (PyTuple_Check(index))
-    {
-        if (PyTuple_GET_SIZE(index) != 2)
-            goto invalid_index_type;
+    (void)kwargs;
 
-        PyObject *n = PyTuple_GET_ITEM(index, 0);
-        if (!PyLong_Check(n))
-            goto invalid_index_type;
+    const Py_ssize_t nArgs = PyTuple_GET_SIZE(args);
+    if (nArgs == 1)
+        return PyMatrix_init_one_arg(&self->data[0][0], PyTuple_GET_ITEM(args, 0), (PyObject *)TOPLEFT_MATRIX_PY_TYPE, MAT_LEN);
+    else if (nArgs == MAT_LEN)
+        return MATRIX_INIT_MULTI_ARGS_FUNC(&self->data[0][0], args);
 
-        PyObject *m = PyTuple_GET_ITEM(index, 0);
-        if (!PyLong_Check(m))
-            goto invalid_index_type;
-
-        idx = PyLong_AsSize_t(m) * MAT_LEN + PyLong_AsSize_t(n);
-    }
-    else
-    {
-        goto invalid_index_type;
-    }
-
-    if (idx >= MAT_LEN * MAT_LEN)
-    {
-        PyErr_Format(PyExc_IndexError, "Invalid index for Matrix" MACRO_STRINGIFY(MAT_LEN) ": %d", idx);
-        return (size_t)-1;
-    }
-
-    return idx;
-
-invalid_index_type:
-    PyErr_Format(PyExc_RuntimeError, "Matrix index must either be int or tuple[int, int], not %s.", Py_TYPE(index)->tp_name);
-    return (size_t)-1;
+    PyErr_Format(PyExc_ValueError, "Expected 1 or %zu arguments, got: %zu.", MAT_LEN, nArgs);
+    return -1;
 }
 
 #pragma region as_buffer
@@ -398,7 +384,7 @@ static PyObject *PyMatrix_rotate(PY_TYPE_NAME *self, PyObject *const *args, Py_s
     }
     else if (nArgs == 1)
     {
-        rotation = args[0];
+        rotation = (PyVector3 *)args[0];
         if (!PyObject_IsInstance((PyObject *)rotation, (PyObject *)&PyVector3_Type))
         {
             PyErr_Format(PyExc_TypeError, "Expected argument to be of type %s, got: %s.", PyVector3_Type.tp_name, Py_TYPE(rotation)->tp_name);
@@ -523,6 +509,7 @@ PyTypeObject PY_TYPE_OBJECT_NAME = {
     .tp_basicsize = sizeof(PY_TYPE_NAME),
     .tp_name = MACRO_CONCAT("spyke.math.Matrix", MACRO_STRINGIFY(MAT_LEN)),
     .tp_new = PyType_GenericNew,
+    .tp_init = (initproc)PyMatrix_init,
     .tp_as_buffer = &(PyBufferProcs){
         .bf_getbuffer = (getbufferproc)PyMatrix_bf_getbuffer,
     },
